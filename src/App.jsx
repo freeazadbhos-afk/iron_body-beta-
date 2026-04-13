@@ -7041,10 +7041,10 @@ import "./styles.css";
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 17, color: th.text }}>
+              <div style={{ fontWeight: 700, fontSize: 17, color: th.text, textAlign: "left" }}>
                 {user.name}
               </div>
-              <div style={{ fontSize: 12, color: th.muted }}>{user.email}</div>
+              <div style={{ fontSize: 12, color: th.muted, textAlign: "left" }}>{user.email}</div>
             </div>
             <button
               onClick={() => {
@@ -7364,7 +7364,7 @@ import "./styles.css";
         )}
         {/* Body measurements card */}
         <div
-          style={{ ...S.card, padding: 0, marginBottom: 12, overflow: "hidden" }}
+          style={{ ...S.card, padding: 0, marginBottom: 12, overflow: "hidden", textAlign: "left", }}
         >
           <div
             style={{
@@ -7617,7 +7617,7 @@ import "./styles.css";
                   >
                     {fmtDate(m.date)}
                   </span>
-                  <span style={{ fontSize: 12, color: th.sub, flex: 1 }}>
+                  <span style={{ fontSize: 12, color: th.sub, flex: 1, textAlign: "left", }}>
                     {m.weight ? m.weight + " kg" : ""}
                     {m.muscle ? ` · ${m.muscle}% muscle` : ""}
                     {m.fat ? ` · ${m.fat}% fat` : ""}
@@ -7677,7 +7677,7 @@ import "./styles.css";
 
         {!editMode && (
           <>
-            <div style={{ ...S.card, padding: 16, marginBottom: 12 }}>
+            <div style={{ ...S.card, padding: 16, marginBottom: 12, textAlign: "left", }}>
               <div style={{ ...S.label, marginBottom: 14 }}>APPEARANCE</div>
               <div
                 style={{
@@ -7688,10 +7688,10 @@ import "./styles.css";
                 }}
               >
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: th.text }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: th.text, textAlign: "left", }}>
                     Dark mode
                   </div>
-                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
+                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2, textAlign: "left", }}>
                     Auto: dark 20:00–06:00
                   </div>
                 </div>
@@ -7762,7 +7762,7 @@ import "./styles.css";
           </>
         )}
         {/* Feedback card */}
-        <div style={{ ...S.card, marginBottom: 12, overflow: "hidden" }}>
+        <div style={{ ...S.card, marginBottom: 12, overflow: "hidden", textAlign: "left", }}>
           <div
             style={{
               padding: "14px 18px",
@@ -7772,10 +7772,10 @@ import "./styles.css";
             }}
           >
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: th.text }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: th.text, textAlign: "left", }}>
                 {isAdmin ? "User Feedback" : "Send Feedback"}
               </div>
-              <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: th.muted, marginTop: 2, textAlign: "left", }}>
                 {isAdmin
                   ? "All submitted reports"
                   : "Report bugs or suggest features"}
@@ -7979,7 +7979,7 @@ import "./styles.css";
             }}
           >
             <div>
-              <div style={{ fontWeight: 700, fontSize: 15, color: th.text }}>
+              <div style={{ fontWeight: 700, fontSize: 15, color: th.text, textAlign: "left", }}>
                 Change Log
               </div>
               <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>
@@ -8009,7 +8009,7 @@ import "./styles.css";
           </div>
 
           {showChangelog && (
-            <div style={{ borderTop: `1px solid ${th.border}` }}>
+            <div style={{ borderTop: `1px solid ${th.border}`, textAlign: "left", }}>
               {/* Admin post form */}
               {isAdmin && (
                 <div
