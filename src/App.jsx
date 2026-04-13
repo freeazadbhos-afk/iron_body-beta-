@@ -9453,6 +9453,7 @@ import "./styles.css";
                     color: th.text,
                     lineHeight: 1,
                     flex: 1,
+                    textAlign: "left",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -9484,7 +9485,7 @@ import "./styles.css";
                 {view === "home" && (
                   <div
                     onClick={() => { setCalOffset(0); setShowCal(true); setCalClosing(false); }}
-                    style={{ textAlign: "right", flexShrink: 0, marginLeft: 10, cursor: "pointer" }}
+                    style={{ textAlign: "right", flexShrink: 0, marginLeft: 20, cursor: "pointer" }}
                   >
                     <div
                       style={{
