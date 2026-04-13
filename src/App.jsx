@@ -3418,7 +3418,7 @@ import "./styles.css";
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
-        <div style={{ marginBottom: 22 }}>
+        <div style={{ marginBottom: 22, textAlign: "left", }}>
           <div
             className="bebas"
             style={{
@@ -3429,7 +3429,7 @@ import "./styles.css";
           >
             {getTimeGreeting()}, {firstName}!
           </div>
-          <div style={{ fontSize: 16, color: th.muted, marginTop: 4 }}>
+          <div style={{ fontSize: 16, color: th.muted, marginTop: 4, textAlign: "left", }}>
             {
               GREETINGS[
                 (new Date().getDay() * 3 + new Date().getHours()) %
@@ -3440,7 +3440,7 @@ import "./styles.css";
         </div>
 
         {/* This Week — removed Volume, expanded muscles */}
-        <div style={{ ...S.card, padding: 16, marginBottom: 10 }}>
+        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
           <div style={{ ...S.label, marginBottom: 14 }}>
             YOUR 7-DAY HIGHLIGHTS
           </div>
@@ -3525,6 +3525,7 @@ import "./styles.css";
             <div
               style={{
                 fontSize: 10,
+                textAlign: "left",
                 color: th.dim,
                 letterSpacing: "1.5px",
                 marginBottom: 7,
