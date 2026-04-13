@@ -9448,7 +9448,7 @@ import "./styles.css";
                 <div
                   className="bebas"
                   style={{
-                    fontSize: 32,
+                    fontSize: 40,
                     letterSpacing: 2,
                     color: th.text,
                     lineHeight: 1,
