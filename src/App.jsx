@@ -4047,7 +4047,9 @@ import "./styles.css";
                   onClick={() => onOpenShortcut(p)}
                   style={{
                     width: "100%",
-                    background: th.card,
+                    background: `color-mix(in srgb, ${th.card} 35%, transparent)`,
+                    backdropFilter: "blur(12px)",
+                    WebkitBackdropFilter: "blur(12px)",
                     border: `1px solid ${th.border}`,
                     borderRadius: 14,
                     padding: "15px 13px",
