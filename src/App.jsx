@@ -68,6 +68,7 @@ import "./styles.css";
     row: "#1a1a1f",
     nav: "#0a0a0d",
     navB: "#1a1a1f",
+    navInactive: "#888890",
     sect: "#111115",
     accentBg: "#c8f030",
     accentT: "#080809",
@@ -94,6 +95,7 @@ import "./styles.css";
     row: "#ece9e2",
     nav: "#ffffff",
     navB: "#e0dfd8",
+    navInactive: "#555555",
     sect: "#f5f4ef",
     accentBg: "#c8f030",
     accentT: "#1a1a1a",
@@ -9750,7 +9752,7 @@ import "./styles.css";
               right: 24,  // Pulls it in from the right
               borderRadius: 200, // Creates the rounded pill shape
               display: "flex",
-              background: `color-mix(in srgb, ${th.nav} 40%, transparent)`, 
+              background: `color-mix(in srgb, ${th.nav} 30%, transparent)`, 
               backdropFilter: "blur(12px)",
               WebkitBackdropFilter: "blur(12px)",
               border: `1px solid ${th.navB}`, // Changed from borderTop to a full border
@@ -9762,7 +9764,7 @@ import "./styles.css";
               {NAV.map((tab) => {
                 const isActive =
                   view === tab.id || (view === "workout" && tab.id === "home");
-                const col = isActive ? th.accentFg : th.dim;
+                  const col = isActive ? th.accentFg : th.navInactive;
                 return (
                   <button
                     key={tab.id}
@@ -9776,7 +9778,7 @@ import "./styles.css";
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      padding: "20px 0 20px",
+                      padding: "15px 0 15px",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
