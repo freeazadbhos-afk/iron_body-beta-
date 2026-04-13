@@ -8533,7 +8533,7 @@ import "./styles.css";
           <Btn
             onClick={() => onStart({ ...program, exs })}
             disabled={exs.length === 0}
-            style={{ width: "100%", fontSize: 16, padding: "15px" }}
+            style={{ width: "100%", fontSize: 20, padding: "15px" }}
           >
             START WORKOUT →
           </Btn>
@@ -9751,7 +9751,7 @@ import "./styles.css";
             <div
             style={{
               position: "absolute",
-              bottom: 10, // Lifts it off the bottom edge
+              bottom: 20, // Lifts it off the bottom edge
               left: 24,   // Pulls it in from the left
               right: 24,  // Pulls it in from the right
               borderRadius: 200, // Creates the rounded pill shape
