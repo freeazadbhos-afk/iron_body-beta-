@@ -3766,7 +3766,7 @@ import "./styles.css";
 
         {/* Body composition dashboard */}
         {measurements && measurements.length > 0 && (
-          <div style={{ ...S.card, padding: 16, marginBottom: 10 }}>
+          <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
             <div style={{ ...S.label, marginBottom: 12 }}>BODY COMPOSITION</div>
             {(() => {
               const latest = measurements[0];
@@ -4191,7 +4191,7 @@ import "./styles.css";
 
         {sessions.length > 0 && (
           <>
-            <div style={{ ...S.label, marginBottom: 12 }}>RECENT SESSIONS</div>
+            <div style={{ ...S.label, marginBottom: 12, textAlign: "left", }}>RECENT SESSIONS</div>
             {sessions.slice(0, 3).map((s) => (
               <div
                 key={s.id}
@@ -4200,6 +4200,7 @@ import "./styles.css";
                   ...S.card,
                   padding: "14px 16px",
                   marginBottom: 8,
+                  textAlign: "left",
                   cursor: "pointer",
                   transition: "border-color .2s",
                 }}
@@ -6308,18 +6309,19 @@ import "./styles.css";
                       style={{
                         fontWeight: 700,
                         fontSize: 15,
+                        textAlign: "left",
                         color: th.text,
                         marginBottom: 4,
                       }}
                     >
                       {s.name}
                     </div>
-                    <div style={{ fontSize: 12, color: th.muted }}>
+                    <div style={{ fontSize: 12, color: th.muted, textAlign: "left", }}>
                       {fmtDate(s.startTime)} · {s.doneSets}/{s.totalSets} sets ·{" "}
                       {s.duration || "?"}min
                       {s.calories ? ` · ${s.calories}kcal` : ""}
                     </div>
-                    <div style={{ fontSize: 12, color: th.dim, marginTop: 2 }}>
+                    <div style={{ fontSize: 12, color: th.dim, marginTop: 2,textAlign: "left", }}>
                       <span style={{ color: th.accentFg, fontWeight: 700 }}>
                         tap for details →
                       </span>
@@ -7070,21 +7072,21 @@ import "./styles.css";
           </div>
           {editMode && (
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
-              <div style={{ ...S.label, marginBottom: 6 }}>DISPLAY NAME</div>
+              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>DISPLAY NAME</div>
               <input
                 type="text"
                 value={eName}
                 onChange={(e) => setEName(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
               />
-              <div style={{ ...S.label, marginBottom: 6 }}>EMAIL</div>
+              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>EMAIL</div>
               <input
                 type="email"
                 value={eEmail}
                 onChange={(e) => setEEmail(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
               />
-              <div style={{ ...S.label, marginBottom: 8 }}>
+              <div style={{ ...S.label, marginBottom: 8, textAlign: "left", }}>
                 PROFILE PHOTO{" "}
                 <span
                   style={{
@@ -7180,7 +7182,7 @@ import "./styles.css";
                   ✕ Remove photo
                 </button>
               )}
-              <div style={{ ...S.label, marginBottom: 6 }}>
+              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>
                 NEW PASSWORD{" "}
                 <span style={{ color: th.dim, fontSize: 9, letterSpacing: 0 }}>
                   (leave blank to keep)
@@ -7304,7 +7306,7 @@ import "./styles.css";
         {!editMode && (
           <>
             <div style={{ ...S.card, padding: 16, marginBottom: 12 }}>
-              <div style={{ ...S.label, marginBottom: 14 }}>
+              <div style={{ ...S.label, marginBottom: 14, textAlign: "left", }}>
                 {new Date().getFullYear()} STATS
               </div>
               {(() => {
@@ -9549,7 +9551,7 @@ import "./styles.css";
                     disabled={false}
                     style={{
                       background: "transparent",
-                      border: `1px solid ${th.inputB}`,
+                      border: `2px solid ${th.inputB}`,
                       borderRadius: 9,
                       color: th.accentFg,
                       fontSize: 13,
@@ -9569,7 +9571,7 @@ import "./styles.css";
               </div>
               {/* Pure gradient fade strip — no content, just dissolves edge */}
               <div style={{
-                height: 16,
+                height: 0,
                 background: `linear-gradient(to bottom, ${th.bg}, transparent)`,
                 pointerEvents: "none",
               }} />
