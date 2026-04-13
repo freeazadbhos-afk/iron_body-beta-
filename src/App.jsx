@@ -9779,7 +9779,7 @@ import "./styles.css";
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      padding: "15px 0 15px",
+                      padding: "10px 0 10px",
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
