@@ -1,4 +1,5 @@
 import "./styles.css";
+  import { createPortal } from "react-dom";
   import {
     useState,
     useEffect,
@@ -1862,7 +1863,9 @@ import "./styles.css";
           padding: "15px 22px",
           transition: "opacity .2s",
           opacity: disabled ? 0.3 : 1,
-          background: th.accentBg,
+          background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
           color: th.accentT,
           ...style,
         }}
@@ -2026,14 +2029,14 @@ import "./styles.css";
           {value}kg
         </div>
 
-        {open && (
+        {open && createPortal(
           <>
             <div
               onClick={() => closeWp()}
               style={{
                 position: "fixed",
                 inset: 0,
-                zIndex: 199,
+                zIndex: 1199,
                 background: "rgba(0,0,0,.35)",
               }}
             />
@@ -2045,7 +2048,7 @@ import "./styles.css";
                 transform: "translateX(-50%)",
                 width: "100%",
                 maxWidth: 480,
-                zIndex: 200,
+                zIndex: 1200,
                 background: th.card,
                 borderRadius: "18px 18px 0 0",
                 border: `1px solid ${th.border}`,
@@ -2121,7 +2124,9 @@ import "./styles.css";
                 <button
                   onClick={() => closeWp()}
                   style={{
-                    background: th.accentBg,
+                    background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
                     border: "none",
                     borderRadius: 8,
                     color: th.accentT,
@@ -2285,7 +2290,8 @@ import "./styles.css";
                 ))}
               </div>
             </div>
-          </>
+          </>,
+          document.body
         )}
       </div>
     );
@@ -2606,7 +2612,9 @@ import "./styles.css";
         style={{
           position: "fixed",
           inset: 0,
-          background: "rgba(0,0,0,.9)",
+          background: "rgba(0,0,0,0.45)",
+          backdropFilter: "blur(18px)",
+          WebkitBackdropFilter: "blur(18px)",
           zIndex: 100,
           display: "flex",
           flexDirection: "column",
@@ -2618,12 +2626,14 @@ import "./styles.css";
         <style>{`
           @keyframes epFadeIn  { from { opacity: 0; } to { opacity: 1; } }
           @keyframes epFadeOut { from { opacity: 1; } to { opacity: 0; } }
-          @keyframes epSlideUp   { from { transform: translateY(100%); opacity:0.5; } to { transform: translateY(0); opacity:1; } }
+          @keyframes epSlideUp   { from { transform: translateY(100%); opacity:0.6; } to { transform: translateY(0); opacity:1; } }
           @keyframes epSlideDown { from { transform: translateY(0); opacity:1; } to { transform: translateY(100%); opacity:0; } }
         `}</style>
         <div
           style={{
-            background: th.card,
+            background: `color-mix(in srgb, ${th.card} 85%, transparent)`,
+            backdropFilter: "blur(5px)",
+            WebkitBackdropFilter: "blur(10px)",
             borderRadius: "20px 20px 0 0",
             borderTop: `1px solid ${th.border}`,
             marginTop: 50,
@@ -2654,7 +2664,9 @@ import "./styles.css";
                   <button
                     onClick={confirmAdd}
                     style={{
-                      background: th.accentBg,
+                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
                       border: "none",
                       borderRadius: 9,
                       color: th.accentT,
@@ -2709,11 +2721,11 @@ import "./styles.css";
                     borderRadius: 20,
                     border: "none",
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     whiteSpace: "nowrap",
                     fontFamily: "'Outfit',sans-serif",
-                    background: flt === f.label ? th.accentBg : th.row,
+                    background: flt === f.label ? th.accentBg : th.bg,
                     color: flt === f.label ? th.accentT : th.muted,
                     transition: "all .15s",
                     flexShrink: 0,
@@ -2769,6 +2781,7 @@ import "./styles.css";
                     <div
                       style={{
                         fontSize: 11,
+                        textAlign: "left",
                         color: gc(e.group),
                         marginTop: 3,
                         fontWeight: 600,
@@ -2819,7 +2832,9 @@ import "./styles.css";
                 onClick={confirmAdd}
                 style={{
                   width: "100%",
-                  background: th.accentBg,
+                  background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
                   border: "none",
                   borderRadius: 13,
                   padding: "14px",
@@ -2932,7 +2947,9 @@ import "./styles.css";
             onClick={onClose}
             style={{
               width: "100%",
-              background: th.accentBg,
+              background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
               border: "none",
               borderRadius: 12,
               padding: "13px",
@@ -4354,47 +4371,7 @@ import "./styles.css";
     const S = useS();
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
-        {active && (
-          <div
-            onClick={onGoWorkout}
-            style={{
-              background: th.accentBg,
-              borderRadius: 13,
-              padding: "10px 16px",
-              marginBottom: 14,
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div>
-              <div
-                style={{
-                  color: th.accentT,
-                  fontWeight: 700,
-                  fontSize: 11,
-                  letterSpacing: "1.5px",
-                }}
-              >
-                WORKOUT IN PROGRESS — TAP TO RETURN
-              </div>
-              <div
-                style={{
-                  color: th.accentT,
-                  opacity: 0.7,
-                  fontSize: 12,
-                  marginTop: 1,
-                }}
-              >
-                {active.name}
-              </div>
-            </div>
-            <span style={{ color: th.accentT, fontSize: 18, fontWeight: 800 }}>
-              →
-            </span>
-          </div>
-        )}
+
         <div style={{ marginBottom: 12, marginTop: 4 }} />
         {programs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 18px" }}>
@@ -4471,7 +4448,9 @@ import "./styles.css";
                   <button
                     onClick={() => onStart(p)}
                     style={{
-                      background: th.accentBg,
+                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
                       border: "none",
                       borderRadius: 8,
                       color: th.accentT,
@@ -6936,7 +6915,9 @@ import "./styles.css";
               <button
                 onClick={() => setShowUpgrade(true)}
                 style={{
-                  background: th.accentBg,
+                  background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
                   border: "none",
                   borderRadius: 10,
                   color: th.accentT,
@@ -7348,10 +7329,10 @@ import "./styles.css";
                 const yrVolDisplay = yrVol >= 1000
                   ? `${(yrVol / 1000).toFixed(1)}t`
                   : `${Math.round(yrVol).toLocaleString()}kg`;
-                const yearDays = Math.max(1, Math.ceil((Date.now() - yearStart) / (1000 * 60 * 60 * 24)));
-                const totalCals = yrSess.reduce((a, s) => a + (s.calories || 0), 0);
-                const avgCalsPerDay = totalCals > 0
-                  ? Math.round(totalCals / yearDays).toLocaleString() + " kcal"
+                const sessWithCals = yrSess.filter((s) => (s.calories || 0) > 0);
+                const totalCals = sessWithCals.reduce((a, s) => a + (s.calories || 0), 0);
+                const avgCalsPerDay = sessWithCals.length > 0
+                  ? Math.round(totalCals / sessWithCals.length).toLocaleString() + " kcal"
                   : "—";
                 const tiles = [
                   { v: yrSess.length, l: "SESSIONS" },
@@ -7359,7 +7340,7 @@ import "./styles.css";
                   { v: yrAvgInt + "/10", l: "AVG INTENSITY" },
                   { v: yrVolDisplay, l: "VOLUME" },
                   { v: yrAvgDur, l: "AVG DURATION" },
-                  { v: avgCalsPerDay, l: "AVG CALS/DAY" },
+                  { v: avgCalsPerDay, l: "AVG CALS/SESSION" },
                 ];
                 return (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
@@ -8690,6 +8671,8 @@ import "./styles.css";
     const closeCal = () => { setCalClosing(true); setTimeout(() => { setShowCal(false); setCalClosing(false); }, 200); };
     const [measurements, setMeasurements] = useState([]);
     const [paused, setPaused] = useState(false);
+    const [pillPressing, setPillPressing] = useState(false);
+    const [workoutExiting, setWorkoutExiting] = useState(false);
     const elRef = useRef(0);
     const [elapsed, setElapsed] = useState(0);
     const timerRef = useRef(null);
@@ -9328,7 +9311,9 @@ import "./styles.css";
                       handleFinishWorkout(active.exercises);
                     }}
                     style={{
-                      background: th.accentBg,
+                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
                       border: "none",
                       borderRadius: 9,
                       color: th.accentT,
@@ -9366,71 +9351,64 @@ import "./styles.css";
             </div>
           )}
 
-          {/* ── Floating "workout in progress" banner — visible on all tabs except workout ── */}
+          {/* ── Floating pill "workout in progress" — hovers above nav bar ── */}
           {active && view !== "workout" && (
             <div
-              onClick={() => setView("workout")}
+              onClick={() => {
+                if (pillPressing) return;
+                setPillPressing(true);
+                setTimeout(() => {
+                  setPillPressing(false);
+                  setView("workout");
+                }, 220);
+              }}
               style={{
-                flexShrink: 0,
-                background: th.accentBg,
+                position: "absolute",
+                bottom: 88,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: "calc(100% - 80px)",
+                maxWidth: 360,
+                zIndex: 15,
+                background: `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                borderRadius: 50,
                 cursor: "pointer",
-                zIndex: 20,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 18px 10px 20px",
+                gap: 10,
+                animation: pillPressing
+                  ? "pillPress 0.22s cubic-bezier(0.4,0,1,1) forwards"
+                  : "pillFadeIn 0.35s cubic-bezier(0,0,0.2,1) forwards",
               }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "9px 16px",
-                }}
-              >
-                <div>
-                  <div
-                    style={{
-                      color: th.accentT,
-                      fontWeight: 700,
-                      fontSize: 11,
-                      letterSpacing: "1.5px",
-                    }}
-                  >
-                    WORKOUT IN PROGRESS — TAP TO RETURN
-                  </div>
-                  <div
-                    style={{
-                      color: th.accentT,
-                      opacity: 0.75,
-                      fontSize: 12,
-                      marginTop: 1,
-                    }}
-                  >
-                    {active.name} · {wDoneSets}/{wTotalSets} sets
-                  </div>
+              <style>{`
+                @keyframes pillFadeIn {
+                  from { opacity: 0; transform: translateX(-50%) translateY(16px) scale(0.94); }
+                  to   { opacity: 1; transform: translateX(-50%) translateY(0)    scale(1); }
+                }
+                @keyframes pillPress {
+                  0%   { transform: translateX(-50%) translateY(0) scale(1);    opacity: 1; }
+                  40%  { transform: translateX(-50%) translateY(2px) scale(0.95); opacity: 0.85; }
+                  100% { transform: translateX(-50%) translateY(6px) scale(0.9);  opacity: 0; }
+                }
+              `}</style>
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ color: th.accentT, fontWeight: 700, fontSize: 10, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
+                  WORKOUT IN PROGRESS
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    className="bebas"
-                    style={{ color: th.accentT, fontSize: 18, letterSpacing: 1 }}
-                  >
-                    {fmtTime(elapsed)}
-                  </span>
-                  <span
-                    style={{ color: th.accentT, fontSize: 18, fontWeight: 700 }}
-                  >
-                    →
-                  </span>
+                <div style={{ color: th.accentT, opacity: 0.7, fontSize: 11, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {active.name} · {wDoneSets}/{wTotalSets} sets
                 </div>
               </div>
-              {/* thin progress strip */}
-              <div style={{ height: 3, background: "rgba(0,0,0,0.15)" }}>
-                <div
-                  style={{
-                    height: 3,
-                    width: `${wPct * 100}%`,
-                    background: "rgba(0,0,0,0.35)",
-                    transition: "width .4s ease",
-                  }}
-                />
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+                <span className="bebas" style={{ color: th.accentT, fontSize: 18, letterSpacing: 1 }}>
+                  {fmtTime(elapsed)}
+                </span>
+                <span style={{ color: th.accentT, fontSize: 16, fontWeight: 700 }}>→</span>
               </div>
             </div>
           )}
@@ -9576,7 +9554,9 @@ import "./styles.css";
                       setView("editProgram");
                     }}
                     style={{
-                      background: th.accentBg,
+                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
                       border: "none",
                       borderRadius: 10,
                       color: th.accentT,
@@ -9629,6 +9609,20 @@ import "./styles.css";
           )}
 
           {/* ── Scrollable content ── */}
+          <style>{`
+            @keyframes workoutFadeIn {
+              from { opacity: 0; transform: translateY(18px) scale(0.98); }
+              to   { opacity: 1; transform: translateY(0)    scale(1); }
+            }
+            @keyframes completeFadeIn {
+              from { opacity: 0; transform: translateY(24px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes pipExit {
+              from { opacity: 1; transform: translateY(0)   scale(1); }
+              to   { opacity: 0; transform: translateY(10px) scale(0.97); }
+            }
+          `}</style>
           <div
             key={view}
             style={{
@@ -9637,6 +9631,11 @@ import "./styles.css";
               overflowX: "hidden",
               padding: "68px 16px 0",
               minHeight: 0,
+              animation:
+                workoutExiting      ? "pipExit 0.32s cubic-bezier(0.4,0,1,1) forwards" :
+                view === "workout"  ? "workoutFadeIn 0.45s cubic-bezier(0,0,0.2,1) forwards" :
+                view === "complete" ? "completeFadeIn 0.4s ease-out forwards" :
+                undefined,
             }}
           >
             {view === "home" && (
@@ -9689,7 +9688,13 @@ import "./styles.css";
                 onFinish={handleFinishWorkout}
                 onAbandon={handleAbandon}
                 onSaveActive={saveActive}
-                onMinimize={() => setView("home")}
+                onMinimize={() => {
+                  setWorkoutExiting(true);
+                  setTimeout(() => {
+                    setWorkoutExiting(false);
+                    setView("home");
+                  }, 320);
+                }}
               />
             )}
             {view === "complete" && finished && (
