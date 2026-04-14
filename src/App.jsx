@@ -983,6 +983,59 @@ import "./styles.css";
     { id: "lg11", name: "Cable Hip Flexion", muscle: "Quads", group: "Legs" },
   ];
 
+
+  /* ─── Exercise Difficulty Map ────────────────────────────────────────────────
+     1 = Easy  (machine / simple isolation)
+     2 = Medium (dumbbell / cable compound / moderate free weight)
+     3 = Hard  (heavy barbell / technical compound / bodyweight hard)
+  ─────────────────────────────────────────────────────────────────────────────── */
+  const DIFFICULTY = {
+    // ── Chest ──────────────────────────────────────────────────────────────────
+    e1:"M", e2:"M", e3:"E", e4:"M", e5:"M", e6:"M", e7:"E", e8:"M",
+    e51:"H", e52:"H", e53:"M", e54:"M", e55:"M", e56:"M", e57:"M", e58:"E",
+    ch1:"M", ch3:"M",
+    // ── Back ───────────────────────────────────────────────────────────────────
+    e15:"M", e16:"M", e17:"M", e18:"E", e19:"M", e20:"H", e21:"E", e22:"M",
+    e59:"H", e60:"H", e61:"H", e62:"M", e63:"H", e64:"H", e65:"E", e66:"E",
+    e67:"M", e68:"M", e69:"H",
+    bk2:"H", bk3:"H", bk4:"H",
+    // ── Biceps ─────────────────────────────────────────────────────────────────
+    e9:"M", e10:"E", e11:"E", e12:"E", e13:"M", e14:"E",
+    e70:"M", e71:"M", e72:"E", e73:"M", e74:"M", e75:"E",
+    // ── Triceps ────────────────────────────────────────────────────────────────
+    e23:"E", e24:"M", e25:"M", e26:"E", e27:"H",
+    e76:"M", e77:"M", e78:"H", e79:"E", e80:"E", e81:"E",
+    // ── Forearms ───────────────────────────────────────────────────────────────
+    e41:"E", e82:"E", e83:"E",
+    ar5:"E", ar6:"E",
+    // ── Shoulders ──────────────────────────────────────────────────────────────
+    e28:"H", e29:"M", e30:"E", e31:"E", e32:"M", e33:"M",
+    e34:"E", e35:"E", e36:"E", e37:"E", e38:"M", e39:"E", e40:"E",
+    e84:"M", e85:"E", e86:"E", e87:"M", e88:"E", e89:"M", e90:"H", e91:"E",
+    sh1:"E", sh2:"E", sh4:"M",
+    // ── Legs ───────────────────────────────────────────────────────────────────
+    e42:"M", e43:"E", e44:"E", e45:"E", e46:"E", e47:"M", e48:"E", e49:"E", e50:"E",
+    e92:"H", e93:"H", e94:"H", e95:"M", e96:"E", e97:"E", e98:"E", e99:"E",
+    e100:"H", e101:"M", e102:"M", e103:"E", e104:"M", e105:"M", e106:"M",
+    g7:"M",
+    x1:"E", x2:"E", x3:"M", x4:"M", x5:"H", x6:"M", x7:"M", x9:"M", x10:"H",
+    x11:"E", x12:"E",
+    lg1:"H", lg2:"H", lg5:"E", lg6:"M", lg7:"M", lg8:"E", lg9:"E", lg10:"E", lg11:"E",
+    m17:"E", m18:"E", m19:"E", m22:"E", m23:"E", m24:"E", m25:"E", m26:"E",
+    // ── Core ───────────────────────────────────────────────────────────────────
+    x13:"M", x14:"H", x15:"M", x16:"M", x17:"M", x18:"E", x19:"E", x20:"E",
+    x21:"M", x22:"E", x23:"H", x24:"M", x25:"H", x26:"M", x27:"M", x28:"E",
+    x29:"E", x30:"M", x31:"E", x32:"M", x33:"H", x34:"M", x35:"E", x36:"M",
+    x37:"M", x38:"H", x39:"M", x40:"M", x41:"E", x42:"M", x43:"E", x44:"M",
+    x45:"E", x46:"M", x47:"M", x48:"M",
+    // ── Machines (all Easy) ────────────────────────────────────────────────────
+    m1:"E", m2:"E", m3:"E", m4:"E", m5:"E", m6:"E", m7:"E", m8:"E",
+    m9:"E", m10:"E", m11:"E", m12:"E", m13:"E", m14:"E", m15:"E", m16:"E",
+    // ── Cardio (all Easy — logging effort, not movement complexity) ────────────
+    c1:"E", c2:"E", c3:"E", c4:"E", c5:"E", c6:"E", c7:"E",
+    c8:"E", c9:"E", c10:"E", c11:"E", c12:"E", c13:"E",
+  };
+
   /* ─── Exercise picker muscle filter chips ─────────────────────────────────────
     Each entry: label shown in UI + filter function against a DB entry
   ─────────────────────────────────────────────────────────────────────────────── */
@@ -2778,16 +2831,28 @@ import "./styles.css";
                     >
                       {e.name}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        textAlign: "left",
-                        color: gc(e.group),
-                        marginTop: 3,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {e.muscle.toUpperCase()}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: gc(e.group), fontWeight: 600 }}>
+                        {e.muscle.toUpperCase()}
+                      </span>
+                      {(() => {
+                        const d = DIFFICULTY[e.id];
+                        if (!d) return null;
+                        const cfg = d === "H"
+                          ? { label: "HARD", bg: "rgba(255,107,107,0.15)", color: "#ff6b6b" }
+                          : d === "M"
+                          ? { label: "MED",  bg: "rgba(253,150,68,0.15)",  color: "#fd9644" }
+                          : { label: "EASY", bg: "rgba(34,168,85,0.15)",   color: "#2db55d" };
+                        return (
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, letterSpacing: "0.8px",
+                            padding: "2px 6px", borderRadius: 4,
+                            background: cfg.bg, color: cfg.color,
+                          }}>
+                            {cfg.label}
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div
@@ -4193,7 +4258,8 @@ import "./styles.css";
                     <span
                       style={{
                         flex: 1,
-                        fontSize: 14,
+                        fontSize: 15,
+                        textAlign: "left",
                         color: th.text,
                         fontWeight: 500,
                       }}
@@ -4203,7 +4269,7 @@ import "./styles.css";
                     <span
                       style={{
                         color: th.accentFg,
-                        fontSize: 18,
+                        fontSize: 28,
                         fontWeight: 700,
                       }}
                     >
@@ -6171,39 +6237,13 @@ import "./styles.css";
     elapsed,
     onViewDetail,
     onGoWorkout,
-    onSync,
     onDelete,
   }) {
     const th = useTheme();
     const S = useS();
-    const [syncing, setSyncing] = useState(false);
-    const [syncMsg, setSyncMsg] = useState("");
     const [confirmDelete, setConfirmDelete] = useState(null); // session id pending delete
-    const handleSync = async () => {
-      setSyncing(true);
-      setSyncMsg("");
-      try {
-        await onSync();
-      } catch (e) {
-        setSyncMsg("Sync failed — check connection");
-      } finally {
-        setSyncing(false);
-      }
-    };
     return (
       <div style={{ paddingBottom: 90 }} className="slide-up">
-        {syncMsg && (
-          <div
-            style={{
-              fontSize: 12,
-              color: "#ff6b6b",
-              marginBottom: 12,
-              marginTop: 4,
-            }}
-          >
-            {syncMsg}
-          </div>
-        )}
         {sessions.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 16px" }}>
             <div className="bebas" style={{ fontSize: 42, color: th.border }}>
@@ -6586,6 +6626,45 @@ import "./styles.css";
   }
 
   /* ─── Profile View ───────────────────────────────────────────────────────────── */
+  /* ─── ProfileSection — animated expand/collapse wrapper ─────────────────────── */
+  function ProfileSection({ open, children }) {
+    const [mounted, setMounted] = useState(open);
+    const [closing, setClosing] = useState(false);
+    useEffect(() => {
+      if (open) {
+        setMounted(true);
+        setClosing(false);
+      } else if (mounted) {
+        setClosing(true);
+        const t = setTimeout(() => { setMounted(false); setClosing(false); }, 240);
+        return () => clearTimeout(t);
+      }
+    }, [open]);
+    if (!mounted) return null;
+    return (
+      <>
+        <style>{`
+          @keyframes profExpand {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes profCollapse {
+            from { opacity: 1; transform: translateY(0); }
+            to   { opacity: 0; transform: translateY(-8px); }
+          }
+        `}</style>
+        <div style={{
+          overflow: "hidden",
+          animation: closing
+            ? "profCollapse 0.24s ease-in forwards"
+            : "profExpand 0.28s cubic-bezier(0,0,0.2,1) forwards",
+        }}>
+          {children}
+        </div>
+      </>
+    );
+  }
+
   function ProfileView({
     user,
     sessions,
@@ -7063,7 +7142,7 @@ import "./styles.css";
               {editMode ? "Cancel" : "Edit"}
             </button>
           </div>
-          {editMode && (
+          <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
               <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>DISPLAY NAME</div>
               <input
@@ -7307,7 +7386,7 @@ import "./styles.css";
                 </button>
               </div>
             </div>
-          )}
+          </ProfileSection>
         </div>{/* end profile card */}
         {!editMode && (
           <>
@@ -7459,7 +7538,7 @@ import "./styles.css";
             </div>
           )}
           {/* Log form */}
-          {showMeasure && (
+          <ProfileSection open={showMeasure}>
             <div
               style={{
                 borderTop: `1px solid ${th.border}`,
@@ -7593,7 +7672,7 @@ import "./styles.css";
                 SAVE MEASUREMENT
               </Btn>
             </div>
-          )}
+          </ProfileSection>
           {/* History — last 5 entries */}
           {measurements.length > 0 && !showMeasure && (
             <div
@@ -7809,7 +7888,7 @@ import "./styles.css";
             </button>
           </div>
 
-          {showFeedback && !isAdmin && (
+          <ProfileSection open={showFeedback && !isAdmin}>
             <div
               style={{
                 borderTop: `1px solid ${th.border}`,
@@ -7910,9 +7989,9 @@ import "./styles.css";
                 </>
               )}
             </div>
-          )}
+          </ProfileSection>
 
-          {showFeedback && isAdmin && (
+          <ProfileSection open={showFeedback && isAdmin}>
             <div style={{ borderTop: `1px solid ${th.border}` }}>
               {adminFeedbacks.length === 0 ? (
                 <div
@@ -7971,7 +8050,7 @@ import "./styles.css";
                 ))
               )}
             </div>
-          )}
+          </ProfileSection>
         </div>
 
         {/* Changelog card */}
@@ -8014,7 +8093,7 @@ import "./styles.css";
             </button>
           </div>
 
-          {showChangelog && (
+          <ProfileSection open={showChangelog}>
             <div style={{ borderTop: `1px solid ${th.border}`, textAlign: "left", }}>
               {/* Admin post form */}
               {isAdmin && (
@@ -8280,7 +8359,7 @@ import "./styles.css";
                 })
               )}
             </div>
-          )}
+          </ProfileSection>
         </div>
 
         <button
@@ -9012,7 +9091,22 @@ import "./styles.css";
             }));
             return { ...pe, sets: newSets };
           });
-          return { ...p, exs: updatedExs };
+          // Append any new non-cardio exercises added ad-hoc during the session
+          const progExIds = new Set(p.exs.map((pe) => pe.id));
+          const newlyAdded = finished.exercises
+            .filter((we) => !progExIds.has(we.exId) && we.type !== "cardio")
+            .map((we) => {
+              const doneSets = we.sets.filter((st) => st.done);
+              const lastDone = doneSets[doneSets.length - 1] || {};
+              return {
+                id: we.exId,
+                s: we.sets.length,
+                r: lastDone.reps  || 10,
+                w: lastDone.weight || 20,
+                sets: doneSets.map((st) => ({ reps: st.reps || 0, weight: st.weight || 0 })),
+              };
+            });
+          return { ...p, exs: [...updatedExs, ...newlyAdded] };
         });
         savePrograms(updatedPrograms);
       }
@@ -9209,6 +9303,7 @@ import "./styles.css";
                     className="bebas"
                     style={{
                       fontSize: 20,
+                      textAlign: "left",
                       letterSpacing: 2,
                       color: th.text,
                       overflow: "hidden",
@@ -9226,14 +9321,14 @@ import "./styles.css";
                       marginTop: 2,
                     }}
                   >
-                    <span style={{ fontSize: 12, color: th.muted }}>
+                    <span style={{ fontSize: 15, color: th.muted }}>
                       {wDoneSets}/{wTotalSets} sets
                     </span>
                     <span
                       style={{
                         color: paused ? "#fd9644" : th.accentFg,
                         fontWeight: 700,
-                        fontSize: 16,
+                        fontSize: 18,
                         fontFamily: "'Bebas Neue',sans-serif",
                         letterSpacing: 1,
                       }}
@@ -9367,12 +9462,12 @@ import "./styles.css";
                 bottom: 88,
                 left: "50%",
                 transform: "translateX(-50%)",
-                width: "calc(100% - 80px)",
+                width: "calc(80% - 90px)",
                 maxWidth: 360,
                 zIndex: 15,
-                background: `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
-                backdropFilter: "blur(14px)",
-                WebkitBackdropFilter: "blur(14px)",
+                background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
                 borderRadius: 50,
                 cursor: "pointer",
                 display: "flex",
@@ -9397,10 +9492,10 @@ import "./styles.css";
                 }
               `}</style>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ color: th.accentT, fontWeight: 700, fontSize: 10, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
+                <div style={{ color: th.accentT, fontWeight: 700, fontSize: 11, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
                   WORKOUT IN PROGRESS
                 </div>
-                <div style={{ color: th.accentT, opacity: 0.7, fontSize: 11, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ color: th.accentT, opacity: 0.7, fontSize: 12, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {active.name} · {wDoneSets}/{wTotalSets} sets
                 </div>
               </div>
@@ -9573,29 +9668,7 @@ import "./styles.css";
                     + NEW
                   </button>
                 )}
-                {/* Right-side action for history tab: SYNC button */}
-                {view === "history" && (
-                  <button
-                    onClick={handleSync}
-                    disabled={false}
-                    style={{
-                      background: "transparent",
-                      border: `2px solid ${th.inputB}`,
-                      borderRadius: 9,
-                      color: th.accentFg,
-                      fontSize: 13,
-                      fontWeight: 700,
-                      padding: "7px 13px",
-                      cursor: "pointer",
-                      fontFamily: "'Outfit',sans-serif",
-                      letterSpacing: 1,
-                      flexShrink: 0,
-                      transform: "translateY(-4px)",
-                    }}
-                  >
-                    SYNC
-                  </button>
-                )}
+
               </div>
               </div>
               </div>
@@ -9749,7 +9822,6 @@ import "./styles.css";
                   setView("sessionDetail");
                 }}
                 onGoWorkout={() => setView("workout")}
-                onSync={handleSync}
                 onDelete={handleDeleteSession}
               />
             )}
