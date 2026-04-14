@@ -8412,7 +8412,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.4.2 (beta) </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.4.1 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
@@ -8673,16 +8673,27 @@ import "./styles.css";
       document.body.style.background = th.bg;
     }, [th.bg]);
 
-    // Extend content under iOS status bar
+    // Edge-to-edge: extend content under iOS status bar
     useEffect(() => {
-      const meta = document.querySelector("meta[name=viewport]");
-      if (meta) {
-        const cur = meta.getAttribute("content") || "";
-        if (!cur.includes("viewport-fit")) {
-          meta.setAttribute("content", cur + ", viewport-fit=cover");
-        }
+      // 1. viewport-fit=cover — lets the layout fill the full screen incl. safe areas
+      const vp = document.querySelector("meta[name=viewport]");
+      if (vp && !vp.getAttribute("content").includes("viewport-fit")) {
+        vp.setAttribute("content", vp.getAttribute("content") + ", viewport-fit=cover");
       }
-      document.documentElement.style.setProperty("--sat", "env(safe-area-inset-top, 0px)");
+
+      // 2. Transparent status bar — CRITICAL for removing the black bar in PWA mode
+      const ensureMeta = (name, content) => {
+        let m = document.querySelector(`meta[name="${name}"]`);
+        if (!m) { m = document.createElement("meta"); m.name = name; document.head.appendChild(m); }
+        m.setAttribute("content", content);
+      };
+      ensureMeta("apple-mobile-web-app-capable", "yes");
+      ensureMeta("apple-mobile-web-app-status-bar-style", "black-translucent");
+      ensureMeta("mobile-web-app-capable", "yes");
+
+      // 3. Strip any browser chrome that adds offset
+      document.documentElement.style.cssText += ";height:100%;overflow:hidden;";
+      document.body.style.cssText += ";margin:0;padding:0;height:100%;overflow:hidden;";
     }, []);
 
     const [user, setUser] = useState(null);
