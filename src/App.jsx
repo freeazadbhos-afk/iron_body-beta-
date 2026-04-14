@@ -52,7 +52,7 @@ import "./styles.css";
   /* ─── Auto-Theme ─────────────────────────────────────────────────────────────── */
   function getAutoTheme() {
     const h = new Date().getHours();
-    return h >= 6 && h < 20 ? "light" : "dark";
+    return h >= 6 && h < 19 ? "light" : "dark";
   }
 
   /* ─── Themes ────────────────────────────────────────────────────────────────── */
@@ -4535,8 +4535,10 @@ import "./styles.css";
                       if (window.confirm("Delete this program?")) onDelete(p.id);
                     }}
                     style={{
-                      background: th.del,
-                      border: `1px solid ${th.delB}`,
+                      background: "rgba(220, 50, 50, 0.15)",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: "1px solid rgba(220, 50, 50, 0.3)",
                       borderRadius: 8,
                       color: th.delText,
                       padding: "7px 12px",
@@ -5631,7 +5633,7 @@ import "./styles.css";
                       )}
                     </div>
                   </div>
-                  <div style={{ paddingLeft: 14 }}>
+                  <div style={{ paddingLeft: 14, marginTop: 2, textAlign: "left", }}>
                     <span style={S.tag(ex.group)}>{ex.muscle.toUpperCase()}</span>
                   </div>
                 </div>
@@ -6307,10 +6309,12 @@ import "./styles.css";
                           setConfirmDelete(null);
                         }}
                         style={{
-                          background: th.delText,
-                          border: "none",
+                          background: "rgba(220, 50, 50, 0.15)",
+                          backdropFilter: "blur(10px)",
+                          WebkitBackdropFilter: "blur(10px)",
+                          border: "1px solid rgba(220, 50, 50, 0.3)",
                           borderRadius: 7,
-                          color: "#fff",
+                          color: th.delText,
                           fontSize: 12,
                           fontWeight: 700,
                           padding: "5px 12px",
@@ -7743,12 +7747,15 @@ import "./styles.css";
                   <button
                     onClick={() => handleDeleteMeasurement(i)}
                     style={{
-                      background: "none",
-                      border: "none",
-                      color: th.dim,
+                      background: "rgba(220, 50, 50, 0.10)",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: "1px solid rgba(220, 50, 50, 0.2)",
+                      borderRadius: 6,
+                      color: th.delText,
                       cursor: "pointer",
-                      fontSize: 14,
-                      padding: "2px 4px",
+                      fontSize: 12,
+                      padding: "3px 7px",
                       flexShrink: 0,
                     }}
                   >
@@ -7777,7 +7784,7 @@ import "./styles.css";
                     Dark mode
                   </div>
                   <div style={{ fontSize: 11, color: th.muted, marginTop: 2, textAlign: "left", }}>
-                    Auto: dark 20:00–06:00
+                    Auto: dark 19:00–06:00
                   </div>
                 </div>
                 {/* Toggle pill */}
@@ -8752,6 +8759,7 @@ import "./styles.css";
     const [paused, setPaused] = useState(false);
     const [pillPressing, setPillPressing] = useState(false);
     const [workoutExiting, setWorkoutExiting] = useState(false);
+    const [navFlash, setNavFlash] = useState(null);
     const elRef = useRef(0);
     const [elapsed, setElapsed] = useState(0);
     const timerRef = useRef(null);
@@ -9473,7 +9481,7 @@ import "./styles.css";
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "10px 18px 10px 20px",
+                padding: "6px 14px 6px 16px",
                 gap: 10,
                 animation: pillPressing
                   ? "pillPress 0.22s cubic-bezier(0.4,0,1,1) forwards"
@@ -9490,17 +9498,21 @@ import "./styles.css";
                   40%  { transform: translateX(-50%) translateY(2px) scale(0.95); opacity: 0.85; }
                   100% { transform: translateX(-50%) translateY(6px) scale(0.9);  opacity: 0; }
                 }
+                @keyframes navRipple {
+                  0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0.5; }
+                  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
+                }
               `}</style>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ color: th.accentT, fontWeight: 700, fontSize: 11, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
+                <div style={{ color: th.accentT, fontWeight: 700, fontSize: 10, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
                   WORKOUT IN PROGRESS
                 </div>
-                <div style={{ color: th.accentT, opacity: 0.7, fontSize: 12, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <div style={{ color: th.accentT, opacity: 0.7, fontSize: 11, marginTop: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {active.name} · {wDoneSets}/{wTotalSets} sets
                 </div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-                <span className="bebas" style={{ color: th.accentT, fontSize: 18, letterSpacing: 1 }}>
+                <span className="bebas" style={{ color: th.accentT, fontSize: 15, letterSpacing: 1 }}>
                   {fmtTime(elapsed)}
                 </span>
                 <span style={{ color: th.accentT, fontSize: 16, fontWeight: 700 }}>→</span>
@@ -9900,6 +9912,8 @@ import "./styles.css";
                   <button
                     key={tab.id}
                     onClick={() => {
+                      setNavFlash(tab.id);
+                      setTimeout(() => setNavFlash(null), 420);
                       if (tab.id === "home" && view === "workout")
                         setView("home");
                       else setView(tab.id);
@@ -9921,8 +9935,20 @@ import "./styles.css";
                       color: col,
                       transition: "color .2s",
                       position: "relative",
+                      overflow: "hidden",
                     }}
                   >
+                    {navFlash === tab.id && (
+                      <div style={{
+                        position: "absolute",
+                        top: "50%", left: "50%",
+                        width: 48, height: 48,
+                        borderRadius: "50%",
+                        background: `color-mix(in srgb, ${th.accentBg} 35%, transparent)`,
+                        pointerEvents: "none",
+                        animation: "navRipple 0.42s ease-out forwards",
+                      }} />
+                    )}
                     <div
                       style={{
                         display: "flex",
@@ -9930,6 +9956,7 @@ import "./styles.css";
                         alignItems: "center",
                         gap: 6,
                         marginTop: -1,
+                        position: "relative",
                       }}
                     >
                       {tab.icon(col, user?.email === "freeazadbhos@gmail.com")}
