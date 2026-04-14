@@ -99,7 +99,7 @@ import "./styles.css";
     sect: "#f5f4ef",
     accentBg: "#c8f030",
     accentT: "#1a1a1a",
-    accentFg: "#3d6200",
+    accentFg: "#0b7a3f",
     done: "#eaf5d0",
     doneB: "#b8d860",
     doneText: "#2e5200",
@@ -4800,7 +4800,8 @@ import "./styles.css";
             Add Exercise
           </button>
         </div>
-        <div style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
+        <div 
+        style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
           <Btn
             onClick={() => {
               if (!name.trim() || exs.length === 0) return;
@@ -6458,6 +6459,7 @@ import "./styles.css";
                   fontSize: 17,
                   color: th.text,
                   marginBottom: 4,
+                  textAlign: "left"
                 }}
               >
                 {session.name}
@@ -6533,7 +6535,7 @@ import "./styles.css";
             ))}
           </div>
         </div>
-        <div style={{ ...S.label, marginBottom: 12 }}>
+        <div style={{ ...S.label, marginBottom: 12, textAlign: "left" }}>
           EXERCISES ({session.exercises.length})
         </div>
         {session.exercises.map((ex, i) => {
@@ -8548,7 +8550,7 @@ import "./styles.css";
               padding: 13,
               cursor: "pointer",
               color: th.muted,
-              fontSize: 14,
+              fontSize: 15,
               fontFamily: "'Outfit',sans-serif",
               display: "flex",
               alignItems: "center",
@@ -8557,7 +8559,7 @@ import "./styles.css";
               marginTop: 4,
             }}
           >
-            <span style={{ color: th.accentFg, fontSize: 18, fontWeight: 700 }}>
+            <span style={{ color: th.accentFg, fontSize: 20, fontWeight: 700 }}>
               +
             </span>{" "}
             Add Exercise
@@ -8565,13 +8567,24 @@ import "./styles.css";
         </div>
 
         <div style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
-          <Btn
-            onClick={() => onStart({ ...program, exs })}
-            disabled={exs.length === 0}
-            style={{ width: "100%", fontSize: 20, padding: "15px" }}
-          >
-            START WORKOUT →
-          </Btn>
+        <Btn
+  onClick={() => onStart({ ...program, exs })}
+  disabled={exs.length === 0}
+  style={{ 
+    width: "100%", 
+    fontSize: 20, 
+    padding: "15px",
+    
+    // 1. Semi-transparent background with logic for the disabled state
+    background: exs.length === 0 ? "rgba(200,240,48,0.2)" : "rgba(200,240,48,0.85)",
+    
+    // 2. The frosted glass blur effect
+    backdropFilter: "blur(5px)",
+    WebkitBackdropFilter: "blur(10px)",
+  }}
+>
+  START WORKOUT &rarr;
+</Btn>
         </div>
       </>
     );
@@ -9794,8 +9807,8 @@ import "./styles.css";
               borderRadius: 200, // Creates the rounded pill shape
               display: "flex",
               background: `color-mix(in srgb, ${th.nav} 30%, transparent)`, 
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
               border: `1px solid ${th.navB}`, // Changed from borderTop to a full border
               boxShadow: "0 10px 30px rgba(0, 0, 0, 0.15)", // The shadow makes it float!
               zIndex: 10,
