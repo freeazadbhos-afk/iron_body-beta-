@@ -3060,7 +3060,7 @@ import "./styles.css";
             position: "fixed",
             inset: 0,
             backgroundImage:
-              "url(https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1920&q=80)",
+              "url(https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?q=80&w=1920&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D)",
             backgroundSize: "cover",
             backgroundPosition: "center",
             filter: "brightness(0.18)",
@@ -3091,7 +3091,8 @@ import "./styles.css";
           <div
             className="bebas"
             style={{
-              fontSize: 70,
+              fontSize: 85,
+              textAlign: "left",
               color: "#c8f030",
               lineHeight: 0.85,
               marginBottom: 8,
@@ -3105,6 +3106,7 @@ import "./styles.css";
             style={{
               color: "rgba(255,255,255,0.45)",
               fontSize: 12,
+              textAlign: "left",
               marginBottom: 36,
               letterSpacing: "3px",
             }}
@@ -3221,7 +3223,11 @@ import "./styles.css";
             disabled={loading}
             style={{
               width: "100%",
-              background: loading ? "rgba(200,240,48,0.5)" : "#c8f030",
+              // 1. Make the base color semi-transparent (0.8 opacity) so the blur is visible
+              background: loading ? "rgba(200,240,48,0.4)" : "rgba(200,240,48,0.9)", 
+              // 2. Add the blur effects
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)", // Important for Safari support on iPhones!
               border: "none",
               borderRadius: 13,
               padding: "15px",
@@ -3250,6 +3256,7 @@ import "./styles.css";
               border: "none",
               color: "rgba(255,255,255,50.35)",
               fontSize: 15,
+              fontFamily: "'Outfit',sans-serif",
               cursor: "pointer",
               marginTop: 14,
               width: "100%",
@@ -3283,7 +3290,7 @@ import "./styles.css";
             style={{
               marginTop: 48,
               textAlign: "center",
-              color: "rgba(255,255,100,1.2)",
+              color: "#c8f030",
               fontSize: 11,
               letterSpacing: "1.5px",
             }}
@@ -3418,7 +3425,7 @@ import "./styles.css";
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
-        <div style={{ marginBottom: 22, textAlign: "left", }}>
+        <div style={{ marginBottom: 22, textAlign: "left" }}>
           <div
             className="bebas"
             style={{
@@ -4425,6 +4432,7 @@ import "./styles.css";
                       style={{
                         fontWeight: 700,
                         fontSize: 16,
+                        textAlign: "left",
                         color: th.text,
                         marginBottom: 5,
                       }}
@@ -4432,7 +4440,7 @@ import "./styles.css";
                       {p.name}
                     </div>
                     <div
-                      style={{ fontSize: 12, color: th.muted, marginBottom: 8 }}
+                      style={{ fontSize: 12, color: th.muted, marginBottom: 8, textAlign: "left" }}
                     >
                       {p.exs.length} exercises
                     </div>
@@ -4731,7 +4739,7 @@ import "./styles.css";
               hold ⠿ to reorder
             </span>
           </div>
-          <div ref={listRef} style={{ position: "relative" }}>
+          <div ref={listRef} style={{ position: "relative", textAlign: "left" }}>
             {exs.map((ex, exI) => {
               const isBeingDragged = dragIdx === exI;
               const isOver =
@@ -7288,15 +7296,28 @@ import "./styles.css";
                   }}
                   style={{
                     width: "100%",
-                    background: "transparent",
-                    border: `1px solid ${th.delText}`,
-                    borderRadius: 10,
-                    padding: "10px",
+                    
+                    // 1. A semi-transparent red background
+                    background: "rgba(220, 50, 50, 0.45)", 
+                    
+                    // 2. The frosted glass blur filters
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)", 
+                    
+                    // 3. A subtle matching semi-transparent border (replaces th.delB)
+                    border: "1px solid rgba(220, 50, 50, 0.3)", 
+                    
+                    borderRadius: 13,
+                    padding: 15,
                     cursor: "pointer",
-                    color: th.delText,
-                    fontWeight: 600,
-                    fontSize: 12,
+                    
+                    // 4. Keep your dynamic theme text color!
+                    color: th.text, 
+                    
+                    fontWeight: 700,
+                    fontSize: 14,
                     fontFamily: "'Outfit',sans-serif",
+                    marginBottom: 10,
                   }}
                 >
                   DELETE MY ACCOUNT
@@ -8283,12 +8304,24 @@ import "./styles.css";
           onClick={onLogout}
           style={{
             width: "100%",
-            background: th.del,
-            border: `1px solid ${th.delB}`,
+            
+            // 1. A semi-transparent red background
+            background: "rgba(220, 50, 50, 0.15)", 
+            
+            // 2. The frosted glass blur filters
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)", 
+            
+            // 3. A subtle matching semi-transparent border (replaces th.delB)
+            border: "1px solid rgba(220, 50, 50, 0.3)", 
+            
             borderRadius: 13,
             padding: 15,
             cursor: "pointer",
-            color: th.delText,
+            
+            // 4. Keep your dynamic theme text color!
+            color: th.delText, 
+            
             fontWeight: 700,
             fontSize: 14,
             fontFamily: "'Outfit',sans-serif",
@@ -8379,7 +8412,7 @@ import "./styles.css";
             added={exs.map((e) => e.id)}
           />
         )}
-        <div className="slide-up" style={{ paddingBottom: 100, paddingTop: 4 }}>
+        <div className="slide-up" style={{ paddingBottom: 100, paddingTop: 4, textAlign: "left" }}>
           <div
             style={{
               ...S.label,
@@ -9859,7 +9892,7 @@ import "./styles.css";
                 minHeight: 320,
                 boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
                 transformOrigin: "top right",
-                animation: calClosing ? "calClose 0.3s ease-in forwards" : "calPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                animation: calClosing ? "calClose 0.2s ease-in forwards" : "calPop 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards",
                 touchAction: "pan-y",
               }}
               onTouchStart={(e) => { e.currentTarget.dataset.sx = e.touches[0].clientX; }}
