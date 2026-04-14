@@ -5882,23 +5882,28 @@ import "./styles.css";
     const calcAutoIntensity = () => {
       const exs = (finished.exercises || []).filter((e) => e.type !== "cardio");
       if (exs.length === 0) return 7;
-      const W_REF = 60;
-      let totalScore = 0, doneCt = 0, totalCt = 0;
-      exs.forEach((ex) => {
-        (ex.sets || []).forEach((s) => {
-          totalCt++;
-          if (s.done) {
-            const relLoad = (s.weight || 0) > 0 ? s.weight / W_REF : 0.1;
-            const repFactor = Math.min(s.reps || 0, 20) / 20;
-            totalScore += relLoad * repFactor;
-            doneCt++;
-          }
-        });
-      });
-      if (doneCt === 0) return 1;
-      const avgScore = totalScore / doneCt;
-      const completion = totalCt > 0 ? doneCt / totalCt : 0;
-      const raw = Math.min(avgScore / 1.5, 1) * 8 * 0.65 + completion * 2;
+      const allSets  = exs.flatMap((ex) => ex.sets || []);
+      const doneSets = allSets.filter((s) => s.done);
+      if (doneSets.length === 0) return 1;
+
+      // 1. Completion: fraction of planned sets actually done
+      const completion = allSets.length > 0 ? doneSets.length / allSets.length : 0;
+
+      // 2. Load: weight × reps per set, normalised against a 60 kg × 10 rep reference
+      const REF = 600; // moderate set benchmark
+      const avgLoad = doneSets.reduce((sum, s) => {
+        const w = (s.weight || 0) > 0 ? s.weight : 30;
+        const r = Math.min(s.reps || 0, 30);
+        return sum + (w * r) / REF;
+      }, 0) / doneSets.length;
+      const normLoad = Math.min(avgLoad, 3) / 3; // cap at 3× reference → 0-1
+
+      // 3. Volume: number of completed sets (20 done sets = full score)
+      const volumeScore = Math.min(doneSets.length / 20, 1);
+
+      // Weighted composite → map to 1-10
+      const composite = completion * 0.4 + normLoad * 0.4 + volumeScore * 0.2;
+      const raw = 1 + composite * 9;
       return Math.min(10, Math.max(1, Math.round(raw * 10) / 10));
     };
     // For cardio: use avg intensity from entered set data, fallback to 7
@@ -8759,7 +8764,6 @@ import "./styles.css";
     const [paused, setPaused] = useState(false);
     const [pillPressing, setPillPressing] = useState(false);
     const [workoutExiting, setWorkoutExiting] = useState(false);
-    const [navFlash, setNavFlash] = useState(null);
     const elRef = useRef(0);
     const [elapsed, setElapsed] = useState(0);
     const timerRef = useRef(null);
@@ -9498,10 +9502,6 @@ import "./styles.css";
                   40%  { transform: translateX(-50%) translateY(2px) scale(0.95); opacity: 0.85; }
                   100% { transform: translateX(-50%) translateY(6px) scale(0.9);  opacity: 0; }
                 }
-                @keyframes navRipple {
-                  0%   { transform: translate(-50%, -50%) scale(0);   opacity: 0.5; }
-                  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
-                }
               `}</style>
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ color: th.accentT, fontWeight: 700, fontSize: 10, letterSpacing: "1.5px", whiteSpace: "nowrap" }}>
@@ -9912,8 +9912,6 @@ import "./styles.css";
                   <button
                     key={tab.id}
                     onClick={() => {
-                      setNavFlash(tab.id);
-                      setTimeout(() => setNavFlash(null), 420);
                       if (tab.id === "home" && view === "workout")
                         setView("home");
                       else setView(tab.id);
@@ -9935,20 +9933,8 @@ import "./styles.css";
                       color: col,
                       transition: "color .2s",
                       position: "relative",
-                      overflow: "hidden",
                     }}
                   >
-                    {navFlash === tab.id && (
-                      <div style={{
-                        position: "absolute",
-                        top: "50%", left: "50%",
-                        width: 48, height: 48,
-                        borderRadius: "50%",
-                        background: `color-mix(in srgb, ${th.accentBg} 35%, transparent)`,
-                        pointerEvents: "none",
-                        animation: "navRipple 0.42s ease-out forwards",
-                      }} />
-                    )}
                     <div
                       style={{
                         display: "flex",
@@ -9956,7 +9942,6 @@ import "./styles.css";
                         alignItems: "center",
                         gap: 6,
                         marginTop: -1,
-                        position: "relative",
                       }}
                     >
                       {tab.icon(col, user?.email === "freeazadbhos@gmail.com")}
