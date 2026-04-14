@@ -9135,7 +9135,7 @@ import "./styles.css";
     // Dark: dumbbells photo; Light: bright, airy gym
     const appBg =
       theme === "dark"
-        ? "url(https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1920&q=60) center/cover no-repeat"
+        ? "url(https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&h=1600&fit=crop) center/cover no-repeat"
         : "url(https://images.unsplash.com/photo-1683889843123-5eca2abfd882?q=80&w=1920&auto=format&fit=crop&w=800&h=1600&fit=crop) center/cover no-repeat";
     const bgOverlay =
       theme === "dark" ? "rgba(8,8,9,0.87)" : "rgba(248,246,240,0.77)";
@@ -9574,6 +9574,7 @@ import "./styles.css";
                       letterSpacing: 1,
                       fontFamily: "'Outfit',sans-serif",
                       flexShrink: 0,
+                      transform: "translateY(-4px)",
                     }}
                   >
                     + NEW
@@ -9596,6 +9597,7 @@ import "./styles.css";
                       fontFamily: "'Outfit',sans-serif",
                       letterSpacing: 1,
                       flexShrink: 0,
+                      transform: "translateY(-4px)",
                     }}
                   >
                     SYNC
