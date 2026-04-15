@@ -2781,7 +2781,9 @@ import "./styles.css";
                     fontWeight: 700,
                     whiteSpace: "nowrap",
                     fontFamily: "'Outfit',sans-serif",
-                    background: flt === f.label ? th.accentBg : th.bg,
+                    backdropFilter: "blur(8px)",
+                    WebkitBackdropFilter: "blur(8px)",
+                    background: flt === f.label ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.bg,
                     color: flt === f.label ? th.accentT : th.muted,
                     transition: "all .15s",
                     flexShrink: 0,
@@ -3402,7 +3404,9 @@ import "./styles.css";
       <div
         onClick={onResume}
         style={{
-          background: th.accentBg,
+          background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
           padding: "10px 16px",
           marginBottom: 12,
           borderRadius: 13,
@@ -7132,7 +7136,9 @@ import "./styles.css";
                 setEPhoto(user.photoURL || "");
               }}
               style={{
-                background: editMode ? th.accentBg : "transparent",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                background: editMode ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
                 border: `1px solid ${editMode ? th.accentBg : th.inputB}`,
                 borderRadius: 9,
                 color: editMode ? th.accentT : th.muted,
@@ -7473,27 +7479,55 @@ import "./styles.css";
                 </div>
               )}
             </div>
-            <button
-              onClick={() => {
-                if (showMeasure) {
-                  setShowMeasure(false);
-                  setEditingMeasureIdx(null);
-                } else openMeasureForm(null);
-              }}
-              style={{
-                background: showMeasure ? th.accentBg : "transparent",
-                border: `1px solid ${showMeasure ? th.accentBg : th.inputB}`,
-                borderRadius: 9,
-                color: showMeasure ? th.accentT : th.muted,
-                padding: "7px 14px",
-                cursor: "pointer",
-                fontSize: 12,
-                fontFamily: "'Outfit',sans-serif",
-                fontWeight: 700,
-              }}
-            >
-              {showMeasure ? "Cancel" : "Log"}
-            </button>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {showMeasure && editingMeasureIdx !== null && (
+                <button
+                  onClick={() => {
+                    handleDeleteMeasurement(editingMeasureIdx);
+                    setShowMeasure(false);
+                    setEditingMeasureIdx(null);
+                  }}
+                  style={{
+                    background: "rgba(220, 50, 50, 0.15)",
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
+                    border: "1px solid rgba(220, 50, 50, 0.3)",
+                    borderRadius: 9,
+                    color: th.delText,
+                    padding: "7px 12px",
+                    cursor: "pointer",
+                    fontSize: 12,
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 700,
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  if (showMeasure) {
+                    setShowMeasure(false);
+                    setEditingMeasureIdx(null);
+                  } else openMeasureForm(null);
+                }}
+                style={{
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  background: showMeasure ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
+                  border: `1px solid ${showMeasure ? th.accentBg : th.inputB}`,
+                  borderRadius: 9,
+                  color: showMeasure ? th.accentT : th.muted,
+                  padding: "7px 14px",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontFamily: "'Outfit',sans-serif",
+                  fontWeight: 700,
+                }}
+              >
+                {showMeasure ? "Cancel" : "Log"}
+              </button>
+            </div>
           </div>
           {/* Latest snapshot */}
           {latest && !showMeasure && (
@@ -7732,7 +7766,9 @@ import "./styles.css";
                   <button
                     onClick={() => openMeasureForm(i)}
                     style={{
-                      background: "none",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      background: `color-mix(in srgb, ${th.text} 6%, transparent)`,
                       border: `1px solid ${th.inputB}`,
                       borderRadius: 6,
                       color: th.muted,
@@ -7746,23 +7782,7 @@ import "./styles.css";
                   >
                     Edit
                   </button>
-                  <button
-                    onClick={() => handleDeleteMeasurement(i)}
-                    style={{
-                      background: "rgba(220, 50, 50, 0.10)",
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "1px solid rgba(220, 50, 50, 0.2)",
-                      borderRadius: 6,
-                      color: th.delText,
-                      cursor: "pointer",
-                      fontSize: 12,
-                      padding: "3px 7px",
-                      flexShrink: 0,
-                    }}
-                  >
-                    ✕
-                  </button>
+
                 </div>
               ))}
             </div>
@@ -7882,7 +7902,9 @@ import "./styles.css";
                 if (isAdmin && !showFeedback) handleLoadFeedbacks();
               }}
               style={{
-                background: showFeedback ? th.accentBg : "transparent",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                background: showFeedback ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
                 border: `1px solid ${showFeedback ? th.accentBg : th.inputB}`,
                 borderRadius: 9,
                 color: showFeedback ? th.accentT : th.muted,
@@ -8087,7 +8109,9 @@ import "./styles.css";
                 setChangelogSent(false);
               }}
               style={{
-                background: showChangelog ? th.accentBg : "transparent",
+                backdropFilter: "blur(10px)",
+                WebkitBackdropFilter: "blur(10px)",
+                background: showChangelog ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
                 border: `1px solid ${showChangelog ? th.accentBg : th.inputB}`,
                 borderRadius: 9,
                 color: showChangelog ? th.accentT : th.muted,
