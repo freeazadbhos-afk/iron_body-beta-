@@ -9655,26 +9655,14 @@ import "./styles.css";
                 {view === "home" && (
                   <div
                     onClick={() => { setCalOffset(0); setShowCal(true); setCalClosing(false); }}
-                    style={{
-                      flexShrink: 0,
-                      marginLeft: 12,
-                      cursor: "pointer",
-                      background: `color-mix(in srgb, ${th.text} 8%, transparent)`,
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: `1px solid color-mix(in srgb, ${th.text} 12%, transparent)`,
-                      borderRadius: 12,
-                      padding: "6px 12px",
-                      textAlign: "center",
-                      userSelect: "none",
-                    }}
+                    style={{ textAlign: "right", flexShrink: 0, marginLeft: 20, cursor: "pointer" }}
                   >
                     <div
                       style={{
-                        fontSize: 14,
-                        color: th.sub,
+                        fontSize: 15,
+                        color: th.muted,
                         fontWeight: 700,
-                        letterSpacing: "0.5px",
+                        letterSpacing: "1px",
                         lineHeight: 1,
                       }}
                     >
@@ -9687,10 +9675,10 @@ import "./styles.css";
                     </div>
                     <div
                       style={{
-                        fontSize: 11,
+                        fontSize: 13,
                         color: th.dim,
                         letterSpacing: "1px",
-                        marginTop: 3,
+                        marginTop: 2,
                       }}
                     >
                       {new Date()
