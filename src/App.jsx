@@ -10032,7 +10032,7 @@ import "./styles.css";
                 background: `color-mix(in srgb, ${th.card} 65%, transparent)`,
                 backdropFilter: "blur(10px) brightness(1.6)",
                 WebkitBackdropFilter: "blur(10px) brightness(1.3)",
-                borderRadius: 36,
+                borderRadius: 25,
                 zIndex: 201,
                 padding: "16px 16px 18px",
                 minHeight: 320,
