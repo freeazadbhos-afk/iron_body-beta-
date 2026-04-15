@@ -7673,7 +7673,7 @@ import "./styles.css";
               </div>
               <Btn
                 onClick={handleSaveMeasurement}
-                style={{ width: "100%", fontSize: 15, padding: "13px" }}
+                style={{ width: "100%", fontSize: 14, padding: "13px", fontFamily: "'Outfit',sans-serif", letterSpacing: 0.5 }}
               >
                 SAVE MEASUREMENT
               </Btn>
@@ -8645,7 +8645,9 @@ import "./styles.css";
     fontFamily: "'Outfit',sans-serif",
     letterSpacing: 0.5,
     padding: "15px",
-    background: exs.length === 0 ? "rgba(200,240,48,0.2)" : "rgba(200,240,48,0.85)",
+    background: exs.length === 0
+      ? `color-mix(in srgb, ${th.accentBg} 30%, transparent)`
+      : `color-mix(in srgb, ${th.accentBg} 90%, transparent)`,
     backdropFilter: "blur(5px)",
     WebkitBackdropFilter: "blur(10px)",
   }}
@@ -9653,7 +9655,14 @@ import "./styles.css";
                 {view === "home" && (
                   <div
                     onClick={() => { setCalOffset(0); setShowCal(true); setCalClosing(false); }}
-                    style={{ textAlign: "right", flexShrink: 0, marginLeft: 20, cursor: "pointer" }}
+                    style={{
+                      textAlign: "right",
+                      flexShrink: 0,
+                      marginLeft: 20,
+                      cursor: "pointer",
+                      paddingLeft: 14,
+                      borderLeft: `2px solid ${th.inputB}`,
+                    }}
                   >
                     <div
                       style={{
@@ -9955,6 +9964,7 @@ import "./styles.css";
                   <button
                     key={tab.id}
                     onClick={() => {
+                      if (window.navigator?.vibrate) window.navigator.vibrate(8);
                       if (tab.id === "home" && view === "workout")
                         setView("home");
                       else setView(tab.id);
