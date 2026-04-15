@@ -9208,16 +9208,10 @@ import "./styles.css";
         id: "programs",
         label: "PROGRAMS",
         icon: (c) => (
-          <svg
-            width="22"
-            height="22"
-            viewBox="0 0 26 26"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <rect x="2" y="5" width="20" height="2.8" rx="1.4" fill={c} />
-            <rect x="2" y="11" width="20" height="2.8" rx="1.4" fill={c} />
-            <rect x="2" y="17" width="20" height="2.8" rx="1.4" fill={c} />
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="4"    width="18" height="2.5" rx="1.25" fill={c} />
+            <rect x="2" y="9.75" width="18" height="2.5" rx="1.25" fill={c} />
+            <rect x="2" y="15.5" width="18" height="2.5" rx="1.25" fill={c} />
           </svg>
         ),
       },
@@ -9225,7 +9219,11 @@ import "./styles.css";
         id: "history",
         label: "HISTORY",
         icon: (c) => (
-          <span style={{ fontSize: 22, lineHeight: 1, color: c }}>◎</span>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="11" cy="11" r="8.5" stroke={c} strokeWidth="2" />
+            <line x1="11" y1="11" x2="11"  y2="6"  stroke={c} strokeWidth="2" strokeLinecap="round" />
+            <line x1="11" y1="11" x2="14.5" y2="11" stroke={c} strokeWidth="2" strokeLinecap="round" />
+          </svg>
         ),
       },
       {
@@ -9233,7 +9231,10 @@ import "./styles.css";
         label: "PROFILE",
         icon: (c, isA) => (
           <div style={{ position: "relative", display: "inline-flex" }}>
-            <span style={{ fontSize: 22, lineHeight: 1, color: c }}>◉</span>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="11" cy="7.5" r="3.5" stroke={c} strokeWidth="2" />
+              <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={c} strokeWidth="2" strokeLinecap="round" />
+            </svg>
             {isA && unreadFeedback > 0 && (
               <div
                 style={{
