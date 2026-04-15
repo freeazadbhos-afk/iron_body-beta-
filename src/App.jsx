@@ -5824,7 +5824,7 @@ import "./styles.css";
           style={{
             width: "100%",
             background: "none",
-            border: `1px dashed ${th.inputB}`,
+            border: `1px dashed ${th.text}`,
             borderRadius: 13,
             padding: 13,
             cursor: "pointer",
@@ -8412,7 +8412,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.4.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.4.2 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
