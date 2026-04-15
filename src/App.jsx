@@ -10181,7 +10181,7 @@ import "./styles.css";
       {countdown !== null && (() => {
         const quoteIdx = Math.floor(Date.now() / 10000) % GREETINGS.length;
         const quote = GREETINGS[quoteIdx];
-        const bgUrl = "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=800&q=80";
+        const bgUrl = "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1920&q=80";
         return (
           <div
             style={{
