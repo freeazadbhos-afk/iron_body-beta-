@@ -9656,20 +9656,25 @@ import "./styles.css";
                   <div
                     onClick={() => { setCalOffset(0); setShowCal(true); setCalClosing(false); }}
                     style={{
-                      textAlign: "right",
                       flexShrink: 0,
-                      marginLeft: 20,
+                      marginLeft: 12,
                       cursor: "pointer",
-                      paddingLeft: 14,
-                      borderLeft: `2px solid ${th.inputB}`,
+                      background: `color-mix(in srgb, ${th.text} 8%, transparent)`,
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: `1px solid color-mix(in srgb, ${th.text} 12%, transparent)`,
+                      borderRadius: 12,
+                      padding: "6px 12px",
+                      textAlign: "center",
+                      userSelect: "none",
                     }}
                   >
                     <div
                       style={{
-                        fontSize: 15,
-                        color: th.muted,
+                        fontSize: 14,
+                        color: th.sub,
                         fontWeight: 700,
-                        letterSpacing: "1px",
+                        letterSpacing: "0.5px",
                         lineHeight: 1,
                       }}
                     >
@@ -9682,10 +9687,10 @@ import "./styles.css";
                     </div>
                     <div
                       style={{
-                        fontSize: 13,
+                        fontSize: 11,
                         color: th.dim,
                         letterSpacing: "1px",
-                        marginTop: 2,
+                        marginTop: 3,
                       }}
                     >
                       {new Date()
@@ -9964,7 +9969,17 @@ import "./styles.css";
                   <button
                     key={tab.id}
                     onClick={() => {
-                      if (window.navigator?.vibrate) window.navigator.vibrate(8);
+                      try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain); gain.connect(ctx.destination);
+                        osc.type = "sine"; osc.frequency.value = 440;
+                        gain.gain.setValueAtTime(0.001, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+                        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
+                        ctx.close();
+                      } catch (_) {}
                       if (tab.id === "home" && view === "workout")
                         setView("home");
                       else setView(tab.id);
