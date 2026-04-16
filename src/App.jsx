@@ -2771,7 +2771,7 @@ import "./styles.css";
               {MUSCLE_FILTERS.map((f) => (
                 <button
                   key={f.label}
-                  onClick={() => setFlt(f.label)}
+                  onClick={() => setFlt(prev => prev === f.label ? "All" : f.label)}
                   style={{
                     padding: "5px 13px",
                     borderRadius: 20,
@@ -5561,12 +5561,13 @@ import "./styles.css";
 
     return (
       <div style={{ paddingBottom: 120 }}>
-        {showExPicker && (
+        {showExPicker && createPortal(
           <ExercisePicker
             onAdd={addExFromPicker}
             onClose={() => setShowExPicker(false)}
             added={exercises.map((e) => e.exId)}
-          />
+          />,
+          document.body
         )}
 
         {/* Exercise cards */}
