@@ -8027,7 +8027,7 @@ import "./styles.css";
                   }}
                 >
                   Currently auto —{" "}
-                  {theme === "dark" ? "dark until 06:00" : "light until 20:00"}
+                  {theme === "dark" ? "dark until 06:00" : "light until 19:00"}
                 </div>
               )}
             </div>
@@ -8594,7 +8594,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.4.4 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.5.0 (beta)</span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
