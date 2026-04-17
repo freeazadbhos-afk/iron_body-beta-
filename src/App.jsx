@@ -3665,87 +3665,37 @@ import "./styles.css";
           </div>
         </div>
 
-        {/* This Week — removed Volume, expanded muscles */}
-        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
-          <div style={{ ...S.label, marginBottom: 14 }}>
-            YOUR 7-DAY HIGHLIGHTS
-          </div>
-          <div style={{ display: "flex", gap: 7, marginBottom: 14 }}>
-            {[
-              { v: ws.length, l: "SESSIONS" },
-              { v: ws.reduce((a, s) => a + (s.exercises || []).filter(e => e.type !== "cardio")
-              .reduce((b, e) => b + (e.sets || []).filter(st => st.done).length, 0), 0), l: "SETS" },
-            ].map((s) => (
-              <div
-                key={s.l}
-                style={{
-                  flex: 1,
-                  background: `color-mix(in srgb, ${th.sect} 50%, transparent)`,
-                  backdropFilter: "blur(12px)",
-                  WebkitBackdropFilter: "blur(12px)",
-                  borderRadius: 10,
-                  padding: "12px 8px",
-                  textAlign: "center",
-                }}
-              >
-                <div
-                  className="bebas"
-                  style={{ fontSize: 26, color: th.accentFg, lineHeight: 1 }}
-                >
-                  {s.v}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: th.dim,
-                    letterSpacing: "1.5px",
-                    marginTop: 3,
-                  }}
-                >
-                  {s.l}
-                </div>
+        {/* This Week — 7-day highlights */}
+        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+          <div style={{ ...S.label, marginBottom: 14 }}>YOUR 7-DAY HIGHLIGHTS</div>
+          {(() => {
+            const resistSess = ws.filter((s) => (s.exercises || []).some((e) => e.type !== "cardio"));
+            const cardioSess = ws.filter((s) => (s.exercises || []).every((e) => e.type === "cardio") && s.exercises.length > 0);
+            const totalMins = ws.reduce((a, s) => a + (s.duration || 0), 0);
+            const hrsDisplay = totalMins >= 60 ? `${Math.floor(totalMins/60)}h ${totalMins%60}m` : `${totalMins}m`;
+            const totalCals = ws.reduce((a, s) => a + (s.calories || 0), 0);
+            const avgInt = ws.length ? (ws.reduce((a, s) => a + (s.intensity || 0), 0) / ws.length).toFixed(1) : "—";
+            const totalKg = ws.reduce((a, s) => a + sessionVol(s), 0);
+            const loadsDisplay = totalKg >= 1000 ? `${(totalKg / 1000).toFixed(1)}t` : `${Math.round(totalKg)}kg`;
+            const tiles = [
+              { v: resistSess.length, l: "RESISTANCE", col: th.accentFg },
+              { v: cardioSess.length, l: "CARDIO", col: "#4ecdc4" },
+              { v: hrsDisplay, l: "HOURS TRAINED", col: th.accentFg },
+              { v: totalCals ? totalCals.toLocaleString() + " kcal" : "—", l: "CALS BURNED", col: "#fd9644" },
+              { v: avgInt !== "—" ? avgInt + "/10" : "—", l: "AVG INTENSITY", col: th.accentFg },
+              { v: loadsDisplay, l: "LOADS LIFTED", col: th.accentFg },
+            ];
+            return (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 14 }}>
+                {tiles.map((s) => (
+                  <div key={s.l} style={{ background: `color-mix(in srgb, ${th.sect} 60%, transparent)`, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
+                    <div className="bebas" style={{ fontSize: 22, color: s.col, lineHeight: 1, letterSpacing: 0.5 }}>{s.v}</div>
+                    <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1.2px", marginTop: 3 }}>{s.l}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-            {/* Loads lifted this week */}
-            <div
-              key="loads"
-              style={{
-                flex: 1,
-                background: th.sect,
-                borderRadius: 10,
-                padding: "12px 8px",
-                textAlign: "center",
-              }}
-            >
-              {(() => {
-                const totalKg = ws.reduce((a, s) => a + sessionVol(s), 0);
-                const display =
-                  totalKg >= 1000
-                    ? `${(totalKg / 1000).toFixed(1)}t`
-                    : `${totalKg}kg`;
-                return (
-                  <>
-                    <div
-                      className="bebas"
-                      style={{ fontSize: 26, color: th.accentFg, lineHeight: 1 }}
-                    >
-                      {display}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: th.dim,
-                        letterSpacing: "1.5px",
-                        marginTop: 3,
-                      }}
-                    >
-                      LOADS
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          </div>
+            );
+          })()}
           {/* Granular muscles trained */}
           <div>
             <div
@@ -3784,77 +3734,90 @@ import "./styles.css";
           </div>
         </div>
 
+
+        {/* ── Streak Calendar ── */}
+        {sessions.length > 0 && (() => {
+          // Count consecutive days with at least one session (going back from today)
+          const todayMs = new Date(); todayMs.setHours(0,0,0,0);
+          const sessionDays = new Set(sessions.map(s => {
+            const d = new Date(s.startTime || 0); d.setHours(0,0,0,0);
+            return d.getTime();
+          }));
+          let streak = 0;
+          for (let i = 0; i <= 365; i++) {
+            const d = new Date(todayMs); d.setDate(d.getDate() - i);
+            if (sessionDays.has(d.getTime())) streak++;
+            else if (i > 0) break; // allow today to be empty (mid-day)
+          }
+          // Build last 28 days grid (4 weeks)
+          const days = Array.from({ length: 28 }, (_, i) => {
+            const d = new Date(todayMs); d.setDate(d.getDate() - (27 - i));
+            return d;
+          });
+          const DOW = ["M","T","W","T","F","S","S"];
+          return (
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ ...S.label }}>STREAK</div>
+                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
+                  <span style={{ fontSize: 10, color: th.dim, letterSpacing: "1px" }}>DAYS</span>
+                </div>
+              </div>
+              {/* Day-of-week headers */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
+                {DOW.map((d, i) => (
+                  <div key={i} style={{ textAlign: "center", fontSize: 10, color: th.dim, fontWeight: 700 }}>{d}</div>
+                ))}
+              </div>
+              {/* 28-day dot grid (4 weeks × 7) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                {days.map((d, i) => {
+                  const active = sessionDays.has(d.getTime());
+                  const isToday = d.getTime() === todayMs.getTime();
+                  // Determine session type for color
+                  const daySess = sessions.filter(s => {
+                    const sd = new Date(s.startTime||0); sd.setHours(0,0,0,0);
+                    return sd.getTime() === d.getTime();
+                  });
+                  const hasResist = daySess.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
+                  const hasCardio = daySess.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
+                  const bg = !active ? "transparent"
+                    : hasResist && hasCardio ? `linear-gradient(135deg,${th.accentBg},#4ecdc4)`
+                    : hasCardio ? "#4ecdc4"
+                    : th.accentBg;
+                  return (
+                    <div key={i} style={{
+                      aspectRatio: "1",
+                      borderRadius: "50%",
+                      background: bg,
+                      border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
+                      opacity: active ? 1 : 0.18,
+                      transition: "background .2s",
+                    }} />
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 12, marginTop: 10, justifyContent: "center" }}>
+                {[
+                  { label: "Resistance", col: th.accentBg },
+                  { label: "Cardio", col: "#4ecdc4" },
+                  { label: "Mix", col: `linear-gradient(135deg,${th.accentBg},#4ecdc4)` },
+                ].map(({ label, col }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: col }} />
+                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Performance dashboards */}
         {sessions.length > 0 && (
           <>
-            {/* Row 1 — last 7 days stats */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr 1fr",
-                gap: 8,
-                marginBottom: 8,
-              }}
-            >
-              {(function () {
-                const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                const recent = sessions.filter(
-                  (s) => (s.startTime || 0) >= cutoff
-                );
-                const mins = recent.reduce((a, s) => a + (s.duration || 0), 0);
-                const cals = recent.reduce((a, s) => a + (s.calories || 0), 0);
-                const avgInt = recent.length
-                  ? (
-                      recent.reduce((a, s) => a + (s.intensity || 0), 0) /
-                      recent.length
-                    ).toFixed(1) + "/10"
-                  : "—";
-                const statItems = [
-                  {
-                    v:
-                      mins >= 60
-                        ? `${Math.floor(mins / 60)}h ${mins % 60}m`
-                        : `${mins}m`,
-                    l: "TIME TRAINED",
-                  },
-                  { v: cals.toLocaleString() + " kcal", l: "CALS BURNED" },
-                  { v: avgInt, l: "AVERAGE INTENSITY" },
-                ];
-                return statItems.map((s) => (
-                  <div
-                    key={s.l}
-                    style={{
-                      ...S.card,
-                      padding: "12px 8px",
-                      textAlign: "center",
-                    }}
-                  >
-                    <div
-                      className="bebas"
-                      style={{
-                        fontSize: 22,
-                        color: th.accentFg,
-                        lineHeight: 1,
-                        letterSpacing: 0.5,
-                      }}
-                    >
-                      {s.v}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 9,
-                        color: th.dim,
-                        letterSpacing: "1.2px",
-                        marginTop: 3,
-                      }}
-                    >
-                      {s.l}
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-            {/* Row 2 — intensity-only bar chart */}
+            {/* Intensity bar chart */}
             <div
               style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}
             >
@@ -3866,7 +3829,7 @@ import "./styles.css";
                   marginBottom: 10,
                 }}
               >
-                <div style={{ ...S.label }}>RECENT PERFORMANCE</div>
+                <div style={{ ...S.label }}>INTENSITY</div>
                 <div style={{ fontSize: 12, color: th.dim }}>last 7 days</div>
               </div>
               {(() => {
@@ -3911,6 +3874,11 @@ import "./styles.css";
                       }
                       const h = hasData ? Math.max(8, (n / 10) * 80) : 6;
                       const col = hasData ? intColor(n, th) : th.inputB;
+                      const hasResist = daySessions.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
+                      const hasCardio = daySessions.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
+                      const barBg = hasData
+                        ? (hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : col)
+                        : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
@@ -3941,7 +3909,7 @@ import "./styles.css";
                             style={{
                               width: "100%",
                               height: h,
-                              background: col,
+                              background: barBg,
                               borderRadius: "3px 3px 0 0",
                               opacity: hasData ? 1 : 0.25,
                             }}
@@ -3964,27 +3932,86 @@ import "./styles.css";
                   </div>
                 );
               })()}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginTop: 8,
-                  justifyContent: "center",
-                }}
-              >
-                <div
-                  style={{
-                    width: 28,
-                    height: 10,
-                    borderRadius: 2,
-                    background:
-                      "linear-gradient(to right,#ff6b6b,#fd9644,#c8f030)",
-                  }}
-                />
-                <span style={{ fontSize: 11, color: th.dim }}>
-                  Intensity (accounts for volume, weights & completion)
-                </span>
+              <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                {[
+                  { label: "Resistance", swatch: "linear-gradient(to right,#ff6b6b,#fd9644,#c8f030)" },
+                  { label: "Cardio", swatch: "#4ecdc4" },
+                  { label: "Mix", swatch: `linear-gradient(to right,${th.accentBg},#4ecdc4)` },
+                ].map(({ label, swatch }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
+                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Calories chart — same bar chart design as intensity */}
+            <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <div style={{ ...S.label }}>CALORIES BURNED</div>
+                <div style={{ fontSize: 12, color: th.dim }}>daily · last 7 days</div>
+              </div>
+              {(() => {
+                const days = Array.from({ length: 7 }, (_, i) => {
+                  const d = new Date();
+                  d.setDate(d.getDate() - (6 - i));
+                  d.setHours(0, 0, 0, 0);
+                  return d;
+                });
+                const byDate = {};
+                sessions.forEach((s) => {
+                  if (!s.startTime) return;
+                  const dk = new Date(s.startTime).toDateString();
+                  if (!byDate[dk]) byDate[dk] = [];
+                  byDate[dk].push(s);
+                });
+                const dayData = days.map((d) => {
+                  const dk = d.toDateString();
+                  const ds = byDate[dk] || [];
+                  const resistCal = ds.filter(s => (s.exercises||[]).some(e => e.type !== "cardio")).reduce((a,s) => a+(s.calories||0),0);
+                  const cardioCal = ds.filter(s => (s.exercises||[]).every(e => e.type === "cardio") && s.exercises.length>0).reduce((a,s) => a+(s.calories||0),0);
+                  const total = ds.reduce((a,s) => a+(s.calories||0),0);
+                  return { total, resistCal, cardioCal, hasResist: resistCal>0, hasCardio: cardioCal>0 };
+                });
+                const maxCal = Math.max(...dayData.map(d=>d.total), 1);
+                return (
+                  <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                    {days.map((d, i) => {
+                      const { total, resistCal, cardioCal, hasResist, hasCardio } = dayData[i];
+                      const hasData = total > 0;
+                      const h = hasData ? Math.max(8, (total / maxCal) * 80) : 6;
+                      const barBg = hasData
+                        ? (hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : th.accentBg)
+                        : th.inputB;
+                      const col = hasData ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg) : th.inputB;
+                      const dateLabel = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: hasData ? col : "transparent", marginBottom: 3, lineHeight: 1 }}>
+                            {hasData ? total : "·"}
+                          </span>
+                          <div style={{ width: "100%", height: h, background: barBg, borderRadius: "3px 3px 0 0", opacity: hasData ? 1 : 0.25 }} />
+                          <span style={{ fontSize: 11, color: th.dim, marginTop: 4, lineHeight: 1, textAlign: "center", whiteSpace: "nowrap" }}>
+                            {dateLabel}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+              <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
+                {[
+                  { label: "Resistance", swatch: th.accentBg },
+                  { label: "Cardio", swatch: "#4ecdc4" },
+                  { label: "Mix", swatch: `linear-gradient(to right,${th.accentBg},#4ecdc4)` },
+                ].map(({ label, swatch }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
+                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </>
@@ -4078,105 +4105,51 @@ import "./styles.css";
                       );
                     })}
                   </div>
-                  {/* Trend charts — weight, muscle %, body fat % */}
+                  {/* Trend line charts — last 7 days */}
                   {(() => {
+                    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
                     const trendFields = [
-                      {
-                        f: "weight",
-                        label: "WEIGHT TREND",
-                        unit: "kg",
-                        barColor: th.accentBg,
-                      },
-                      {
-                        f: "muscle",
-                        label: "MUSCLE TREND",
-                        unit: "%",
-                        barColor: "#4ecdc4",
-                      },
-                      {
-                        f: "fat",
-                        label: "BODY FAT TREND",
-                        unit: "%",
-                        barColor: "#ff6b6b",
-                      },
+                      { f: "weight", label: "WEIGHT TREND", unit: "kg", color: th.accentBg },
+                      { f: "muscle", label: "MUSCLE TREND", unit: "%", color: "#4ecdc4" },
+                      { f: "fat",    label: "BODY FAT TREND", unit: "%", color: "#ff6b6b" },
                     ];
-                    return trendFields.map(({ f, label, unit, barColor }) => {
+                    return trendFields.map(({ f, label, unit, color }) => {
                       const pts = measurements
-                        .filter((m) => m[f] != null)
-                        .slice(0, 6)
+                        .filter((m) => m[f] != null && (m.date || 0) >= sevenDaysAgo)
+                        .slice(0, 7)
                         .reverse();
                       if (pts.length < 2) return null;
                       const vals = pts.map((p) => p[f]);
                       const mn = Math.min(...vals);
                       const mx = Math.max(...vals);
-                      // Anchor to a proportional floor so bars reflect real values,
-                      // not just the min→max delta (which exaggerates tiny changes).
-                      const floor = mn * 0.93;
-                      const ceiling = mx * 1.04;
+                      const floor   = mn - (mx - mn) * 0.2 || mn * 0.95;
+                      const ceiling = mx + (mx - mn) * 0.2 || mx * 1.05;
                       const range = ceiling - floor || 1;
+                      const W = 280, H = 52, R = 3;
+                      const xs = pts.map((_, i) => (i / (pts.length - 1)) * W);
+                      const ys = pts.map((p) => H - ((p[f] - floor) / range) * (H - R * 2) - R);
+                      const path = xs.map((x, i) => (i === 0 ? `M${x},${ys[i]}` : `L${x},${ys[i]}`)).join(" ");
+                      const areaPath = `${path} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
                       return (
                         <div key={f} style={{ marginTop: 18 }}>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: th.sub,
-                              letterSpacing: "1.5px",
-                              fontWeight: 700,
-                              marginBottom: 14,
-                            }}
-                          >
+                          <div style={{ fontSize: 11, color: th.sub, letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>
                             {label}
                           </div>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "flex-end",
-                              gap: 4,
-                              height: 56,
-                            }}
-                          >
-                            {pts.map((p, i) => {
-                              const h = Math.max(
-                                4,
-                                ((p[f] - floor) / range) * 48
-                              );
-                              const isLatest = i === pts.length - 1;
-                              return (
-                                <div
-                                  key={i}
-                                  style={{
-                                    flex: 1,
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    gap: 2,
-                                  }}
-                                >
-                                  <div
-                                    style={{
-                                      width: "100%",
-                                      height: h,
-                                      background: isLatest
-                                        ? barColor
-                                        : barColor + "55",
-                                      borderRadius: "3px 3px 0 0",
-                                      transition: "height .3s",
-                                    }}
-                                  />
-                                  <div
-                                    style={{
-                                      fontSize: 12,
-                                      color: th.dim,
-                                      textAlign: "center",
-                                    }}
-                                  >
-                                    {p[f]}
-                                    {unit}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                          <svg viewBox={`0 0 ${W} ${H + 20}`} width="100%" style={{ overflow: "visible" }}>
+                            {/* Area fill */}
+                            <path d={areaPath} fill={color} opacity="0.08" />
+                            {/* Line */}
+                            <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            {/* Dots + labels */}
+                            {pts.map((p, i) => (
+                              <g key={i}>
+                                <circle cx={xs[i]} cy={ys[i]} r={R} fill={i === pts.length - 1 ? color : th.card} stroke={color} strokeWidth="1.5" />
+                                <text x={xs[i]} y={H + 14} textAnchor="middle" fontSize="10" fill={i === pts.length-1 ? color : "#666"} fontFamily="Outfit,sans-serif" fontWeight={i===pts.length-1?"700":"400"}>
+                                  {p[f]}{unit}
+                                </text>
+                              </g>
+                            ))}
+                          </svg>
                         </div>
                       );
                     });
@@ -4186,6 +4159,42 @@ import "./styles.css";
             })()}
           </div>
         )}
+
+
+        {/* ── Year Stats ── */}
+        {sessions.length > 0 && (() => {
+          const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
+          const yrSess = sessions.filter((s) => (s.startTime || 0) >= yearStart);
+          if (!yrSess.length) return null;
+          const yrVol = yrSess.reduce((a, s) => a + sessionVol(s), 0);
+          const yrSets = yrSess.reduce((a, s) => a + (s.doneSets || 0), 0);
+          const yrAvgInt = (yrSess.reduce((a, s) => a + (s.intensity || 0), 0) / yrSess.length).toFixed(1);
+          const yrAvgDur = Math.round(yrSess.reduce((a, s) => a + (s.duration || 0), 0) / yrSess.length) + "min";
+          const yrVolDisplay = yrVol >= 1000 ? `${(yrVol / 1000).toFixed(1)}t` : `${Math.round(yrVol).toLocaleString()}kg`;
+          const sessWithCals = yrSess.filter((s) => (s.calories || 0) > 0);
+          const avgCals = sessWithCals.length > 0 ? Math.round(sessWithCals.reduce((a, s) => a + s.calories, 0) / sessWithCals.length).toLocaleString() + " kcal" : "—";
+          const tiles = [
+            { v: yrSess.length, l: "SESSIONS" },
+            { v: yrSets.toLocaleString(), l: "TOTAL SETS" },
+            { v: yrAvgInt + "/10", l: "AVG INTENSITY" },
+            { v: yrVolDisplay, l: "VOLUME" },
+            { v: yrAvgDur, l: "AVG DURATION" },
+            { v: avgCals, l: "AVG CALS/SESSION" },
+          ];
+          return (
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+              <div style={{ ...S.label, marginBottom: 12 }}>{new Date().getFullYear()} STATS</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
+                {tiles.map((s) => (
+                  <div key={s.l} style={{ background: th.sect, borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
+                    <div className="bebas" style={{ fontSize: 22, color: th.accentFg, lineHeight: 1 }}>{s.v}</div>
+                    <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1.5px", marginTop: 3 }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Shortcuts */}
         <div
@@ -4421,141 +4430,7 @@ import "./styles.css";
           </div>
         )}
 
-        {sessions.length > 0 && (
-          <>
-            <div style={{ ...S.label, marginBottom: 12, textAlign: "left", }}>RECENT SESSIONS</div>
-            {sessions.slice(0, 3).map((s) => (
-              <div
-                key={s.id}
-                onClick={() => onViewSession(s)}
-                style={{
-                  ...S.card,
-                  padding: "14px 16px",
-                  marginBottom: 8,
-                  textAlign: "left",
-                  cursor: "pointer",
-                  transition: "border-color .2s",
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.borderColor = th.accentBg)
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.borderColor = th.border)
-                }
-              >
-                {/* Top row: name + intensity */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 15,
-                        color: th.text,
-                        marginBottom: 2,
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {s.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: th.muted }}>
-                      {fmtDate(s.startTime)}
-                    </div>
-                  </div>
-                  {s.intensity != null && (
-                    <div
-                      className="bebas"
-                      style={{
-                        fontSize: 28,
-                        color: intColor(s.intensity, th),
-                        lineHeight: 1,
-                        flexShrink: 0,
-                        marginLeft: 12,
-                        textAlign: "center",
-                      }}
-                    >
-                      {s.intensity}
-                      <span
-                        style={{
-                          fontSize: 8,
-                          color: th.dim,
-                          display: "block",
-                          letterSpacing: "1px",
-                        }}
-                      >
-                        INT
-                      </span>
-                    </div>
-                  )}
-                </div>
-                {/* Bottom row: stat chips */}
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 6,
-                    flexWrap: "wrap",
-                    marginBottom: 6,
-                  }}
-                >
-                  {s.duration != null && (
-                    <span
-                      style={{
-                        background: th.input,
-                        borderRadius: 7,
-                        padding: "4px 10px",
-                        fontSize: 11,
-                        color: th.muted,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {s.duration}min
-                    </span>
-                  )}
-                  {s.calories != null && s.calories > 0 && (
-                    <span
-                      style={{
-                        background: th.accentBg + "22",
-                        border: `1px solid ${th.accentBg}44`,
-                        borderRadius: 7,
-                        padding: "4px 10px",
-                        fontSize: 11,
-                        color: th.accentFg,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {s.calories} kcal
-                    </span>
-                  )}
-                  <span
-                    style={{
-                      background: th.input,
-                      borderRadius: 7,
-                      padding: "4px 10px",
-                      fontSize: 11,
-                      color: th.muted,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {s.doneSets || 0} sets
-                  </span>
-                </div>
-                <div
-                  style={{ fontSize: 11, color: th.accentFg, fontWeight: 600 }}
-                >
-                  tap for details →
-                </div>
-              </div>
-            ))}
-          </>
-        )}
+
       </div>
     );
   }
@@ -7556,65 +7431,6 @@ import "./styles.css";
             </div>
           </ProfileSection>
         </div>{/* end profile card */}
-        {!editMode && (
-          <>
-            <div style={{ ...S.card, padding: 16, marginBottom: 12 }}>
-              <div style={{ ...S.label, marginBottom: 14, textAlign: "left", }}>
-                {new Date().getFullYear()} STATS
-              </div>
-              {(() => {
-                const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
-                const yrSess = sessions.filter((s) => (s.startTime || 0) >= yearStart);
-                const yrVol = yrSess.reduce((a, s) => a + sessionVol(s), 0);
-                const yrSets = yrSess.reduce((a, s) => a + (s.doneSets || 0), 0);
-                const yrAvgInt = yrSess.length
-                  ? (yrSess.reduce((a, s) => a + (s.intensity || 0), 0) / yrSess.length).toFixed(1)
-                  : "—";
-                const yrAvgDur = yrSess.length
-                  ? Math.round(yrSess.reduce((a, s) => a + (s.duration || 0), 0) / yrSess.length) + "min"
-                  : "—";
-                const yrVolDisplay = yrVol >= 1000
-                  ? `${(yrVol / 1000).toFixed(1)}t`
-                  : `${Math.round(yrVol).toLocaleString()}kg`;
-                const sessWithCals = yrSess.filter((s) => (s.calories || 0) > 0);
-                const totalCals = sessWithCals.reduce((a, s) => a + (s.calories || 0), 0);
-                const avgCalsPerDay = sessWithCals.length > 0
-                  ? Math.round(totalCals / sessWithCals.length).toLocaleString() + " kcal"
-                  : "—";
-                const tiles = [
-                  { v: yrSess.length, l: "SESSIONS" },
-                  { v: yrSets.toLocaleString(), l: "TOTAL SETS" },
-                  { v: yrAvgInt + "/10", l: "AVG INTENSITY" },
-                  { v: yrVolDisplay, l: "VOLUME" },
-                  { v: yrAvgDur, l: "AVG DURATION" },
-                  { v: avgCalsPerDay, l: "AVG CALS/SESSION" },
-                ];
-                return (
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
-                    {tiles.map((s) => (
-                      <div
-                        key={s.l}
-                        style={{
-                          background: th.sect,
-                          borderRadius: 10,
-                          padding: "12px 8px",
-                          textAlign: "center",
-                        }}
-                      >
-                        <div className="bebas" style={{ fontSize: 22, color: th.accentFg, lineHeight: 1 }}>
-                          {s.v}
-                        </div>
-                        <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1.5px", marginTop: 3 }}>
-                          {s.l}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-            </div>
-          </>
-        )}
         {/* Body measurements card */}
         <div
           style={{ ...S.card, padding: 0, marginBottom: 12, overflow: "hidden", textAlign: "left", }}
