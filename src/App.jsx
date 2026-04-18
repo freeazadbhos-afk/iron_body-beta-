@@ -4268,6 +4268,187 @@ import "./styles.css";
           );
         })()}
 
+
+        {/* ── Muscle Recovery Heatmap ── */}
+        {sessions.length > 0 && (() => {
+          const now = Date.now();
+          // For each muscle, scan all sessions and find: last trained time, total volume (sets×reps) in last 72h
+          const muscleData = {};
+          ALL_MUSCLES.forEach(m => { muscleData[m] = { lastMs: 0, vol72h: 0 }; });
+
+          sessions.forEach(s => {
+            const sTime = s.startTime || 0;
+            const hoursAgo = (now - sTime) / 3600000;
+            (s.exercises || []).forEach(ex => {
+              if (!ex.muscle || !muscleData[ex.muscle]) return;
+              const md = muscleData[ex.muscle];
+              if (sTime > md.lastMs) md.lastMs = sTime;
+              // Volume in last 72h: sets × reps × weight (or just sets×reps for bodyweight)
+              if (hoursAgo <= 72) {
+                (ex.sets || []).filter(st => st.done).forEach(st => {
+                  md.vol72h += (st.reps || 0) * Math.max(st.weight || 1, 1);
+                });
+              }
+            });
+          });
+
+          // Score each muscle: 0=fresh, 1=fatigued
+          // Recovery rate: ~72h full recovery. Score based on recency + volume.
+          const maxVol = Math.max(...Object.values(muscleData).map(d => d.vol72h), 1);
+          const scored = ALL_MUSCLES.map(m => {
+            const { lastMs, vol72h } = muscleData[m];
+            if (!lastMs) return { m, score: 0 }; // never trained
+            const hoursAgo = (now - lastMs) / 3600000;
+            // Recency score (0=fresh/72+h, 1=just trained)
+            const recencyScore = Math.max(0, 1 - hoursAgo / 72);
+            // Volume score (normalized)
+            const volScore = vol72h / maxVol;
+            // Combined: 60% recency, 40% volume
+            const score = Math.min(1, recencyScore * 0.6 + volScore * 0.4);
+            return { m, score, hoursAgo };
+          });
+
+          const trained = scored.filter(s => s.hoursAgo != null);
+          if (!trained.length) return null;
+
+          const getColor = (score) => {
+            if (score >= 0.7)  return { bg: "#ff6b6b22", border: "#ff6b6b", text: "#ff6b6b", label: "HIGH" };
+            if (score >= 0.35) return { bg: "#fd964422", border: "#fd9644", text: "#fd9644", label: "MED" };
+            if (score > 0)     return { bg: "#ffe06622", border: "#ffe066", text: "#ffe066", label: "LOW" };
+            return { bg: "transparent", border: "transparent", text: "#555", label: "" };
+          };
+
+          return (
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
+                <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
+              </div>
+              <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>
+                Based on volume × recency — tap a muscle to see when it was last trained
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                {scored.map(({ m, score, hoursAgo }) => {
+                  const c = getColor(score);
+                  if (!hoursAgo) return (
+                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 600,
+                      border: `1px solid ${th.inputB}`, color: th.dim, background: "transparent" }}>{m}</div>
+                  );
+                  return (
+                    <div key={m} title={`${m}: ${hoursAgo < 24 ? Math.round(hoursAgo) + "h ago" : Math.round(hoursAgo/24) + "d ago"}`}
+                      style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 700,
+                        border: `1px solid ${c.border}`, color: c.text, background: c.bg,
+                        cursor: "default", userSelect: "none" }}>
+                      {m}
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", gap: 14, marginTop: 12, flexWrap: "wrap" }}>
+                {[
+                  { label: "High fatigue", col: "#ff6b6b" },
+                  { label: "Recovering",   col: "#fd9644" },
+                  { label: "Low fatigue",  col: "#ffe066" },
+                  { label: "Rested",       col: th.dim },
+                ].map(({ label, col }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
+                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Training Efficiency Index ── */}
+        {sessions.length > 0 && (() => {
+          const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // last 30 days
+          const recent = sessions.filter(s => (s.startTime || 0) >= cutoff && (s.duration || 0) > 0);
+          if (!recent.length) return null;
+
+          // Efficiency = volume (kg) / duration (min)  → kg per minute
+          const withEff = recent.map(s => {
+            const vol = sessionVol(s);
+            const eff = s.duration > 0 ? vol / s.duration : 0;
+            return { ...s, vol, eff };
+          }).filter(s => s.vol > 0).reverse(); // oldest first for chart
+
+          if (!withEff.length) return null;
+
+          const effVals = withEff.map(s => s.eff);
+          const avgEff  = effVals.reduce((a,v) => a+v, 0) / effVals.length;
+          const maxEff  = Math.max(...effVals, 1);
+          const minEff  = Math.min(...effVals, 0);
+          const range   = maxEff - minEff || 1;
+          const latest  = withEff[withEff.length - 1];
+          const trend   = withEff.length >= 2
+            ? (latest.eff > withEff[withEff.length - 2].eff ? "↑" : latest.eff < withEff[withEff.length - 2].eff ? "↓" : "→")
+            : "→";
+          const trendCol = trend === "↑" ? "#1db954" : trend === "↓" ? "#ff6b6b" : th.muted;
+
+          // SVG line chart
+          const W = 280, H = 52, R = 3;
+          const xs = withEff.map((_, i) => (i / Math.max(withEff.length - 1, 1)) * W);
+          const ys = withEff.map(s => H - ((s.eff - minEff) / range) * (H - R*2) - R);
+          const linePath = xs.map((x, i) => (i === 0 ? `M${x},${ys[i]}` : `L${x},${ys[i]}`)).join(" ");
+          const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+          // Average line Y
+          const avgY = H - ((avgEff - minEff) / range) * (H - R*2) - R;
+
+          const effColor = (e) => e >= avgEff * 1.2 ? th.accentBg : e >= avgEff * 0.8 ? "#fd9644" : "#ff6b6b";
+
+          return (
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                <div>
+                  <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
+                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
+                    Avg <span style={{ color: th.accentFg, fontWeight: 700 }}>{avgEff.toFixed(1)} kg/min</span> · Volume ÷ Duration
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <span className="bebas" style={{ fontSize: 28, color: effColor(latest.eff), lineHeight: 1 }}>
+                    {latest.eff.toFixed(1)}
+                  </span>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>LATEST</div>
+                  <div style={{ fontSize: 14, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</div>
+                </div>
+              </div>
+              <svg viewBox={`0 0 ${W} ${H + 22}`} width="100%" style={{ overflow: "visible", marginTop: 8 }}>
+                {/* Area */}
+                <path d={areaPath} fill={th.accentBg} opacity="0.06" />
+                {/* Avg line (dashed) */}
+                <line x1="0" y1={avgY} x2={W} y2={avgY} stroke={th.inputB} strokeWidth="1" strokeDasharray="4 3" />
+                <text x={W} y={avgY - 3} textAnchor="end" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">avg</text>
+                {/* Line */}
+                <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* Dots */}
+                {withEff.map((s, i) => (
+                  <circle key={i} cx={xs[i]} cy={ys[i]} r={i === withEff.length-1 ? R+1 : R}
+                    fill={i === withEff.length-1 ? effColor(s.eff) : th.card}
+                    stroke={effColor(s.eff)} strokeWidth="1.5" />
+                ))}
+                {/* Edge value labels */}
+                <text x={xs[0]} y={H+16} textAnchor="start" fontSize="10" fill="#666" fontFamily="Outfit,sans-serif">{withEff[0].eff.toFixed(1)}</text>
+                <text x={xs[xs.length-1]} y={H+16} textAnchor="end" fontSize="10" fill={th.accentFg} fontFamily="Outfit,sans-serif" fontWeight="700">{latest.eff.toFixed(1)}</text>
+              </svg>
+              <div style={{ display: "flex", gap: 14, marginTop: 4, flexWrap: "wrap" }}>
+                {[
+                  { label: "High efficiency", col: th.accentBg },
+                  { label: "Average",         col: "#fd9644" },
+                  { label: "Low efficiency",  col: "#ff6b6b" },
+                ].map(({ label, col }) => (
+                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
+                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Shortcuts */}
         <div
           style={{
