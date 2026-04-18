@@ -3813,27 +3813,42 @@ import "./styles.css";
                   const bg = !active ? "transparent"
                     : hasResist && hasCardio ? "#fd9644"
                     : hasCardio ? "#4ecdc4" : th.accentBg;
-                  // Connector: show right-side bridge ONLY between two consecutive active days
-                  const isLastInRow = (ci % 7) === 6;
+                  // Connectors: bridge between consecutive active days, including row-wrap
                   const nextDay = day + 1;
                   const prevDay = day - 1;
-                  const nextActive = !isLastInRow && activeSet.has(nextDay) && nextDay <= daysInMonth;
-                  const showRight = active && nextActive;
-                  const prevActive = (ci % 7) !== 0 && activeSet.has(prevDay) && prevDay >= 1;
-                  const showLeft = active && prevActive;
+                  const isFirstInRow = (ci % 7) === 0;
+                  const isLastInRow  = (ci % 7) === 6;
+                  // A day has a prev/next active neighbour regardless of row position
+                  // (row-wrap: day at end of row connects to day at start of next row)
+                  const prevIsActive = activeSet.has(prevDay) && prevDay >= 1;
+                  const nextIsActive = activeSet.has(nextDay) && nextDay <= daysInMonth;
+                  const showLeft  = active && prevIsActive;
+                  const showRight = active && nextIsActive;
+                  // For row-wrapping: last-in-row extends to edge; first-in-row extends from edge
+                  const leftFull  = showLeft  && isFirstInRow;  // prev was last of prev row
+                  const rightFull = showRight && isLastInRow;   // next is first of next row
                   const connCol = hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : th.accentBg;
+                  // Use CSS gap=2 → bridge must span full 50% of cell from center to edge
                   return (
                     <div key={ci} style={{ position:"relative", aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {/* Left bridge */}
                       {showLeft && (
                         <div style={{
-                          position:"absolute", left:0, top:"50%", transform:"translateY(-50%)",
-                          width:"20%", height:3, background:connCol, zIndex:0,
+                          position:"absolute",
+                          left: leftFull ? 0 : "7%",
+                          right: "50%",
+                          top:"50%", transform:"translateY(-50%)",
+                          height:5, background:connCol, zIndex:0,
                         }} />
                       )}
+                      {/* Right bridge */}
                       {showRight && (
                         <div style={{
-                          position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
-                          width:"20%", height:3, background:connCol, zIndex:0,
+                          position:"absolute",
+                          left:"50%",
+                          right: rightFull ? 0 : "7%",
+                          top:"50%", transform:"translateY(-50%)",
+                          height:5, background:connCol, zIndex:0,
                         }} />
                       )}
                       <div style={{
@@ -3875,17 +3890,19 @@ import "./styles.css";
                   marginBottom: 10,
                 }}
               >
-                <div>
-                  <div style={{ ...S.label }}>INTENSITY</div>
-                  {(() => {
-                    const cut7 = Date.now() - 7*24*60*60*1000;
-                    const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.intensity||0) > 0);
-                    if (!r7.length) return null;
-                    const avgI = (r7.reduce((a,s)=>a+(s.intensity||0),0)/r7.length).toFixed(1);
-                    return <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Avg <span style={{ color:th.accentFg, fontWeight:700 }}>{avgI}/10</span> per session</div>;
-                  })()}
-                </div>
-                <div style={{ fontSize: 12, color: th.dim }}>last 7 days</div>
+                <div style={{ ...S.label }}>INTENSITY</div>
+                {(() => {
+                  const cut7 = Date.now() - 7*24*60*60*1000;
+                  const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.intensity||0) > 0);
+                  if (!r7.length) return null;
+                  const avgI = (r7.reduce((a,s)=>a+(s.intensity||0),0)/r7.length).toFixed(1);
+                  return (
+                    <div style={{ textAlign:"right" }}>
+                      <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgI}</span>
+                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>AVG /10</div>
+                    </div>
+                  );
+                })()}
               </div>
               {(() => {
                 // Build last-7-days slots (always 7, empty days shown dimmed)
@@ -4006,17 +4023,19 @@ import "./styles.css";
             {/* Calories chart — same bar chart design as intensity */}
             <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div>
-                  <div style={{ ...S.label }}>CALORIES BURNED</div>
-                  {(() => {
-                    const cut7 = Date.now() - 7*24*60*60*1000;
-                    const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.calories||0) > 0);
-                    if (!r7.length) return null;
-                    const avgC = Math.round(r7.reduce((a,s)=>a+(s.calories||0),0)/r7.length);
-                    return <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Avg <span style={{ color:th.accentFg, fontWeight:700 }}>{avgC.toLocaleString()} kcal</span> per session</div>;
-                  })()}
-                </div>
-                <div style={{ fontSize: 12, color: th.dim }}>daily · last 7 days</div>
+                <div style={{ ...S.label }}>CALORIES BURNED</div>
+                {(() => {
+                  const cut7 = Date.now() - 7*24*60*60*1000;
+                  const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.calories||0) > 0);
+                  if (!r7.length) return null;
+                  const avgC = Math.round(r7.reduce((a,s)=>a+(s.calories||0),0)/r7.length);
+                  return (
+                    <div style={{ textAlign:"right" }}>
+                      <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgC.toLocaleString()}</span>
+                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>AVG KCAL</div>
+                    </div>
+                  );
+                })()}
               </div>
               {(() => {
                 const days = Array.from({ length: 7 }, (_, i) => {
@@ -4314,7 +4333,7 @@ import "./styles.css";
           const getColor = (score) => {
             if (score >= 0.7)  return { bg: "#ff6b6b22", border: "#ff6b6b", text: "#ff6b6b", label: "HIGH" };
             if (score >= 0.35) return { bg: "#fd964422", border: "#fd9644", text: "#fd9644", label: "MED" };
-            if (score > 0)     return { bg: "#ffe06622", border: "#ffe066", text: "#ffe066", label: "LOW" };
+            if (score > 0)     return { bg: "#4ecdc422", border: "#4ecdc4", text: "#4ecdc4", label: "LOW" };
             return { bg: "transparent", border: "transparent", text: "#555", label: "" };
           };
 
@@ -4331,8 +4350,8 @@ import "./styles.css";
                 {scored.map(({ m, score, hoursAgo }) => {
                   const c = getColor(score);
                   if (!hoursAgo) return (
-                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 600,
-                      border: `1px solid ${th.inputB}`, color: th.dim, background: "transparent" }}>{m}</div>
+                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 700,
+                      border: `1px solid ${th.accentBg}55`, color: th.accentFg, background: `${th.accentBg}11` }}>{m}</div>
                   );
                   return (
                     <div key={m} title={`${m}: ${hoursAgo < 24 ? Math.round(hoursAgo) + "h ago" : Math.round(hoursAgo/24) + "d ago"}`}
@@ -4348,8 +4367,8 @@ import "./styles.css";
                 {[
                   { label: "High fatigue", col: "#ff6b6b" },
                   { label: "Recovering",   col: "#fd9644" },
-                  { label: "Low fatigue",  col: "#ffe066" },
-                  { label: "Rested",       col: th.dim },
+                  { label: "Low fatigue",  col: "#4ecdc4" },
+                  { label: "Rested",       col: th.accentBg },
                 ].map(({ label, col }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
