@@ -3595,6 +3595,8 @@ import "./styles.css";
     const S = useS();
     const [editShortcuts, setEditShortcuts] = useState(false);
     const [addingShortcut, setAddingShortcut] = useState(false);
+    const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
+    const [streakDir, setStreakDir] = useState(1);
     const [removingShortcut, setRemovingShortcut] = useState(null);
     const animatedRemoveFromHome = (pid) => {
       setRemovingShortcut(pid);
@@ -3737,7 +3739,6 @@ import "./styles.css";
 
         {/* ── Streak Calendar ── */}
         {sessions.length > 0 && (() => {
-          // Count consecutive days with at least one session (going back from today)
           const todayMs = new Date(); todayMs.setHours(0,0,0,0);
           const sessionDays = new Set(sessions.map(s => {
             const d = new Date(s.startTime || 0); d.setHours(0,0,0,0);
@@ -3747,66 +3748,103 @@ import "./styles.css";
           for (let i = 0; i <= 365; i++) {
             const d = new Date(todayMs); d.setDate(d.getDate() - i);
             if (sessionDays.has(d.getTime())) streak++;
-            else if (i > 0) break; // allow today to be empty (mid-day)
+            else if (i > 0) break;
           }
-          // Build last 28 days grid (4 weeks)
-          const days = Array.from({ length: 28 }, (_, i) => {
-            const d = new Date(todayMs); d.setDate(d.getDate() - (27 - i));
-            return d;
-          });
-          const DOW = ["M","T","W","T","F","S","S"];
+          const base = new Date(); base.setDate(1); base.setMonth(base.getMonth() + streakOff);
+          const year = base.getFullYear(); const month = base.getMonth();
+          const monthName = base.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+          const rawDow = new Date(year, month, 1).getDay();
+          const firstDow = rawDow === 0 ? 6 : rawDow - 1;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const earliest = sessions.length ? new Date(Math.min(...sessions.map(s => s.startTime||Date.now()))) : new Date();
+          const minOff = (earliest.getFullYear() - new Date().getFullYear()) * 12 + earliest.getMonth() - new Date().getMonth();
+          const canBack = streakOff > minOff;
+          const canFwd  = streakOff < 0;
+          // Fixed 6-row grid (42 cells) so height never changes between months
+          const cells = [];
+          for (let i = 0; i < firstDow; i++) cells.push(null);
+          for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+          while (cells.length < 42) cells.push(null);
+          const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+          // Build active set for this month for connector logic
+          const activeSet = new Set(cells.map((day) => {
+            if (!day) return null;
+            const dt = new Date(year, month, day); dt.setHours(0,0,0,0);
+            return sessionDays.has(dt.getTime()) ? day : null;
+          }).filter(Boolean));
           return (
-            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ ...S.card, padding: "12px 12px 10px", marginBottom: 10, textAlign: "left" }}>
+              <style>{`
+                @keyframes streakSlideL { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
+                @keyframes streakSlideR { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
+              `}</style>
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ ...S.label }}>STREAK</div>
-                <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
-                  <span style={{ fontSize: 10, color: th.dim, letterSpacing: "1px" }}>DAYS</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ fontSize: 16 }}>🔥</span>
+                  <span className="bebas" style={{ fontSize: 24, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
+                  <span style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>DAYS</span>
                 </div>
               </div>
-              {/* Day-of-week headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 4 }}>
-                {DOW.map((d, i) => (
-                  <div key={i} style={{ textAlign: "center", fontSize: 10, color: th.dim, fontWeight: 700 }}>{d}</div>
-                ))}
+              {/* Month nav */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <button onClick={() => { if (!canBack) return; setStreakDir(-1); setStreakOff(o => o-1); }}
+                  style={{ background:"none",border:"none",color:canBack?th.text:th.inputB,fontSize:22,cursor:canBack?"pointer":"default",padding:"0 2px",lineHeight:1 }}>‹</button>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: th.sub }}>{monthName}</div>
+                <button onClick={() => { if (!canFwd) return; setStreakDir(1); setStreakOff(o => o+1); }}
+                  style={{ background:"none",border:"none",color:canFwd?th.text:th.inputB,fontSize:22,cursor:canFwd?"pointer":"default",padding:"0 2px",lineHeight:1 }}>›</button>
               </div>
-              {/* 28-day dot grid (4 weeks × 7) */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
-                {days.map((d, i) => {
-                  const active = sessionDays.has(d.getTime());
-                  const isToday = d.getTime() === todayMs.getTime();
-                  // Determine session type for color
-                  const daySess = sessions.filter(s => {
-                    const sd = new Date(s.startTime||0); sd.setHours(0,0,0,0);
-                    return sd.getTime() === d.getTime();
-                  });
+              {/* DOW headers */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
+                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:9,color:th.dim,fontWeight:700 }}>{d}</div>)}
+              </div>
+              {/* Fixed 6-row × 7-col grid */}
+              <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 2,
+                animation: streakDir < 0 ? "streakSlideR 0.22s ease-out" : "streakSlideL 0.22s ease-out" }}>
+                {cells.map((day, ci) => {
+                  if (!day) return <div key={ci} style={{ aspectRatio:"1" }} />;
+                  const dt = new Date(year, month, day); dt.setHours(0,0,0,0);
+                  const isToday = dt.getTime() === todayMs.getTime();
+                  const daySess = sessions.filter(s => { const sd = new Date(s.startTime||0); sd.setHours(0,0,0,0); return sd.getTime() === dt.getTime(); });
+                  const active = daySess.length > 0;
                   const hasResist = daySess.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
                   const hasCardio = daySess.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
                   const bg = !active ? "transparent"
                     : hasResist && hasCardio ? `linear-gradient(135deg,${th.accentBg},#4ecdc4)`
-                    : hasCardio ? "#4ecdc4"
-                    : th.accentBg;
+                    : hasCardio ? "#4ecdc4" : th.accentBg;
+                  // Connector: show right-side bridge if today AND next day both active (same row)
+                  const isLastInRow = (ci % 7) === 6;
+                  const nextDay = day + 1;
+                  const showRight = !isLastInRow && active && activeSet.has(nextDay) && nextDay <= daysInMonth;
                   return (
-                    <div key={i} style={{
-                      aspectRatio: "1",
-                      borderRadius: "50%",
-                      background: bg,
-                      border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
-                      opacity: active ? 1 : 0.18,
-                      transition: "background .2s",
-                    }} />
+                    <div key={ci} style={{ position:"relative", aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                      {/* Horizontal connector to next active day */}
+                      {showRight && (
+                        <div style={{
+                          position:"absolute", right:"-1px", top:"50%", transform:"translateY(-50%)",
+                          width:"calc(100% - 70%)", height:3,
+                          background: hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : th.accentBg,
+                          zIndex:0,
+                        }} />
+                      )}
+                      <div style={{
+                        position:"relative", zIndex:1,
+                        width:"85%", height:"85%", borderRadius:"50%", background:bg,
+                        border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:9, color: active ? th.accentT : isToday ? th.text : th.muted,
+                        fontWeight: active || isToday ? 700 : 400,
+                      }}>{day}</div>
+                    </div>
                   );
                 })}
               </div>
-              <div style={{ display: "flex", gap: 12, marginTop: 10, justifyContent: "center" }}>
-                {[
-                  { label: "Resistance", col: th.accentBg },
-                  { label: "Cardio", col: "#4ecdc4" },
-                  { label: "Mix", col: `linear-gradient(135deg,${th.accentBg},#4ecdc4)` },
-                ].map(({ label, col }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                    <div style={{ width: 10, height: 10, borderRadius: "50%", background: col }} />
-                    <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
+              <div style={{ display:"flex", gap:10, marginTop:8, justifyContent:"center" }}>
+                {[{ label:"Resistance",col:th.accentBg },{ label:"Cardio",col:"#4ecdc4" },{ label:"Mix",col:`linear-gradient(135deg,${th.accentBg},#4ecdc4)` }].map(({label,col})=>(
+                  <div key={label} style={{ display:"flex",alignItems:"center",gap:4 }}>
+                    <div style={{ width:8,height:8,borderRadius:"50%",background:col }} />
+                    <span style={{ fontSize:9,color:th.dim }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -3872,10 +3910,12 @@ import "./styles.css";
                             }, 0) * 10
                           ) / 10;
                       }
-                      const h = hasData ? Math.max(8, (n / 10) * 80) : 6;
-                      const col = hasData ? intColor(n, th) : th.inputB;
                       const hasResist = daySessions.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
                       const hasCardio = daySessions.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
+                      const h = hasData ? Math.max(8, (n / 10) * 80) : 6;
+                      const col = hasData
+                        ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg)
+                        : th.inputB;
                       const barBg = hasData
                         ? (hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : col)
                         : th.inputB;
@@ -3944,6 +3984,17 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
+              {(() => {
+                const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                const recent = sessions.filter(s => (s.startTime||0) >= cutoff && (s.intensity||0) > 0);
+                if (!recent.length) return null;
+                const avg = (recent.reduce((a,s) => a+(s.intensity||0),0)/recent.length).toFixed(1);
+                return (
+                  <div style={{ textAlign:"center", marginTop:6, fontSize:11, color:th.muted }}>
+                    Avg intensity this week: <span style={{ color:th.accentFg, fontWeight:700 }}>{avg}/10</span>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Calories chart — same bar chart design as intensity */}
@@ -4013,6 +4064,17 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
+              {(() => {
+                const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+                const recent = sessions.filter(s => (s.startTime||0) >= cutoff && (s.calories||0) > 0);
+                if (!recent.length) return null;
+                const avg = Math.round(recent.reduce((a,s) => a+(s.calories||0),0)/recent.length);
+                return (
+                  <div style={{ textAlign:"center", marginTop:6, fontSize:11, color:th.muted }}>
+                    Avg calories per session: <span style={{ color:th.accentFg, fontWeight:700 }}>{avg.toLocaleString()} kcal</span>
+                  </div>
+                );
+              })()}
             </div>
           </>
         )}
@@ -4107,7 +4169,6 @@ import "./styles.css";
                   </div>
                   {/* Trend line charts — last 7 days */}
                   {(() => {
-                    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
                     const trendFields = [
                       { f: "weight", label: "WEIGHT TREND", unit: "kg", color: th.accentBg },
                       { f: "muscle", label: "MUSCLE TREND", unit: "%", color: "#4ecdc4" },
@@ -4115,7 +4176,7 @@ import "./styles.css";
                     ];
                     return trendFields.map(({ f, label, unit, color }) => {
                       const pts = measurements
-                        .filter((m) => m[f] != null && (m.date || 0) >= sevenDaysAgo)
+                        .filter((m) => m[f] != null)
                         .slice(0, 7)
                         .reverse();
                       if (pts.length < 2) return null;
@@ -4144,7 +4205,12 @@ import "./styles.css";
                             {pts.map((p, i) => (
                               <g key={i}>
                                 <circle cx={xs[i]} cy={ys[i]} r={R} fill={i === pts.length - 1 ? color : th.card} stroke={color} strokeWidth="1.5" />
-                                <text x={xs[i]} y={H + 14} textAnchor="middle" fontSize="10" fill={i === pts.length-1 ? color : "#666"} fontFamily="Outfit,sans-serif" fontWeight={i===pts.length-1?"700":"400"}>
+                                <text x={xs[i]} y={H + 14}
+                                  textAnchor={i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}
+                                  fontSize="10"
+                                  fill={i === pts.length-1 ? color : "#666"}
+                                  fontFamily="Outfit,sans-serif"
+                                  fontWeight={i===pts.length-1?"700":"400"}>
                                   {p[f]}{unit}
                                 </text>
                               </g>
@@ -4168,6 +4234,8 @@ import "./styles.css";
           if (!yrSess.length) return null;
           const yrVol = yrSess.reduce((a, s) => a + sessionVol(s), 0);
           const yrSets = yrSess.reduce((a, s) => a + (s.doneSets || 0), 0);
+          const yrTotalMins = yrSess.reduce((a, s) => a + (s.duration || 0), 0);
+          const yrHrsDisplay = yrTotalMins >= 60 ? `${Math.floor(yrTotalMins/60)}h ${yrTotalMins%60}m` : `${yrTotalMins}m`;
           const yrAvgInt = (yrSess.reduce((a, s) => a + (s.intensity || 0), 0) / yrSess.length).toFixed(1);
           const yrAvgDur = Math.round(yrSess.reduce((a, s) => a + (s.duration || 0), 0) / yrSess.length) + "min";
           const yrVolDisplay = yrVol >= 1000 ? `${(yrVol / 1000).toFixed(1)}t` : `${Math.round(yrVol).toLocaleString()}kg`;
@@ -4175,7 +4243,7 @@ import "./styles.css";
           const avgCals = sessWithCals.length > 0 ? Math.round(sessWithCals.reduce((a, s) => a + s.calories, 0) / sessWithCals.length).toLocaleString() + " kcal" : "—";
           const tiles = [
             { v: yrSess.length, l: "SESSIONS" },
-            { v: yrSets.toLocaleString(), l: "TOTAL SETS" },
+            { v: yrHrsDisplay, l: "TOTAL HOURS" },
             { v: yrAvgInt + "/10", l: "AVG INTENSITY" },
             { v: yrVolDisplay, l: "VOLUME" },
             { v: yrAvgDur, l: "AVG DURATION" },
@@ -7499,7 +7567,7 @@ import "./styles.css";
                   fontWeight: 700,
                 }}
               >
-                {showMeasure ? "Cancel" : "Log"}
+                {showMeasure ? "Cancel" : "Edit"}
               </button>
             </div>
           </div>
@@ -7687,8 +7755,8 @@ import "./styles.css";
               </Btn>
             </div>
           </ProfileSection>
-          {/* History — last 5 entries */}
-          {measurements.length > 0 && !showMeasure && (
+          {/* History — visible when form is open */}
+          {measurements.length > 0 && showMeasure && (
             <div
               style={{ borderTop: `1px solid ${th.border}`, padding: "4px 0" }}
             >
