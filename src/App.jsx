@@ -3576,6 +3576,89 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     HOME VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
+  /* ─── Strength Progression — standalone component so useState is valid ──────── */
+  function StrengthProgression({ sessions }) {
+    const th = useTheme();
+    const S = useS();
+    const KEY_LIFTS = [
+      { id: "e51", short: "Bench",    col: th.accentBg },
+      { id: "e59", short: "Deadlift", col: "#4ecdc4"   },
+      { id: "e92", short: "Squat",    col: "#fd9644"   },
+      { id: "e28", short: "OHP",      col: "#a29bfe"   },
+      { id: "e15", short: "Pull",     col: "#ff7675"   },
+    ];
+    const liftHistory = KEY_LIFTS.map(lift => {
+      const pts = [];
+      sessions.forEach(s => {
+        const ex = (s.exercises||[]).find(e => e.id === lift.id || e.exId === lift.id);
+        if (!ex) return;
+        const maxRM = Math.max(...(ex.sets||[]).filter(st => st.done && st.weight > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
+        if (maxRM > 0) pts.push({ t: s.startTime||0, w: maxRM });
+      });
+      pts.sort((a,b) => a.t - b.t);
+      return { ...lift, pts };
+    }).filter(l => l.pts.length >= 2);
+
+    const shown = [...liftHistory].sort((a,b) => b.pts.length - a.pts.length).slice(0, 4);
+    const [selId, setSelId] = useState(shown[0]?.id || "");
+    if (!shown.length) return null;
+
+    const lift = shown.find(l => l.id === selId) || shown[0];
+    const allPts = lift.pts;
+    const vals = allPts.map(p => p.w);
+    const mn = Math.min(...vals); const mx = Math.max(...vals, mn+1);
+    const range = mx - mn || 1;
+    const W = 280, H = 60, R = 3;
+    const xs = allPts.map((_,i) => (i/(allPts.length-1||1))*W);
+    const ys = allPts.map(p => H - ((p.w - mn)/range)*(H-R*2) - R);
+    const linePath = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
+    const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+    const latest1RM = allPts[allPts.length-1].w;
+    const first1RM  = allPts[0].w;
+    const delta = latest1RM - first1RM;
+    const pct = first1RM > 0 ? ((delta/first1RM)*100).toFixed(1) : 0;
+    const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
+    const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+    const fmtW = w => w >= 100 ? w.toFixed(0) : w.toFixed(1);
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div>
+            <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
+            <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>
+              Est. 1RM · <span style={{ color:trendCol, fontWeight:700 }}>{trend} {delta>0?"+":""}{fmtW(delta)} kg ({pct}%)</span>
+            </div>
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <span className="bebas" style={{ fontSize:28, color:lift.col, lineHeight:1 }}>{fmtW(latest1RM)}</span>
+            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG 1RM</div>
+          </div>
+        </div>
+        <div style={{ display:"flex", gap:5, marginBottom:10, flexWrap:"wrap" }}>
+          {shown.map(l => (
+            <button key={l.id} onClick={() => setSelId(l.id)} style={{
+              padding:"4px 11px", borderRadius:20, fontSize:11, fontWeight:700,
+              border:`1px solid ${selId===l.id ? l.col : th.inputB}`,
+              background: selId===l.id ? `${l.col}22` : "transparent",
+              color: selId===l.id ? l.col : th.muted,
+              cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+            }}>{l.short}</button>
+          ))}
+        </div>
+        <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
+          <path d={areaPath} fill={lift.col} opacity="0.07" />
+          <path d={linePath} fill="none" stroke={lift.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {allPts.map((p,i) => (
+            <circle key={i} cx={xs[i]} cy={ys[i]} r={i===allPts.length-1?R+1:R}
+              fill={i===allPts.length-1?lift.col:th.card} stroke={lift.col} strokeWidth="1.5" />
+          ))}
+          <text x={xs[0]} y={H+15} textAnchor="start" fontSize="10" fill="#666" fontFamily="Outfit,sans-serif">{fmtW(allPts[0].w)} kg</text>
+          <text x={xs[xs.length-1]} y={H+15} textAnchor="end" fontSize="10" fill={lift.col} fontFamily="Outfit,sans-serif" fontWeight="700">{fmtW(latest1RM)} kg</text>
+        </svg>
+      </div>
+    );
+  }
+
   function HomeView({
     sessions,
     programs,
@@ -3766,12 +3849,7 @@ import "./styles.css";
           for (let d = 1; d <= daysInMonth; d++) cells.push(d);
           while (cells.length < 42) cells.push(null);
           const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-          // Build active set for this month for connector logic
-          const activeSet = new Set(cells.map((day) => {
-            if (!day) return null;
-            const dt = new Date(year, month, day); dt.setHours(0,0,0,0);
-            return sessionDays.has(dt.getTime()) ? day : null;
-          }).filter(Boolean));
+
           return (
             <div style={{ ...S.card, padding: "12px 12px 10px", marginBottom: 10, textAlign: "left" }}>
               <style>{`
@@ -3797,7 +3875,7 @@ import "./styles.css";
               </div>
               {/* DOW headers */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
-                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:10,color:th.sub,fontWeight:700,letterSpacing:"0.2px" }}>{d}</div>)}
+                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:11,color:th.sub,fontWeight:700,letterSpacing:"0.2px" }}>{d}</div>)}
               </div>
               {/* Fixed 6-row × 7-col grid */}
               <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 2,
@@ -3813,50 +3891,13 @@ import "./styles.css";
                   const bg = !active ? "transparent"
                     : hasResist && hasCardio ? "#fd9644"
                     : hasCardio ? "#4ecdc4" : th.accentBg;
-                  // Connectors: bridge between consecutive active days, including row-wrap
-                  const nextDay = day + 1;
-                  const prevDay = day - 1;
-                  const isFirstInRow = (ci % 7) === 0;
-                  const isLastInRow  = (ci % 7) === 6;
-                  // A day has a prev/next active neighbour regardless of row position
-                  // (row-wrap: day at end of row connects to day at start of next row)
-                  const prevIsActive = activeSet.has(prevDay) && prevDay >= 1;
-                  const nextIsActive = activeSet.has(nextDay) && nextDay <= daysInMonth;
-                  const showLeft  = active && prevIsActive;
-                  const showRight = active && nextIsActive;
-                  // For row-wrapping: last-in-row extends to edge; first-in-row extends from edge
-                  const leftFull  = showLeft  && isFirstInRow;  // prev was last of prev row
-                  const rightFull = showRight && isLastInRow;   // next is first of next row
-                  const connCol = hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : th.accentBg;
-                  // Use CSS gap=2 → bridge must span full 50% of cell from center to edge
                   return (
-                    <div key={ci} style={{ position:"relative", aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {/* Left bridge */}
-                      {showLeft && (
-                        <div style={{
-                          position:"absolute",
-                          left: leftFull ? 0 : "7%",
-                          right: "50%",
-                          top:"50%", transform:"translateY(-50%)",
-                          height:5, background:connCol, zIndex:0,
-                        }} />
-                      )}
-                      {/* Right bridge */}
-                      {showRight && (
-                        <div style={{
-                          position:"absolute",
-                          left:"50%",
-                          right: rightFull ? 0 : "7%",
-                          top:"50%", transform:"translateY(-50%)",
-                          height:5, background:connCol, zIndex:0,
-                        }} />
-                      )}
+                    <div key={ci} style={{ aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <div style={{
-                        position:"relative", zIndex:1,
-                        width:"85%", height:"85%", borderRadius:"50%", background:bg,
+                        width:"88%", height:"88%", borderRadius:"50%", background:bg,
                         border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:11, color: active ? th.accentT : isToday ? th.text : th.sub,
+                        fontSize:12, color: active ? th.accentT : isToday ? th.text : th.sub,
                         fontWeight: active || isToday ? 700 : 400,
                       }}>{day}</div>
                     </div>
@@ -4463,6 +4504,108 @@ import "./styles.css";
                     <span style={{ fontSize: 10, color: th.dim }}>{label}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+          );
+        })()}
+
+
+        {/* ── Strength Progression ── */}
+        {sessions.length > 0 && <StrengthProgression sessions={sessions} />}
+
+        {/* ── Personal Records ── */}
+        {sessions.length > 0 && (() => {
+          // Find all-time max weight per exercise across all sessions
+          const prMap = {};
+          sessions.forEach(s => {
+            (s.exercises||[]).forEach(ex => {
+              const exId = ex.id || ex.exId;
+              if (!exId) return;
+              (ex.sets||[]).filter(st => st.done && (st.weight||0) > 0).forEach(st => {
+                if (!prMap[exId] || st.weight > prMap[exId].w) {
+                  const dbEx = DB.find(d => d.id === exId);
+                  prMap[exId] = { w: st.weight, reps: st.reps, name: dbEx?.name || ex.name || exId, t: s.startTime||0, muscle: dbEx?.muscle };
+                }
+              });
+            });
+          });
+          const prs = Object.values(prMap).sort((a,b) => b.w - a.w).slice(0, 8);
+          if (!prs.length) return null;
+          return (
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+              <div style={{ ...S.label, marginBottom:12 }}>🏆 PERSONAL RECORDS</div>
+              {prs.map((pr, i) => (
+                <div key={pr.name} style={{
+                  display:"flex", alignItems:"center", gap:10,
+                  padding:"8px 0",
+                  borderBottom: i < prs.length-1 ? `1px solid ${th.border}` : "none",
+                }}>
+                  <div className="bebas" style={{ fontSize:14, color:th.dim, width:18, flexShrink:0, textAlign:"right" }}>#{i+1}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
+                    <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>{pr.muscle} · {pr.reps ? `${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
+                  </div>
+                  <div style={{ textAlign:"right", flexShrink:0 }}>
+                    <span className="bebas" style={{ fontSize:22, color: i===0 ? "#ffd700" : i===1 ? "#c0c0c0" : i===2 ? "#cd7f32" : th.accentFg, lineHeight:1 }}>{pr.w}</span>
+                    <span style={{ fontSize:10, color:th.dim }}> kg</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+
+        {/* ── Weekly Volume Trend ── */}
+        {sessions.length > 0 && (() => {
+          // Build last 8 weeks of total tonnage (kg lifted per week)
+          const now = Date.now();
+          const weeks = Array.from({ length: 8 }, (_, i) => {
+            const end = now - i * 7 * 24 * 60 * 60 * 1000;
+            const start = end - 7 * 24 * 60 * 60 * 1000;
+            return { start, end, label: i === 0 ? "This wk" : `${i}w ago` };
+          }).reverse();
+          const weekVols = weeks.map(w => {
+            const wSess = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end);
+            return wSess.reduce((a,s) => a + sessionVol(s), 0);
+          });
+          const maxVol = Math.max(...weekVols, 1);
+          const totalRecent = weekVols[weekVols.length-1];
+          const totalPrev   = weekVols[weekVols.length-2] || 0;
+          const delta = totalRecent - totalPrev;
+          const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
+          const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+          const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
+          if (weekVols.every(v => v === 0)) return null;
+          return (
+            <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                <div>
+                  <div style={{ ...S.label }}>WEEKLY VOLUME</div>
+                  <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>
+                    vs prev week: <span style={{ color:trendCol, fontWeight:700 }}>{trend} {fmtV(Math.abs(delta))}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign:"right" }}>
+                  <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtV(totalRecent)}</span>
+                  <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
+                {weeks.map((w, i) => {
+                  const v = weekVols[i];
+                  const h = v > 0 ? Math.max(8, (v/maxVol)*72) : 4;
+                  const isCurrent = i === weeks.length-1;
+                  const col = isCurrent ? th.accentBg : v > weekVols[i-1||0]*1.1 ? `${th.accentBg}99` : `${th.accentBg}55`;
+                  return (
+                    <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
+                      <div style={{ fontSize:10, color: isCurrent ? th.accentFg : th.dim, fontWeight: isCurrent ? 700 : 400, marginBottom:2, lineHeight:1 }}>
+                        {v > 0 ? fmtV(v) : ""}
+                      </div>
+                      <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
+                      <div style={{ fontSize:9, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2 }}>{w.label}</div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
