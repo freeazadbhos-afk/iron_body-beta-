@@ -3797,7 +3797,7 @@ import "./styles.css";
               </div>
               {/* DOW headers */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
-                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:9,color:th.dim,fontWeight:700 }}>{d}</div>)}
+                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:10,color:th.sub,fontWeight:700,letterSpacing:"0.2px" }}>{d}</div>)}
               </div>
               {/* Fixed 6-row × 7-col grid */}
               <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 2,
@@ -3811,21 +3811,29 @@ import "./styles.css";
                   const hasResist = daySess.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
                   const hasCardio = daySess.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
                   const bg = !active ? "transparent"
-                    : hasResist && hasCardio ? `linear-gradient(135deg,${th.accentBg},#4ecdc4)`
+                    : hasResist && hasCardio ? "#fd9644"
                     : hasCardio ? "#4ecdc4" : th.accentBg;
-                  // Connector: show right-side bridge if today AND next day both active (same row)
+                  // Connector: show right-side bridge ONLY between two consecutive active days
                   const isLastInRow = (ci % 7) === 6;
                   const nextDay = day + 1;
-                  const showRight = !isLastInRow && active && activeSet.has(nextDay) && nextDay <= daysInMonth;
+                  const prevDay = day - 1;
+                  const nextActive = !isLastInRow && activeSet.has(nextDay) && nextDay <= daysInMonth;
+                  const showRight = active && nextActive;
+                  const prevActive = (ci % 7) !== 0 && activeSet.has(prevDay) && prevDay >= 1;
+                  const showLeft = active && prevActive;
+                  const connCol = hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : th.accentBg;
                   return (
                     <div key={ci} style={{ position:"relative", aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                      {/* Horizontal connector to next active day */}
+                      {showLeft && (
+                        <div style={{
+                          position:"absolute", left:0, top:"50%", transform:"translateY(-50%)",
+                          width:"20%", height:3, background:connCol, zIndex:0,
+                        }} />
+                      )}
                       {showRight && (
                         <div style={{
-                          position:"absolute", right:"-1px", top:"50%", transform:"translateY(-50%)",
-                          width:"calc(100% - 70%)", height:3,
-                          background: hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : th.accentBg,
-                          zIndex:0,
+                          position:"absolute", right:0, top:"50%", transform:"translateY(-50%)",
+                          width:"20%", height:3, background:connCol, zIndex:0,
                         }} />
                       )}
                       <div style={{
@@ -3833,7 +3841,7 @@ import "./styles.css";
                         width:"85%", height:"85%", borderRadius:"50%", background:bg,
                         border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:9, color: active ? th.accentT : isToday ? th.text : th.muted,
+                        fontSize:11, color: active ? th.accentT : isToday ? th.text : th.sub,
                         fontWeight: active || isToday ? 700 : 400,
                       }}>{day}</div>
                     </div>
@@ -3841,7 +3849,7 @@ import "./styles.css";
                 })}
               </div>
               <div style={{ display:"flex", gap:10, marginTop:8, justifyContent:"center" }}>
-                {[{ label:"Resistance",col:th.accentBg },{ label:"Cardio",col:"#4ecdc4" },{ label:"Mix",col:`linear-gradient(135deg,${th.accentBg},#4ecdc4)` }].map(({label,col})=>(
+                {[{ label:"Resistance",col:th.accentBg },{ label:"Cardio",col:"#4ecdc4" },{ label:"Mix",col:"#fd9644" }].map(({label,col})=>(
                   <div key={label} style={{ display:"flex",alignItems:"center",gap:4 }}>
                     <div style={{ width:8,height:8,borderRadius:"50%",background:col }} />
                     <span style={{ fontSize:9,color:th.dim }}>{label}</span>
@@ -3867,7 +3875,16 @@ import "./styles.css";
                   marginBottom: 10,
                 }}
               >
-                <div style={{ ...S.label }}>INTENSITY</div>
+                <div>
+                  <div style={{ ...S.label }}>INTENSITY</div>
+                  {(() => {
+                    const cut7 = Date.now() - 7*24*60*60*1000;
+                    const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.intensity||0) > 0);
+                    if (!r7.length) return null;
+                    const avgI = (r7.reduce((a,s)=>a+(s.intensity||0),0)/r7.length).toFixed(1);
+                    return <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Avg <span style={{ color:th.accentFg, fontWeight:700 }}>{avgI}/10</span> per session</div>;
+                  })()}
+                </div>
                 <div style={{ fontSize: 12, color: th.dim }}>last 7 days</div>
               </div>
               {(() => {
@@ -3917,7 +3934,7 @@ import "./styles.css";
                         ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg)
                         : th.inputB;
                       const barBg = hasData
-                        ? (hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : col)
+                        ? (hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : col)
                         : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", {
                         day: "numeric",
@@ -3976,7 +3993,7 @@ import "./styles.css";
                 {[
                   { label: "Resistance", swatch: "linear-gradient(to right,#ff6b6b,#fd9644,#c8f030)" },
                   { label: "Cardio", swatch: "#4ecdc4" },
-                  { label: "Mix", swatch: `linear-gradient(to right,${th.accentBg},#4ecdc4)` },
+                  { label: "Mix", swatch: "#fd9644" },
                 ].map(({ label, swatch }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
@@ -3984,23 +4001,21 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-              {(() => {
-                const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                const recent = sessions.filter(s => (s.startTime||0) >= cutoff && (s.intensity||0) > 0);
-                if (!recent.length) return null;
-                const avg = (recent.reduce((a,s) => a+(s.intensity||0),0)/recent.length).toFixed(1);
-                return (
-                  <div style={{ textAlign:"center", marginTop:6, fontSize:11, color:th.muted }}>
-                    Avg intensity this week: <span style={{ color:th.accentFg, fontWeight:700 }}>{avg}/10</span>
-                  </div>
-                );
-              })()}
             </div>
 
             {/* Calories chart — same bar chart design as intensity */}
             <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ ...S.label }}>CALORIES BURNED</div>
+                <div>
+                  <div style={{ ...S.label }}>CALORIES BURNED</div>
+                  {(() => {
+                    const cut7 = Date.now() - 7*24*60*60*1000;
+                    const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.calories||0) > 0);
+                    if (!r7.length) return null;
+                    const avgC = Math.round(r7.reduce((a,s)=>a+(s.calories||0),0)/r7.length);
+                    return <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Avg <span style={{ color:th.accentFg, fontWeight:700 }}>{avgC.toLocaleString()} kcal</span> per session</div>;
+                  })()}
+                </div>
                 <div style={{ fontSize: 12, color: th.dim }}>daily · last 7 days</div>
               </div>
               {(() => {
@@ -4033,7 +4048,7 @@ import "./styles.css";
                       const hasData = total > 0;
                       const h = hasData ? Math.max(8, (total / maxCal) * 80) : 6;
                       const barBg = hasData
-                        ? (hasResist && hasCardio ? `linear-gradient(to right,${th.accentBg},#4ecdc4)` : hasCardio ? "#4ecdc4" : th.accentBg)
+                        ? (hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : th.accentBg)
                         : th.inputB;
                       const col = hasData ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg) : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
@@ -4056,7 +4071,7 @@ import "./styles.css";
                 {[
                   { label: "Resistance", swatch: th.accentBg },
                   { label: "Cardio", swatch: "#4ecdc4" },
-                  { label: "Mix", swatch: `linear-gradient(to right,${th.accentBg},#4ecdc4)` },
+                  { label: "Mix", swatch: "#fd9644" },
                 ].map(({ label, swatch }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
@@ -4064,17 +4079,6 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-              {(() => {
-                const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-                const recent = sessions.filter(s => (s.startTime||0) >= cutoff && (s.calories||0) > 0);
-                if (!recent.length) return null;
-                const avg = Math.round(recent.reduce((a,s) => a+(s.calories||0),0)/recent.length);
-                return (
-                  <div style={{ textAlign:"center", marginTop:6, fontSize:11, color:th.muted }}>
-                    Avg calories per session: <span style={{ color:th.accentFg, fontWeight:700 }}>{avg.toLocaleString()} kcal</span>
-                  </div>
-                );
-              })()}
             </div>
           </>
         )}
@@ -4235,7 +4239,7 @@ import "./styles.css";
           const yrVol = yrSess.reduce((a, s) => a + sessionVol(s), 0);
           const yrSets = yrSess.reduce((a, s) => a + (s.doneSets || 0), 0);
           const yrTotalMins = yrSess.reduce((a, s) => a + (s.duration || 0), 0);
-          const yrHrsDisplay = yrTotalMins >= 60 ? `${Math.floor(yrTotalMins/60)}h ${yrTotalMins%60}m` : `${yrTotalMins}m`;
+          const yrHrsDisplay = yrTotalMins >= 60 ? `${Math.floor(yrTotalMins/60)}h` : `${yrTotalMins}m`;
           const yrAvgInt = (yrSess.reduce((a, s) => a + (s.intensity || 0), 0) / yrSess.length).toFixed(1);
           const yrAvgDur = Math.round(yrSess.reduce((a, s) => a + (s.duration || 0), 0) / yrSess.length) + "min";
           const yrVolDisplay = yrVol >= 1000 ? `${(yrVol / 1000).toFixed(1)}t` : `${Math.round(yrVol).toLocaleString()}kg`;
