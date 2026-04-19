@@ -3636,26 +3636,25 @@ import "./styles.css";
     const S = useS();
     // Movement groups: Push, Pull, Legs, Hinge
     const GROUPS = [
-      { key: "Push",  label: "Push",  col: th.accentBg, ids: ["e51","e1","e2","e4","e5","e7","e28","e29","e30","e31","e52","e53","e55"] },
-      { key: "Pull",  label: "Pull",  col: "#4ecdc4",   ids: ["e15","e16","e17","e18","e19","e63","e59","x22","m5"] },
-      { key: "Legs",  label: "Legs",  col: "#fd9644",   ids: ["e92","e93","e94","e43","e44","e47","e102"] },
-      { key: "Hinge", label: "Hinge", col: "#a29bfe",   ids: ["e59","e93","e60"] },
-      { key: "Arms",  label: "Arms",  col: "#ff7675",   ids: ["e26","e27","e76","e77"] },
+      { key: "Push", label: "Push", col: th.accentBg, ids: ["e1","e2","e4","e5","e7","e8","e51","e52","e53","e54","e55","e56","e57","e58","e28","e29","e30","e31","e32","e33","e34","e35","e84","e85","e86","e87","e88","e89","e90","e91","x13","x14","x15","x16","x17","m1","m2","m3","m4","m9","m10","m11","m12","sh1","sh2","sh4","ch1","ch3"] },
+      { key: "Pull", label: "Pull", col: "#4ecdc4",   ids: ["e15","e16","e17","e18","e19","e20","e21","e22","e59","e60","e61","e62","e63","e64","e65","e66","e67","e68","e69","x18","x19","x20","x21","x22","x23","x24","m5","m6","m7","m8","bk2","bk3","bk4"] },
+      { key: "Legs", label: "Legs", col: "#fd9644",   ids: ["e42","e43","e44","e45","e46","e47","e48","e49","e50","e92","e93","e94","e95","e96","e97","e98","e99","e100","e101","e102","e103","e104","e105","e106","x1","x2","x3","x4","x5","x6","x7","x9","x10","x11","x12","m17","m18","m19","m22","m23","m24","m25","m26","g7","lg1","lg2","lg5","lg6","lg7","lg8","lg9","lg10","lg11"] },
+      { key: "Arms", label: "Arms", col: "#ff7675",   ids: ["e9","e10","e11","e12","e13","e14","e70","e71","e72","e73","e74","e75","e23","e24","e25","e26","e27","e76","e77","e78","e79","e80","e81","e41","e82","e83","x25","x26","x27","x28","x29","x30","x31","x32","m13","m14","m15","m16","ar5","ar6"] },
     ];
     const [selGroup, setSelGroup] = useState("Push");
     const group = GROUPS.find(g => g.key === selGroup) || GROUPS[0];
 
     // For this group, find the single most-logged exercise
-    const liftHistory = group.ids.map(id => {
+    const liftHistory = (group.ids || []).map(id => {
       const pts = [];
       sessions.forEach(s => {
-        const ex = (s.exercises||[]).find(e => e.id === id || e.exId === id);
+        const ex = (s.exercises||[]).find(e => e && (e.id === id || e.exId === id));
         if (!ex) return;
         const maxRM = Math.max(...(ex.sets||[]).filter(st => st.done && st.weight > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
         if (maxRM > 0) pts.push({ t: s.startTime||0, w: maxRM });
       });
       pts.sort((a,b) => a.t - b.t);
-      const dbEx = DB.find(d => d.id === id);
+      const dbEx = DB.find(d => d && d.id === id);
       return { id, name: dbEx?.name || id, pts };
     }).filter(l => l.pts.length >= 2).sort((a,b) => b.pts.length - a.pts.length);
 
@@ -3874,44 +3873,26 @@ import "./styles.css";
               </div>
             );
           })()}
-          {/* Granular muscles trained */}
-          <div>
-            <div
-              style={{
-                fontSize: 10,
-                textAlign: "left",
-                color: th.dim,
-                letterSpacing: "1.5px",
-                marginBottom: 7,
-              }}
-            >
-              MUSCLES TRAINED — LAST 7 DAYS
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {ALL_MUSCLES.map((m) => {
-                const hit = weekMuscleSet.has(m);
-                return (
-                  <div
-                    key={m}
-                    style={{
-                      padding: "3px 8px",
-                      borderRadius: 6,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      background: hit ? th.accentBg : "transparent",
-                      color: hit ? th.accentT : th.dim,
-                      border: `1px solid ${hit ? th.accentBg : th.inputB}`,
-                      transition: "all .2s",
-                    }}
-                  >
-                    {m}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
         </div>
 
+        {/* ── Muscles Trained — Last 7 Days ── */}
+        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+          <div style={{ ...S.label, marginBottom: 10 }}>MUSCLES TRAINED</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+            {ALL_MUSCLES.map((m) => {
+              const hit = weekMuscleSet.has(m);
+              return (
+                <div key={m} style={{
+                  padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                  background: hit ? th.accentBg : "transparent",
+                  color: hit ? th.accentT : th.dim,
+                  border: `1px solid ${hit ? th.accentBg : th.inputB}`,
+                  transition: "all .2s",
+                }}>{m}</div>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Streak Calendar ── */}
         {sessions.length > 0 && (() => {
@@ -4139,7 +4120,7 @@ import "./styles.css";
               })()}
               <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {[
-                  { label: "Resistance", swatch: "linear-gradient(to right,#ff6b6b,#fd9644,#c8f030)" },
+                  { label: "Resistance", swatch: th.accentBg },
                   { label: "Cardio", swatch: "#4ecdc4" },
                   { label: "Mix", swatch: "#fd9644" },
                 ].map(({ label, swatch }) => (
@@ -4412,7 +4393,7 @@ import "./styles.css";
           const getColor = (score) => {
             if (score >= 0.7)  return { bg: "#ff6b6b22", border: "#ff6b6b", text: "#ff6b6b", label: "HIGH" };
             if (score >= 0.35) return { bg: "#fd964422", border: "#fd9644", text: "#fd9644", label: "MED" };
-            if (score > 0)     return { bg: "#4ecdc422", border: "#4ecdc4", text: "#4ecdc4", label: "LOW" };
+            if (score > 0)     return { bg: `${th.accentBg}18`, border: th.accentBg, text: th.accentFg, label: "LOW" };
             return { bg: "transparent", border: "transparent", text: "#555", label: "" };
           };
 
@@ -4428,10 +4409,10 @@ import "./styles.css";
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                 {scored.map(({ m, score, hoursAgo }) => {
                   const c = getColor(score);
-                  // Both never-trained AND rested (>72h ago) show as green
+                  // Rested: plain gray text, no border
                   if (!hoursAgo || score === 0) return (
-                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 700,
-                      border: `1px solid ${th.accentBg}55`, color: th.accentFg, background: `${th.accentBg}11` }}>{m}</div>
+                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 400,
+                      border: "none", color: th.dim, background: "transparent" }}>{m}</div>
                   );
                   return (
                     <div key={m} title={`${m}: ${hoursAgo < 24 ? Math.round(hoursAgo) + "h ago" : Math.round(hoursAgo/24) + "d ago"}`}
@@ -4447,8 +4428,8 @@ import "./styles.css";
                 {[
                   { label: "High fatigue", col: "#ff6b6b" },
                   { label: "Recovering",   col: "#fd9644" },
-                  { label: "Low fatigue",  col: "#4ecdc4" },
-                  { label: "Rested",       col: th.accentBg },
+                  { label: "Low fatigue",  col: th.accentBg },
+                  { label: "Rested",       col: th.dim },
                 ].map(({ label, col }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
@@ -4502,7 +4483,7 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                 <div>
                   <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
-                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>Volume ÷ Duration</div>
+
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, justifyContent: "flex-end" }}>
@@ -4517,7 +4498,7 @@ import "./styles.css";
                 <path d={areaPath} fill={th.accentBg} opacity="0.06" />
                 {/* Avg line (dashed) */}
                 <line x1="0" y1={avgY} x2={W} y2={avgY} stroke={th.inputB} strokeWidth="1" strokeDasharray="4 3" />
-                <text x={W} y={avgY - 4} textAnchor="end" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">avg {avgEff.toFixed(1)} kg/min</text>
+
                 {/* Line */}
                 <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Dots */}
