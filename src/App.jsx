@@ -2507,12 +2507,13 @@ import "./styles.css";
                 animateRemoveEx();
               }}
               style={{
-                background: "none",
-                border: "none",
-                color: th.dim,
+                background: "rgba(220,50,50,0.12)",
+                border: "1px solid rgba(220,50,50,0.3)",
+                borderRadius: 7,
+                color: th.delText,
                 cursor: "pointer",
-                fontSize: 15,
-                padding: "2px 6px",
+                fontSize: 12,
+                padding: "2px 8px",
                 flexShrink: 0,
                 marginLeft: 8,
               }}
@@ -2654,15 +2655,15 @@ import "./styles.css";
                           animateRemoveSet(sIdx);
                         }}
                         style={{
-                          background: "none",
-                          border: "none",
-                          color: th.dim,
+                          background: "rgba(220,50,50,0.12)",
+                          border: "1px solid rgba(220,50,50,0.3)",
+                          borderRadius: 6,
+                          color: th.delText,
                           cursor: "pointer",
-                          fontSize: 16,
+                          fontSize: 12,
                           lineHeight: 1,
-                          padding: "4px",
+                          padding: "3px 7px",
                           flexShrink: 0,
-                          opacity: 0.6,
                         }}
                       >
                         ✕
@@ -3714,28 +3715,43 @@ import "./styles.css";
   function StrengthProgression({ sessions }) {
     const th = useTheme();
     const S = useS();
+    // Map DB groups to movement categories
+    const GROUP_MAP = {
+      "Chest":"Push","Shoulders":"Push",
+      "Back":"Pull",
+      "Legs":"Legs",
+      "Arms":"Arms",
+    };
     const GROUPS = [
-      { key: "Push", label: "Push", col: th.accentBg, ids: ["e1","e2","e4","e5","e7","e8","e51","e52","e53","e54","e55","e56","e57","e58","e28","e29","e30","e31","e32","e33","e34","e35","e84","e85","e86","e87","e88","e89","e90","e91","x13","x14","x15","x16","x17","m1","m2","m3","m4","m9","m10","m11","m12","sh1","sh2","sh4","ch1","ch3"] },
-      { key: "Pull", label: "Pull", col: "#4ecdc4",   ids: ["e15","e16","e17","e18","e19","e20","e21","e22","e59","e60","e61","e62","e63","e64","e65","e66","e67","e68","e69","x18","x19","x20","x21","x22","x23","x24","m5","m6","m7","m8","bk2","bk3","bk4"] },
-      { key: "Legs", label: "Legs", col: "#fd9644",   ids: ["e42","e43","e44","e45","e46","e47","e48","e49","e50","e92","e93","e94","e95","e96","e97","e98","e99","e100","e101","e102","e103","e104","e105","e106","x1","x2","x3","x4","x5","x6","x7","x9","x10","x11","x12","m17","m18","m19","m22","m23","m24","m25","m26","g7","lg1","lg2","lg5","lg6","lg7","lg8","lg9","lg10","lg11"] },
-      { key: "Arms", label: "Arms", col: "#ff7675",   ids: ["e9","e10","e11","e12","e13","e14","e70","e71","e72","e73","e74","e75","e23","e24","e25","e26","e27","e76","e77","e78","e79","e80","e81","e41","e82","e83","x25","x26","x27","x28","x29","x30","x31","x32","m13","m14","m15","m16","ar5","ar6"] },
+      { key: "Push", label: "Push", col: th.accentBg },
+      { key: "Pull", label: "Pull", col: "#4ecdc4"   },
+      { key: "Legs", label: "Legs", col: "#fd9644"   },
+      { key: "Arms", label: "Arms", col: "#ff7675"   },
     ];
     const [selGroup, setSelGroup] = useState("Push");
     const [selId, setSelId] = useState("");
     const group = GROUPS.find(g => g.key === selGroup) || GROUPS[0];
 
-    const liftHistory = (group.ids || []).map(id => {
-      const pts = [];
-      sessions.forEach(s => {
-        const ex = (s.exercises||[]).find(e => e && (e.id === id || e.exId === id));
+    // Scan sessions for all exercises belonging to this movement group
+    const exerciseMap = {};
+    sessions.forEach(s => {
+      (s.exercises||[]).forEach(ex => {
         if (!ex) return;
+        const id = ex.id || ex.exId;
+        if (!id) return;
+        const dbEx = DB.find(d => d && d.id === id);
+        if (!dbEx) return;
+        const cat = GROUP_MAP[dbEx.group];
+        if (cat !== selGroup) return;
         const rm = Math.max(...(ex.sets||[]).filter(st => st.done && (st.weight||0) > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
-        if (rm > 0) pts.push({ t: s.startTime||0, w: rm });
+        if (rm <= 0) return;
+        if (!exerciseMap[id]) exerciseMap[id] = { id, name: dbEx.name, pts: [] };
+        exerciseMap[id].pts.push({ t: s.startTime||0, w: rm });
       });
-      pts.sort((a,b) => a.t - b.t);
-      const dbEx = DB.find(d => d && d.id === id);
-      return { id, name: dbEx?.name || id, pts };
-    }).filter(l => l.pts.length >= 1).sort((a,b) => b.pts.length - a.pts.length);
+    });
+    const liftHistory = Object.values(exerciseMap)
+      .map(l => ({ ...l, pts: l.pts.sort((a,b) => a.t - b.t) }))
+      .sort((a,b) => b.pts.length - a.pts.length);
 
     const shownLifts = liftHistory.slice(0, 5);
     const lift = shownLifts.find(l => l.id === selId) || shownLifts[0];
@@ -3894,7 +3910,7 @@ import "./styles.css";
                   {/* Remove ✕ */}
                   <button
                     onClick={() => removeItem(d.id)}
-                    style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, padding:"0 4px", lineHeight:1, flexShrink:0 }}
+                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
                   >✕</button>
                 </div>
               </div>
@@ -4728,7 +4744,7 @@ import "./styles.css";
             const start = end - 7 * 24 * 60 * 60 * 1000;
             const startD = new Date(start); const endD = new Date(end - 1);
             const fmt = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-            const label = i === 0 ? "This week" : `${fmt(startD)}`;
+            const label = `${fmt(startD)}–${fmt(endD)}`;
             return { start, end, label };
           }).reverse();
           const weekVols = weeks.map(w => {
@@ -4846,14 +4862,14 @@ import "./styles.css";
                       top: 7,
                       right: 7,
                       zIndex: 5,
-                      background: "transparent",
-                      border: "none",
-                      borderRadius: "50%",
+                      background: "rgba(220,50,50,0.15)",
+                      border: "1px solid rgba(220,50,50,0.3)",
+                      borderRadius: 7,
                       width: 22,
                       height: 22,
                       cursor: "pointer",
-                      color: th.text,
-                      fontSize: 13,
+                      color: th.delText,
+                      fontSize: 12,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -6262,10 +6278,10 @@ import "./styles.css";
                 <button
                   onClick={() => removeEx(eIdx)}
                   style={{
-                    background: "none",
-                    border: `1px solid ${th.inputB}`,
+                    background: "rgba(220,50,50,0.12)",
+                    border: "1px solid rgba(220,50,50,0.3)",
                     borderRadius: 7,
-                    color: th.dim,
+                    color: th.delText,
                     cursor: "pointer",
                     fontSize: 10,
                     padding: "4px 9px",
@@ -6397,9 +6413,10 @@ import "./styles.css";
                           onClick={() => removeSet(eIdx, sIdx)}
                           title="Remove set"
                           style={{
-                            background: "none",
-                            border: "none",
-                            color: th.dim,
+                            background: "rgba(220,50,50,0.12)",
+                            border: "1px solid rgba(220,50,50,0.3)",
+                            borderRadius: 6,
+                            color: th.delText,
                             cursor: "pointer",
                             fontSize: 16,
                             lineHeight: 1,
@@ -9988,8 +10005,10 @@ import "./styles.css";
                   <button
                     onClick={handleAbandon}
                     style={{
-                      background: "none",
-                      border: `1px solid ${th.inputB}`,
+                      background: "rgba(220, 50, 50, 0.15)",
+                      backdropFilter: "blur(10px)",
+                      WebkitBackdropFilter: "blur(10px)",
+                      border: "1px solid rgba(220, 50, 50, 0.3)",
                       borderRadius: 9,
                       color: th.delText,
                       fontSize: 10,
@@ -10221,41 +10240,7 @@ import "./styles.css";
                     : ""}
                 </div>
                 {/* Date — only shown on Home tab, top-right of header */}
-                {view === "home" && (
-                  <div
-                    onClick={() => { setCalOffset(0); setShowCal(true); setCalClosing(false); }}
-                    style={{ textAlign: "right", flexShrink: 0, marginLeft: 20, cursor: "pointer" }}
-                  >
-                    <div
-                      style={{
-                        fontSize: 15,
-                        color: th.muted,
-                        fontWeight: 700,
-                        letterSpacing: "1px",
-                        lineHeight: 1,
-                      }}
-                    >
-                      {new Date()
-                        .toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                        .toUpperCase()}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        color: th.dim,
-                        letterSpacing: "1px",
-                        marginTop: 2,
-                      }}
-                    >
-                      {new Date()
-                        .toLocaleDateString("en-US", { weekday: "short" })
-                        .toUpperCase()}
-                    </div>
-                  </div>
-                )}
+
 
 
               </div>
