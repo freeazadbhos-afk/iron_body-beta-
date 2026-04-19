@@ -1349,7 +1349,7 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false };
   const ALL_DASHBOARDS = [
     { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
     { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
@@ -3166,7 +3166,7 @@ import "./styles.css";
           isGuest: true,
         });
         lsSet(uKey(cred.user.uid, "programs"), DEFAULT_PROGRAMS);
-        lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [] });
+        lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"] });
       } catch (e) {
         setErr(friendlyError(e.code));
       } finally {
@@ -3201,7 +3201,7 @@ import "./styles.css";
         });
         // 3. Seed default programs, but keep shortcuts empty so home tab is clean
         lsSet(uKey(cred.user.uid, "programs"), DEFAULT_PROGRAMS);
-        lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [] });
+        lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"] });
         // 4. Reload Firebase user so displayName is fresh on next auth state change
         await cred.user.reload();
         // 5. Belt-and-suspenders: if auth state already fired with empty name, patch it directly
@@ -3922,6 +3922,128 @@ import "./styles.css";
   }
 
   /* ─── Dashboard Editor — drag-and-drop reorder, split added/available ──────── */
+  /* ─── Dashboard Onboarding — shown once to new users ───────────────────────── */
+  function DashboardOnboarding({ onDismiss }) {
+    const th = useTheme();
+    const S = useS();
+    const [step, setStep] = useState(0);
+    const [leaving, setLeaving] = useState(false);
+    const [dir, setDir] = useState(1);
+
+    const STEPS = [
+      {
+        icon: "▦",
+        title: "Your Home Screen",
+        body: "Your home is built from dashboards — each one tracks a different aspect of your training. You start with a few essentials.",
+      },
+      {
+        icon: "✎",
+        title: "Customise What You See",
+        body: "Tap EDIT next to MY DASHBOARDS to add, remove, or reorder your dashboards however you like.",
+      },
+      {
+        icon: "⠿",
+        title: "Drag to Reorder",
+        body: "Inside the editor, grab the grip handle on the left of any dashboard and drag it to the position you want.",
+      },
+      {
+        icon: "✕",
+        title: "Remove Anytime",
+        body: "Tap the ✕ on a dashboard to remove it from your home screen. You can always add it back from the ADD TO HOME section.",
+      },
+    ];
+
+    const goTo = (next) => {
+      setDir(next > step ? 1 : -1);
+      setLeaving(true);
+      setTimeout(() => { setStep(next); setLeaving(false); }, 160);
+    };
+
+    const isLast = step === STEPS.length - 1;
+    const s = STEPS[step];
+
+    return (
+      <div style={{
+        ...S.card, padding: 0, marginBottom: 10, overflow: "hidden",
+        border: `1px solid ${th.accentBg}44`,
+        animation: "shortcutListIn 0.3s cubic-bezier(0,0,0.2,1) forwards",
+      }}>
+        <style>{`
+          @keyframes obSlideIn  { from{opacity:0;transform:translateX(22px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes obSlideInR { from{opacity:0;transform:translateX(-22px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes obSlideOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-18px)} }
+          @keyframes obSlideOutR{ from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(18px)} }
+        `}</style>
+        {/* Accent top bar */}
+        <div style={{ height: 3, background: th.accentBg }} />
+        <div style={{ padding: "16px 16px 14px" }}>
+          {/* Step content */}
+          <div
+            key={step}
+            style={{
+              animation: leaving
+                ? (dir > 0 ? "obSlideOut 0.16s ease-in forwards" : "obSlideOutR 0.16s ease-in forwards")
+                : (dir > 0 ? "obSlideIn 0.22s cubic-bezier(0,0,0.2,1) forwards" : "obSlideInR 0.22s cubic-bezier(0,0,0.2,1) forwards"),
+              minHeight: 84,
+            }}
+          >
+            <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.sect})`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+                fontSize: 18, color: th.accentFg, fontWeight: 700,
+              }}>{s.icon}</div>
+              <div>
+                <div style={{ fontSize: 13, textAlign: "left", fontWeight: 700, color: th.text, marginBottom: 5 }}>{s.title}</div>
+                <div style={{ fontSize: 12, textAlign: "left", color: th.muted, lineHeight: 1.5 }}>{s.body}</div>
+              </div>
+            </div>
+          </div>
+          {/* Footer: dots + navigation */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: 14 }}>
+            <div style={{ display:"flex", gap:5 }}>
+              {STEPS.map((_,i) => (
+                <div key={i} onClick={() => goTo(i)} style={{
+                  width: i === step ? 18 : 6, height: 6, borderRadius: 3,
+                  background: i === step ? th.accentBg : th.inputB,
+                  cursor: "pointer",
+                  transition: "width 0.2s, background 0.2s",
+                }} />
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button onClick={onDismiss} style={{
+                background: "none", border: "none",
+                color: th.dim, fontSize: 12, cursor: "pointer",
+                fontFamily: "'Outfit',sans-serif", fontWeight: 600, padding: "6px 0",
+              }}>
+                {isLast ? "Done" : "Skip"}
+              </button>
+              {!isLast ? (
+                <button onClick={() => goTo(step + 1)} style={{
+                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                  border: "none", borderRadius: 9, color: th.accentT,
+                  padding: "6px 16px", cursor: "pointer", fontSize: 12,
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 700,
+                }}>Next →</button>
+              ) : (
+                <button onClick={onDismiss} style={{
+                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                  border: "none", borderRadius: 9, color: th.accentT,
+                  padding: "6px 16px", cursor: "pointer", fontSize: 12,
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 700,
+                }}>Got it ✓</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function DashboardEditor({ activeDashOrder, onSave, onCancel }) {
     const th = useTheme();
     const S = useS();
@@ -4051,7 +4173,12 @@ import "./styles.css";
     const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
     const [streakDir, setStreakDir] = useState(1);
     const [editingDashboards, setEditingDashboards] = useState(false);
-    const enabledDashboards = settings.homeDashboards || ALL_DASHBOARDS.map(d => d.id);
+    const [showDashOnboarding, setShowDashOnboarding] = useState(!settings.hasDashOnboarded);
+    const dismissDashOnboarding = () => {
+      setShowDashOnboarding(false);
+      onUpdateSettings({ ...settings, hasDashOnboarded: true });
+    };
+    const enabledDashboards = settings.homeDashboards || ["streak","intensity","strength","volume"];
     const isDashEnabled = (id) => enabledDashboards.includes(id);
     const cancelDashEdit = () => setEditingDashboards(false);
     const [removingShortcut, setRemovingShortcut] = useState(null);
@@ -4139,6 +4266,9 @@ import "./styles.css";
             </button>
           </div>
         )}
+
+        {/* ── Dashboard onboarding card ── */}
+        {showDashOnboarding && <DashboardOnboarding onDismiss={dismissDashOnboarding} />}
 
         {/* ── Dashboard editor panel ── */}
         {editingDashboards && (
@@ -4620,7 +4750,7 @@ import "./styles.css";
                 <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
               </div>
               <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>
-                Based on sets, reps & days since last trained · 72h recovery window
+                Based on sets, reps & days since last trained
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                 {scored.map(({ m, score, hoursAgo }) => {
@@ -4795,14 +4925,12 @@ import "./styles.css";
           return (
             <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <div>
-                  <div style={{ ...S.label }}>WEEKLY VOLUME</div>
-                  <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>
-                    vs prev week: {trend ? <span style={{ color:trendCol, fontWeight:700 }}>{trend} {fmtV(Math.abs(delta))}</span> : <span style={{ color:th.muted }}>no change</span>}
-                  </div>
-                </div>
+                <div style={{ ...S.label }}>WEEKLY VOLUME</div>
                 <div style={{ textAlign:"right" }}>
-                  <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtV(totalRecent)}</span>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+                    {trend && <span style={{ fontSize:16, color:trendCol, fontWeight:700, lineHeight:1 }}>{trend}</span>}
+                    <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtV(totalRecent)}</span>
+                  </div>
                   <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
                 </div>
               </div>
