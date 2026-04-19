@@ -4712,7 +4712,7 @@ import "./styles.css";
           if (!prs.length) return null;
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-              <div style={{ ...S.label, marginBottom:12 }}>🏆 PERSONAL RECORDS</div>
+              <div style={{ ...S.label, marginBottom:12 }}>PERSONAL RECORDS</div>
               {prs.map((pr, i) => (
                 <div key={pr.name} style={{
                   display:"flex", alignItems:"center", gap:10,
