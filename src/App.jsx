@@ -1356,6 +1356,7 @@ import "./styles.css";
     { id: "intensity",  label: "Intensity",             icon: "⚡" },
     { id: "calories",   label: "Calories Burned",       icon: "🔥" },
     { id: "bodycomp",   label: "Body Composition",      icon: "⚖️" },
+    { id: "bodytrends", label: "Body Trends",           icon: "📉" },
     { id: "recovery",   label: "Muscle Recovery",       icon: "🩺" },
     { id: "efficiency", label: "Training Efficiency",   icon: "📈" },
     { id: "strength",   label: "Strength Progression",  icon: "🏋️" },
@@ -3678,18 +3679,36 @@ import "./styles.css";
     const ys = pts.map(p => H - ((p[tab.f]-floor)/range)*(H-R*2) - R);
     const path = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
     const areaPath = `${path} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+    // Latest value + trend arrow
+    const latest = pts[pts.length-1][tab.f];
+    const first  = pts[0][tab.f];
+    const trendDir = latest > first ? "↑" : latest < first ? "↓" : null;
+    // Fat: ↑ is bad (red), ↓ is good (green). Weight/muscle: ↑ is good (green)
+    const trendCol = trendDir == null ? th.muted
+      : tab.f === "fat"
+        ? (trendDir === "↑" ? "#ff6b6b" : "#1db954")
+        : (trendDir === "↑" ? "#1db954" : "#ff6b6b");
     return (
-      <div style={{ marginTop: 14 }}>
-        <div style={{ display:"flex", gap:5, marginBottom:10 }}>
-          {TABS.map(t => (
-            <button key={t.f} onClick={() => setSelTab(t.f)} style={{
-              padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700,
-              border:`1px solid ${selTab===t.f ? t.color : th.inputB}`,
-              background: selTab===t.f ? `${t.color}22` : "transparent",
-              color: selTab===t.f ? t.color : th.muted,
-              cursor:"pointer", fontFamily:"'Outfit',sans-serif",
-            }}>{t.label}</button>
-          ))}
+      <div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ display:"flex", gap:5 }}>
+            {TABS.map(t => (
+              <button key={t.f} onClick={() => setSelTab(t.f)} style={{
+                padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700,
+                border:`1px solid ${selTab===t.f ? t.color : th.inputB}`,
+                background: selTab===t.f ? `${t.color}22` : "transparent",
+                color: selTab===t.f ? t.color : th.muted,
+                cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+              }}>{t.label}</button>
+            ))}
+          </div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+              {trendDir && <span style={{ fontSize:14, color:trendCol, fontWeight:700 }}>{trendDir}</span>}
+              <span className="bebas" style={{ fontSize:26, color:tab.color, lineHeight:1 }}>{latest}{tab.unit}</span>
+            </div>
+            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>LATEST</div>
+          </div>
         </div>
         <div key={selTab} style={{ animation:"tabSlideIn 0.2s ease-out" }}>
         <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
@@ -3700,13 +3719,72 @@ import "./styles.css";
               <circle cx={xs[i]} cy={ys[i]} r={R} fill={i===pts.length-1?tab.color:th.card} stroke={tab.color} strokeWidth="1.5" />
               <text x={xs[i]} y={H+14}
                 textAnchor={i===0?"start":i===pts.length-1?"end":"middle"}
-                fontSize="10" fill={i===pts.length-1?tab.color:"#666"}
+                fontSize="8" fill={i===pts.length-1?tab.color:"#666"}
                 fontFamily="Outfit,sans-serif" fontWeight={i===pts.length-1?"700":"400"}>
                 {p[tab.f]}{tab.unit}
               </text>
             </g>
           ))}
         </svg>
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Personal Records — paginated, 3 per page ──────────────────────────────── */
+  function PRsDashboard({ allPrs }) {
+    const th = useTheme();
+    const S = useS();
+    const PAGE = 3;
+    const [page, setPage] = useState(0);
+    const [dir, setDir] = useState(1); // 1=right, -1=left
+    const totalPages = Math.ceil(allPrs.length / PAGE);
+    const prs = allPrs.slice(page * PAGE, page * PAGE + PAGE);
+    const goTo = (next) => {
+      setDir(next > page ? 1 : -1);
+      setPage(next);
+    };
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+        <style>{`
+          @keyframes prSlideL { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes prSlideR { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+        `}</style>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ ...S.label }}>PERSONAL RECORDS</div>
+          {totalPages > 1 && (
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <button onClick={() => goTo(Math.max(0, page-1))} disabled={page===0}
+                style={{ background:"none", border:"none", color: page===0 ? th.inputB : th.muted,
+                  fontSize:26, cursor: page===0 ? "default" : "pointer", padding:"0 6px", lineHeight:1 }}>‹</button>
+              <button onClick={() => goTo(Math.min(totalPages-1, page+1))} disabled={page===totalPages-1}
+                style={{ background:"none", border:"none", color: page===totalPages-1 ? th.inputB : th.muted,
+                  fontSize:26, cursor: page===totalPages-1 ? "default" : "pointer", padding:"0 6px", lineHeight:1 }}>›</button>
+            </div>
+          )}
+        </div>
+        <div key={page} style={{ animation: dir === 1 ? "prSlideL 0.22s ease-out" : "prSlideR 0.22s ease-out" }}>
+          {prs.map((pr, i) => (
+            <div key={pr.name} style={{
+              display:"flex", alignItems:"center", gap:10,
+              padding:"8px 0",
+              borderBottom: i < prs.length-1 ? `1px solid ${th.border}` : "none",
+            }}>
+              <div className="bebas" style={{ fontSize:14, color:th.dim, width:22, flexShrink:0, textAlign:"right" }}>
+                #{page*PAGE+i+1}
+              </div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
+                <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>
+                  {pr.muscle}{pr.reps ? ` · ${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+                </div>
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <span className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{pr.w}</span>
+                <span style={{ fontSize:10, color:th.dim }}> kg</span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -4076,7 +4154,10 @@ import "./styles.css";
         {isDashEnabled("muscles") && (
           <div style={{ order: enabledDashboards.indexOf("muscles") }}>
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>MUSCLES TRAINED</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+            <div style={{ ...S.label }}>MUSCLES TRAINED</div>
+            <div style={{ fontSize:11, color:th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</div>
+          </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {ALL_MUSCLES.map((m) => {
                 const hit = weekMuscleSet.has(m);
@@ -4210,9 +4291,17 @@ import "./styles.css";
                   const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.intensity||0) > 0);
                   if (!r7.length) return null;
                   const avgI = (r7.reduce((a,s)=>a+(s.intensity||0),0)/r7.length).toFixed(1);
+                  const cut14 = Date.now() - 14*24*60*60*1000;
+                  const prev7 = sessions.filter(s => (s.startTime||0) >= cut14 && (s.startTime||0) < cut7 && (s.intensity||0) > 0);
+                  const prevAvgI = prev7.length ? (prev7.reduce((a,s)=>a+(s.intensity||0),0)/prev7.length) : null;
+                  const intArrow = prevAvgI != null ? (parseFloat(avgI) > prevAvgI ? "↑" : parseFloat(avgI) < prevAvgI ? "↓" : null) : null;
+                  const intArrowCol = intArrow === "↑" ? "#1db954" : "#ff6b6b";
                   return (
                     <div style={{ textAlign:"right" }}>
-                      <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgI}</span>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+                        {intArrow && <span style={{ fontSize:14, color:intArrowCol, fontWeight:700 }}>{intArrow}</span>}
+                        <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgI}</span>
+                      </div>
                       <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>AVG /10</div>
                     </div>
                   );
@@ -4340,9 +4429,17 @@ import "./styles.css";
                   const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.calories||0) > 0);
                   if (!r7.length) return null;
                   const avgC = Math.round(r7.reduce((a,s)=>a+(s.calories||0),0)/r7.length);
+                  const cut14c = Date.now() - 14*24*60*60*1000;
+                  const prev7c = sessions.filter(s => (s.startTime||0) >= cut14c && (s.startTime||0) < cut7 && (s.calories||0) > 0);
+                  const prevAvgC = prev7c.length ? Math.round(prev7c.reduce((a,s)=>a+(s.calories||0),0)/prev7c.length) : null;
+                  const calArrow = prevAvgC != null ? (avgC > prevAvgC ? "↑" : avgC < prevAvgC ? "↓" : null) : null;
+                  const calArrowCol = calArrow === "↑" ? "#1db954" : "#ff6b6b";
                   return (
                     <div style={{ textAlign:"right" }}>
-                      <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgC.toLocaleString()}</span>
+                      <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+                        {calArrow && <span style={{ fontSize:14, color:calArrowCol, fontWeight:700 }}>{calArrow}</span>}
+                        <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgC.toLocaleString()}</span>
+                      </div>
                       <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>AVG KCAL</div>
                     </div>
                   );
@@ -4415,7 +4512,7 @@ import "./styles.css";
 
         <div style={{ order: enabledDashboards.indexOf("bodycomp") }}>
         {isDashEnabled("bodycomp") && measurements && measurements.length > 0 && (
-          <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
+          <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ ...S.label, marginBottom: 12 }}>BODY COMPOSITION</div>
             {(() => {
               const latest = measurements[0];
@@ -4424,87 +4521,45 @@ import "./styles.css";
                 if (!prev || prev[f] == null || latest[f] == null) return null;
                 const d = (latest[f] - prev[f]).toFixed(1);
                 return {
-                  d,
-                  sign: d > 0 ? "+" : "",
-                  col:
-                    f === "fat"
-                      ? d < 0
-                        ? "#1db954" // green — fat decreased (good)
-                        : "#ff6b6b" // red — fat increased (bad)
-                      : d > 0
-                      ? "#1db954" // green — weight/muscle increased (good)
-                      : "#ff6b6b", // red — decreased
+                  d, sign: d > 0 ? "+" : "",
+                  col: f === "fat" ? (d < 0 ? "#1db954" : "#ff6b6b") : (d > 0 ? "#1db954" : "#ff6b6b"),
                 };
               };
               return (
-                <>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr 1fr",
-                      gap: 8,
-                      marginBottom: 12,
-                    }}
-                  >
-                    {[
-                      { f: "weight", l: "WEIGHT", unit: "kg" },
-                      { f: "muscle", l: "MUSCLE MASS", unit: "%" },
-                      { f: "fat", l: "BODY FAT %", unit: "%" },
-                    ].map((m) => {
-                      const val = latest[m.f];
-                      const d = delta(m.f, m.unit);
-                      return (
-                        <div
-                          key={m.f}
-                          style={{
-                            background: th.sect,
-                            borderRadius: 10,
-                            padding: "12px 8px",
-                            textAlign: "center",
-                          }}
-                        >
-                          <div
-                            className="bebas"
-                            style={{
-                              fontSize: 22,
-                              color: th.accentFg,
-                              lineHeight: 1,
-                            }}
-                          >
-                            {val != null ? val + m.unit : "—"}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 11,
-                              color: th.dim,
-                              letterSpacing: "1.5px",
-                              marginTop: 2,
-                            }}
-                          >
-                            {m.l}
-                          </div>
-                          {d && (
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: d.col,
-                                fontWeight: 700,
-                                marginTop: 3,
-                              }}
-                            >
-                              {d.sign}
-                              {d.d}
-                              {m.unit}
-                            </div>
-                          )}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  {[
+                    { f:"weight", l:"WEIGHT",     unit:"kg" },
+                    { f:"muscle", l:"MUSCLE MASS", unit:"%" },
+                    { f:"fat",    l:"BODY FAT %",  unit:"%" },
+                  ].map((m) => {
+                    const val = latest[m.f];
+                    const d = delta(m.f, m.unit);
+                    return (
+                      <div key={m.f} style={{ background:th.sect, borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
+                        <div className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>
+                          {val != null ? val + m.unit : "—"}
                         </div>
-                      );
-                    })}
-                  </div>
-                  <BodyTrendChart measurements={measurements} />
-                </>
+                        <div style={{ fontSize:11, color:th.dim, letterSpacing:"1.5px", marginTop:2 }}>{m.l}</div>
+                        {d && (
+                          <div style={{ fontSize:12, color:d.col, fontWeight:700, marginTop:3 }}>
+                            {d.sign}{d.d}{m.unit}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               );
             })()}
+          </div>
+        )}
+        </div>
+
+        <div style={{ order: enabledDashboards.indexOf("bodytrends") }}>
+        {isDashEnabled("bodytrends") && measurements && measurements.length > 0 && (
+          <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+            <div style={{ ...S.label, marginBottom: 12 }}>BODY TRENDS</div>
+            <BodyTrendChart measurements={measurements} />
           </div>
         )}
         </div>
@@ -4560,7 +4615,7 @@ import "./styles.css";
 
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
                 <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
               </div>
@@ -4642,7 +4697,7 @@ import "./styles.css";
 
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
                   <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
 
@@ -4694,7 +4749,6 @@ import "./styles.css";
 
         <div style={{ order: enabledDashboards.indexOf("prs") }}>
         {isDashEnabled("prs") ? sessions.length > 0 && (() => {
-          // Find all-time max weight per exercise across all sessions
           const prMap = {};
           sessions.forEach(s => {
             (s.exercises||[]).forEach(ex => {
@@ -4708,30 +4762,9 @@ import "./styles.css";
               });
             });
           });
-          const prs = Object.values(prMap).sort((a,b) => b.w - a.w).slice(0, 3);
-          if (!prs.length) return null;
-          return (
-            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-              <div style={{ ...S.label, marginBottom:12 }}>PERSONAL RECORDS</div>
-              {prs.map((pr, i) => (
-                <div key={pr.name} style={{
-                  display:"flex", alignItems:"center", gap:10,
-                  padding:"8px 0",
-                  borderBottom: i < prs.length-1 ? `1px solid ${th.border}` : "none",
-                }}>
-                  <div className="bebas" style={{ fontSize:14, color:th.dim, width:18, flexShrink:0, textAlign:"right" }}>#{i+1}</div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
-                    <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>{pr.muscle} · {pr.reps ? `${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
-                  </div>
-                  <div style={{ textAlign:"right", flexShrink:0 }}>
-                    <span className="bebas" style={{ fontSize:22, color: th.accentFg, lineHeight:1 }}>{pr.w}</span>
-                    <span style={{ fontSize:10, color:th.dim }}> kg</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          );
+          const allPrs = Object.values(prMap).sort((a,b) => b.w - a.w);
+          if (!allPrs.length) return null;
+          return <PRsDashboard allPrs={allPrs} />;
         })() : null}
         </div>
 
@@ -6821,8 +6854,8 @@ import "./styles.css";
             })}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 10, color: th.dim }}>Easy</span>
-            <span style={{ fontSize: 10, color: th.dim }}>Max</span>
+            <span style={{ fontSize: 12, color: th.dim }}>Easy</span>
+            <span style={{ fontSize: 12, color: th.dim }}>Max</span>
           </div>
         </div>
         {!allCardio ? (
