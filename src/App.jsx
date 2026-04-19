@@ -3845,7 +3845,7 @@ import "./styles.css";
       <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ ...S.label }}>DASHBOARDS</div>
+          <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
           <div style={{ display:"flex", gap:6 }}>
             <button onClick={onCancel} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>Cancel</button>
             <button onClick={() => onSave(order)} style={{ background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
@@ -3887,8 +3887,7 @@ import "./styles.css";
                   >
                     <GripIcon />
                   </div>
-                  {/* Icon + label */}
-                  <span style={{ fontSize:16, width:22, flexShrink:0 }}>{d.icon}</span>
+                  {/* Label only */}
                   <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
                   {/* Remove ✕ */}
                   <button
@@ -3903,7 +3902,7 @@ import "./styles.css";
         </div>
 
         {/* Bottom — available (not on home) */}
-        <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 6 : 0 }}>
+        <div style={{ borderTop:`2px solid ${th.accentBg}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
           <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ADD TO HOME</div>
           {availableItems.length === 0 ? (
             <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
@@ -3914,7 +3913,6 @@ import "./styles.css";
                 padding:"9px 0",
                 borderBottom: i < availableItems.length - 1 ? `1px solid ${th.border}` : "none",
               }}>
-                <span style={{ fontSize:16, width:22, flexShrink:0 }}>{d.icon}</span>
                 <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
                 <button
                   onClick={() => addItem(d.id)}
@@ -3923,7 +3921,7 @@ import "./styles.css";
                     backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
                     border:"none",
                     borderRadius:9, color:th.accentT,
-                    padding:"4px 14px", cursor:"pointer", fontSize:11,
+                    padding:"6px 14px", cursor:"pointer", fontSize:12,
                     fontFamily:"'Outfit',sans-serif", fontWeight:700, flexShrink:0,
                   }}
                 >+ Add</button>
@@ -4054,7 +4052,10 @@ import "./styles.css";
           />
         )}
 
+        {/* ── Dashboards ordered by enabledDashboards ── */}
+        <div style={{ display:"flex", flexDirection:"column" }}>
         {isDashEnabled("muscles") && (
+          <div style={{ order: enabledDashboards.indexOf("muscles") }}>
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ ...S.label, marginBottom: 10 }}>MUSCLES TRAINED</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -4072,8 +4073,9 @@ import "./styles.css";
               })}
             </div>
           </div>
-        )}
+        </div>)}
 
+        <div style={{ order: enabledDashboards.indexOf("streak") }}>
         {isDashEnabled("streak") ? sessions.length > 0 && (() => {
           const todayMs = new Date(); todayMs.setHours(0,0,0,0);
           const sessionDays = new Set(sessions.map(s => {
@@ -4167,11 +4169,12 @@ import "./styles.css";
             </div>
           );
         })() : null}
+        </div>
 
         {/* Performance dashboards */}
         {sessions.length > 0 && (
           <>
-            {isDashEnabled("intensity") && <div
+            {isDashEnabled("intensity") && <div style={{ order: enabledDashboards.indexOf("intensity") }}><div
               style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}
             >
               <div
@@ -4308,9 +4311,9 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-            </div>}
+            </div></div>}
 
-            {isDashEnabled("calories") && <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
+            {isDashEnabled("calories") && <div style={{ order: enabledDashboards.indexOf("calories") }}><div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ ...S.label }}>CALORIES BURNED</div>
                 {(() => {
@@ -4387,10 +4390,11 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-            </div>}
+            </div></div>}
           </>
         )}
 
+        <div style={{ order: enabledDashboards.indexOf("bodycomp") }}>
         {isDashEnabled("bodycomp") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
             <div style={{ ...S.label, marginBottom: 12 }}>BODY COMPOSITION</div>
@@ -4484,8 +4488,9 @@ import "./styles.css";
             })()}
           </div>
         )}
+        </div>
 
-
+        <div style={{ order: enabledDashboards.indexOf("recovery") }}>
         {isDashEnabled("recovery") ? sessions.length > 0 && (() => {
           const now = Date.now();
           // For each muscle, scan all sessions and find: last trained time, total volume (sets×reps) in last 72h
@@ -4577,7 +4582,9 @@ import "./styles.css";
             </div>
           );
         })() : null}
+        </div>
 
+        <div style={{ order: enabledDashboards.indexOf("efficiency") }}>
         {isDashEnabled("efficiency") ? sessions.length > 0 && (() => {
           const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // last 30 days
           const recent = sessions.filter(s => (s.startTime || 0) >= cutoff && (s.duration || 0) > 0);
@@ -4662,10 +4669,11 @@ import "./styles.css";
             </div>
           );
         })() : null}
+        </div>
 
+        <div style={{ order: enabledDashboards.indexOf("strength") }}>{isDashEnabled("strength") && sessions.length > 0 && <StrengthProgression sessions={sessions} />}</div>
 
-        {isDashEnabled("strength") && sessions.length > 0 && <StrengthProgression sessions={sessions} />}
-
+        <div style={{ order: enabledDashboards.indexOf("prs") }}>
         {isDashEnabled("prs") ? sessions.length > 0 && (() => {
           // Find all-time max weight per exercise across all sessions
           const prMap = {};
@@ -4706,7 +4714,9 @@ import "./styles.css";
             </div>
           );
         })() : null}
+        </div>
 
+        <div style={{ order: enabledDashboards.indexOf("volume") }}>
         {isDashEnabled("volume") ? sessions.length > 0 && (() => {
           // Build last 4 weeks, label with date ranges
           const now = Date.now();
@@ -4764,6 +4774,8 @@ import "./styles.css";
             </div>
           );
         })() : null}
+        </div>
+        </div>{/* end dashboards flex column */}
 
         {/* Shortcuts */}
         <div
