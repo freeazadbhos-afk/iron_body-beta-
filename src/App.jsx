@@ -3683,11 +3683,11 @@ import "./styles.css";
     const latest = pts[pts.length-1][tab.f];
     const first  = pts[0][tab.f];
     const trendDir = latest > first ? "↑" : latest < first ? "↓" : null;
-    // Fat: ↑ is bad (red), ↓ is good (green). Weight/muscle: ↑ is good (green)
-    const trendCol = trendDir == null ? th.muted
-      : tab.f === "fat"
-        ? (trendDir === "↑" ? "#ff6b6b" : "#1db954")
-        : (trendDir === "↑" ? "#1db954" : "#ff6b6b");
+    // Direction shows change; color shows improvement:
+    // Fat ↑ = bad (red), Fat ↓ = good (green). All others: ↑ = good (green), ↓ = bad (red)
+    const trendCol = tab.f === "fat"
+      ? (trendDir === "↑" ? "#ff6b6b" : "#1db954")
+      : (trendDir === "↑" ? "#1db954" : "#ff6b6b");
     return (
       <div>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
@@ -3843,12 +3843,12 @@ import "./styles.css";
           {lift && (() => {
             const allPts = lift.pts;
             const delta = allPts.length >= 2 ? allPts[allPts.length-1].w - allPts[0].w : 0;
-            const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
-            const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+            const trendCol = delta > 0 ? "#1db954" : "#ff6b6b";
+            const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : null;
             return (
               <div style={{ textAlign:"right" }}>
                 <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
-                  <span style={{ fontSize:14, color:trendCol, fontWeight:700 }}>{allPts.length >= 2 ? trend : ""}</span>
+                  {trend && <span style={{ fontSize:14, color:trendCol, fontWeight:700 }}>{trend}</span>}
                   <span className="bebas" style={{ fontSize:26, color:group.col, lineHeight:1 }}>{fmtW(allPts[allPts.length-1].w)}</span>
                 </div>
                 <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG 1RM</div>
@@ -4680,9 +4680,9 @@ import "./styles.css";
           const range   = maxEff - minEff || 1;
           const latest  = withEff[withEff.length - 1];
           const trend   = withEff.length >= 2
-            ? (latest.eff > withEff[withEff.length - 2].eff ? "↑" : latest.eff < withEff[withEff.length - 2].eff ? "↓" : "→")
-            : "→";
-          const trendCol = trend === "↑" ? "#1db954" : trend === "↓" ? "#ff6b6b" : th.muted;
+            ? (latest.eff > withEff[withEff.length - 2].eff ? "↑" : latest.eff < withEff[withEff.length - 2].eff ? "↓" : null)
+            : null;
+          const trendCol = trend === "↑" ? "#1db954" : "#ff6b6b";
 
           // SVG line chart
           const W = 280, H = 52, R = 3;
@@ -4704,7 +4704,7 @@ import "./styles.css";
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 3, justifyContent: "flex-end" }}>
-                    <span style={{ fontSize: 16, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</span>
+                    {trend && <span style={{ fontSize: 16, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</span>}
                     <span className="bebas" style={{ fontSize: 28, color: effColor(latest.eff), lineHeight: 1 }}>{latest.eff.toFixed(1)}</span>
                   </div>
                   <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>KG/MIN LATEST</div>
@@ -4788,8 +4788,8 @@ import "./styles.css";
           const totalRecent = weekVols[weekVols.length-1];
           const totalPrev   = weekVols[weekVols.length-2] || 0;
           const delta = totalRecent - totalPrev;
-          const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
-          const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+          const trendCol = delta > 0 ? "#1db954" : "#ff6b6b";
+          const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : null;
           const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
           if (weekVols.every(v => v === 0)) return null;
           return (
@@ -4798,7 +4798,7 @@ import "./styles.css";
                 <div>
                   <div style={{ ...S.label }}>WEEKLY VOLUME</div>
                   <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>
-                    vs prev week: <span style={{ color:trendCol, fontWeight:700 }}>{trend} {fmtV(Math.abs(delta))}</span>
+                    vs prev week: {trend ? <span style={{ color:trendCol, fontWeight:700 }}>{trend} {fmtV(Math.abs(delta))}</span> : <span style={{ color:th.muted }}>no change</span>}
                   </div>
                 </div>
                 <div style={{ textAlign:"right" }}>
