@@ -3577,33 +3577,110 @@ import "./styles.css";
     HOME VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
   /* ─── Strength Progression — standalone component so useState is valid ──────── */
+  /* ─── Body Composition Trend — needs useState for tab toggle ─────────────────── */
+  function BodyTrendChart({ measurements }) {
+    const th = useTheme();
+    const TABS = [
+      { f: "weight", label: "WEIGHT", unit: "kg", color: th.accentBg },
+      { f: "muscle", label: "MUSCLE", unit: "%",  color: "#4ecdc4"   },
+      { f: "fat",    label: "FAT",    unit: "%",  color: "#ff6b6b"   },
+    ];
+    const [selTab, setSelTab] = useState("weight");
+    const tab = TABS.find(t => t.f === selTab) || TABS[0];
+    const pts = measurements.filter(m => m[tab.f] != null).slice(0, 7).reverse();
+    if (pts.length < 2) return null;
+    const vals = pts.map(p => p[tab.f]);
+    const mn = Math.min(...vals); const mx = Math.max(...vals);
+    const floor   = mn - (mx-mn)*0.2 || mn*0.95;
+    const ceiling = mx + (mx-mn)*0.2 || mx*1.05;
+    const range = ceiling - floor || 1;
+    const W = 280, H = 52, R = 3;
+    const xs = pts.map((_,i) => (i/(pts.length-1))*W);
+    const ys = pts.map(p => H - ((p[tab.f]-floor)/range)*(H-R*2) - R);
+    const path = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
+    const areaPath = `${path} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+    return (
+      <div style={{ marginTop: 14 }}>
+        <div style={{ display:"flex", gap:5, marginBottom:10 }}>
+          {TABS.map(t => (
+            <button key={t.f} onClick={() => setSelTab(t.f)} style={{
+              padding:"4px 12px", borderRadius:20, fontSize:11, fontWeight:700,
+              border:`1px solid ${selTab===t.f ? t.color : th.inputB}`,
+              background: selTab===t.f ? `${t.color}22` : "transparent",
+              color: selTab===t.f ? t.color : th.muted,
+              cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+            }}>{t.label}</button>
+          ))}
+        </div>
+        <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
+          <path d={areaPath} fill={tab.color} opacity="0.08" />
+          <path d={path} fill="none" stroke={tab.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {pts.map((p,i) => (
+            <g key={i}>
+              <circle cx={xs[i]} cy={ys[i]} r={R} fill={i===pts.length-1?tab.color:th.card} stroke={tab.color} strokeWidth="1.5" />
+              <text x={xs[i]} y={H+14}
+                textAnchor={i===0?"start":i===pts.length-1?"end":"middle"}
+                fontSize="10" fill={i===pts.length-1?tab.color:"#666"}
+                fontFamily="Outfit,sans-serif" fontWeight={i===pts.length-1?"700":"400"}>
+                {p[tab.f]}{tab.unit}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+    );
+  }
+
   function StrengthProgression({ sessions }) {
     const th = useTheme();
     const S = useS();
-    const KEY_LIFTS = [
-      { id: "e51", short: "Bench",    col: th.accentBg },
-      { id: "e59", short: "Deadlift", col: "#4ecdc4"   },
-      { id: "e92", short: "Squat",    col: "#fd9644"   },
-      { id: "e28", short: "OHP",      col: "#a29bfe"   },
-      { id: "e15", short: "Pull",     col: "#ff7675"   },
+    // Movement groups: Push, Pull, Legs, Hinge
+    const GROUPS = [
+      { key: "Push",  label: "Push",  col: th.accentBg, ids: ["e51","e1","e2","e4","e5","e7","e28","e29","e30","e31","e52","e53","e55"] },
+      { key: "Pull",  label: "Pull",  col: "#4ecdc4",   ids: ["e15","e16","e17","e18","e19","e63","e59","x22","m5"] },
+      { key: "Legs",  label: "Legs",  col: "#fd9644",   ids: ["e92","e93","e94","e43","e44","e47","e102"] },
+      { key: "Hinge", label: "Hinge", col: "#a29bfe",   ids: ["e59","e93","e60"] },
+      { key: "Arms",  label: "Arms",  col: "#ff7675",   ids: ["e26","e27","e76","e77"] },
     ];
-    const liftHistory = KEY_LIFTS.map(lift => {
+    const [selGroup, setSelGroup] = useState("Push");
+    const group = GROUPS.find(g => g.key === selGroup) || GROUPS[0];
+
+    // For this group, find the single most-logged exercise
+    const liftHistory = group.ids.map(id => {
       const pts = [];
       sessions.forEach(s => {
-        const ex = (s.exercises||[]).find(e => e.id === lift.id || e.exId === lift.id);
+        const ex = (s.exercises||[]).find(e => e.id === id || e.exId === id);
         if (!ex) return;
         const maxRM = Math.max(...(ex.sets||[]).filter(st => st.done && st.weight > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
         if (maxRM > 0) pts.push({ t: s.startTime||0, w: maxRM });
       });
       pts.sort((a,b) => a.t - b.t);
-      return { ...lift, pts };
-    }).filter(l => l.pts.length >= 2);
+      const dbEx = DB.find(d => d.id === id);
+      return { id, name: dbEx?.name || id, pts };
+    }).filter(l => l.pts.length >= 2).sort((a,b) => b.pts.length - a.pts.length);
 
-    const shown = [...liftHistory].sort((a,b) => b.pts.length - a.pts.length).slice(0, 4);
-    const [selId, setSelId] = useState(shown[0]?.id || "");
-    if (!shown.length) return null;
+    const [selId, setSelId] = useState(liftHistory[0]?.id || "");
+    const shownLifts = liftHistory.slice(0, 4);
 
-    const lift = shown.find(l => l.id === selId) || shown[0];
+    const hasGroupData = liftHistory.length > 0;
+    const lift = shownLifts.find(l => l.id === selId) || shownLifts[0];
+    if (!lift) return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+        <div style={{ ...S.label, marginBottom: 10 }}>STRENGTH PROGRESSION</div>
+        <div style={{ display:"flex", gap:5, marginBottom:12, flexWrap:"wrap" }}>
+          {GROUPS.map(g => (
+            <button key={g.key} onClick={() => { setSelGroup(g.key); setSelId(""); }} style={{
+              padding:"4px 11px", borderRadius:20, fontSize:11, fontWeight:700,
+              border:`1px solid ${selGroup===g.key ? g.col : th.inputB}`,
+              background: selGroup===g.key ? `${g.col}22` : "transparent",
+              color: selGroup===g.key ? g.col : th.muted,
+              cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+            }}>{g.label}</button>
+          ))}
+        </div>
+        <div style={{ fontSize:12, color:th.muted, padding:"12px 0" }}>No data yet for this movement group.</div>
+      </div>
+    );
     const allPts = lift.pts;
     const vals = allPts.map(p => p.w);
     const mn = Math.min(...vals); const mx = Math.max(...vals, mn+1);
@@ -3634,17 +3711,33 @@ import "./styles.css";
             <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG 1RM</div>
           </div>
         </div>
-        <div style={{ display:"flex", gap:5, marginBottom:10, flexWrap:"wrap" }}>
-          {shown.map(l => (
-            <button key={l.id} onClick={() => setSelId(l.id)} style={{
+        {/* Group selector */}
+        <div style={{ display:"flex", gap:5, marginBottom:8, flexWrap:"wrap" }}>
+          {GROUPS.map(g => (
+            <button key={g.key} onClick={() => { setSelGroup(g.key); setSelId(""); }} style={{
               padding:"4px 11px", borderRadius:20, fontSize:11, fontWeight:700,
-              border:`1px solid ${selId===l.id ? l.col : th.inputB}`,
-              background: selId===l.id ? `${l.col}22` : "transparent",
-              color: selId===l.id ? l.col : th.muted,
+              border:`1px solid ${selGroup===g.key ? g.col : th.inputB}`,
+              background: selGroup===g.key ? `${g.col}22` : "transparent",
+              color: selGroup===g.key ? g.col : th.muted,
               cursor:"pointer", fontFamily:"'Outfit',sans-serif",
-            }}>{l.short}</button>
+            }}>{g.label}</button>
           ))}
         </div>
+        {/* Exercise sub-picker */}
+        {shownLifts.length > 1 && (
+          <div style={{ display:"flex", gap:4, marginBottom:10, flexWrap:"wrap" }}>
+            {shownLifts.map(l => (
+              <button key={l.id} onClick={() => setSelId(l.id)} style={{
+                padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:600,
+                border:`1px solid ${selId===l.id ? group.col : th.inputB}`,
+                background: selId===l.id ? `${group.col}18` : "transparent",
+                color: selId===l.id ? group.col : th.dim,
+                cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+                whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:110,
+              }}>{l.name}</button>
+            ))}
+          </div>
+        )}
         <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
           <path d={areaPath} fill={lift.col} opacity="0.07" />
           <path d={linePath} fill="none" stroke={lift.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -3859,10 +3952,9 @@ import "./styles.css";
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ ...S.label }}>STREAK</div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                  <span style={{ fontSize: 16 }}>🔥</span>
-                  <span className="bebas" style={{ fontSize: 24, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
-                  <span style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>DAYS</span>
+                <div style={{ textAlign: "right" }}>
+                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>DAYS</div>
                 </div>
               </div>
               {/* Month nav */}
@@ -3988,12 +4080,10 @@ import "./styles.css";
                       const hasResist = daySessions.some(s => (s.exercises||[]).some(e => e.type !== "cardio"));
                       const hasCardio = daySessions.some(s => (s.exercises||[]).some(e => e.type === "cardio"));
                       const h = hasData ? Math.max(8, (n / 10) * 80) : 6;
-                      const col = hasData
-                        ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg)
-                        : th.inputB;
                       const barBg = hasData
-                        ? (hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : col)
+                        ? (hasResist && hasCardio ? "#fd9644" : hasCardio ? "#4ecdc4" : th.accentBg)
                         : th.inputB;
+                      const col = hasData ? (hasCardio && !hasResist ? "#4ecdc4" : th.accentFg) : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
@@ -4231,59 +4321,7 @@ import "./styles.css";
                       );
                     })}
                   </div>
-                  {/* Trend line charts — last 7 days */}
-                  {(() => {
-                    const trendFields = [
-                      { f: "weight", label: "WEIGHT TREND", unit: "kg", color: th.accentBg },
-                      { f: "muscle", label: "MUSCLE TREND", unit: "%", color: "#4ecdc4" },
-                      { f: "fat",    label: "BODY FAT TREND", unit: "%", color: "#ff6b6b" },
-                    ];
-                    return trendFields.map(({ f, label, unit, color }) => {
-                      const pts = measurements
-                        .filter((m) => m[f] != null)
-                        .slice(0, 7)
-                        .reverse();
-                      if (pts.length < 2) return null;
-                      const vals = pts.map((p) => p[f]);
-                      const mn = Math.min(...vals);
-                      const mx = Math.max(...vals);
-                      const floor   = mn - (mx - mn) * 0.2 || mn * 0.95;
-                      const ceiling = mx + (mx - mn) * 0.2 || mx * 1.05;
-                      const range = ceiling - floor || 1;
-                      const W = 280, H = 52, R = 3;
-                      const xs = pts.map((_, i) => (i / (pts.length - 1)) * W);
-                      const ys = pts.map((p) => H - ((p[f] - floor) / range) * (H - R * 2) - R);
-                      const path = xs.map((x, i) => (i === 0 ? `M${x},${ys[i]}` : `L${x},${ys[i]}`)).join(" ");
-                      const areaPath = `${path} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
-                      return (
-                        <div key={f} style={{ marginTop: 18 }}>
-                          <div style={{ fontSize: 11, color: th.sub, letterSpacing: "1.5px", fontWeight: 700, marginBottom: 8 }}>
-                            {label}
-                          </div>
-                          <svg viewBox={`0 0 ${W} ${H + 20}`} width="100%" style={{ overflow: "visible" }}>
-                            {/* Area fill */}
-                            <path d={areaPath} fill={color} opacity="0.08" />
-                            {/* Line */}
-                            <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            {/* Dots + labels */}
-                            {pts.map((p, i) => (
-                              <g key={i}>
-                                <circle cx={xs[i]} cy={ys[i]} r={R} fill={i === pts.length - 1 ? color : th.card} stroke={color} strokeWidth="1.5" />
-                                <text x={xs[i]} y={H + 14}
-                                  textAnchor={i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}
-                                  fontSize="10"
-                                  fill={i === pts.length-1 ? color : "#666"}
-                                  fontFamily="Outfit,sans-serif"
-                                  fontWeight={i===pts.length-1?"700":"400"}>
-                                  {p[f]}{unit}
-                                </text>
-                              </g>
-                            ))}
-                          </svg>
-                        </div>
-                      );
-                    });
-                  })()}
+                  <BodyTrendChart measurements={measurements} />
                 </>
               );
             })()}
@@ -4385,12 +4423,13 @@ import "./styles.css";
                 <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
               </div>
               <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>
-                Based on volume × recency — tap a muscle to see when it was last trained
+                Based on sets, reps & days since last trained · 72h recovery window
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
                 {scored.map(({ m, score, hoursAgo }) => {
                   const c = getColor(score);
-                  if (!hoursAgo) return (
+                  // Both never-trained AND rested (>72h ago) show as green
+                  if (!hoursAgo || score === 0) return (
                     <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 700,
                       border: `1px solid ${th.accentBg}55`, color: th.accentFg, background: `${th.accentBg}11` }}>{m}</div>
                   );
@@ -4463,16 +4502,14 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
                 <div>
                   <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
-                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
-                    Avg <span style={{ color: th.accentFg, fontWeight: 700 }}>{avgEff.toFixed(1)} kg/min</span> · Volume ÷ Duration
-                  </div>
+                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>Volume ÷ Duration</div>
                 </div>
                 <div style={{ textAlign: "right" }}>
-                  <span className="bebas" style={{ fontSize: 28, color: effColor(latest.eff), lineHeight: 1 }}>
-                    {latest.eff.toFixed(1)}
-                  </span>
-                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>LATEST</div>
-                  <div style={{ fontSize: 14, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 3, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 16, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</span>
+                    <span className="bebas" style={{ fontSize: 28, color: effColor(latest.eff), lineHeight: 1 }}>{latest.eff.toFixed(1)}</span>
+                  </div>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>KG/MIN LATEST</div>
                 </div>
               </div>
               <svg viewBox={`0 0 ${W} ${H + 22}`} width="100%" style={{ overflow: "visible", marginTop: 8 }}>
@@ -4480,7 +4517,7 @@ import "./styles.css";
                 <path d={areaPath} fill={th.accentBg} opacity="0.06" />
                 {/* Avg line (dashed) */}
                 <line x1="0" y1={avgY} x2={W} y2={avgY} stroke={th.inputB} strokeWidth="1" strokeDasharray="4 3" />
-                <text x={W} y={avgY - 3} textAnchor="end" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">avg</text>
+                <text x={W} y={avgY - 4} textAnchor="end" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">avg {avgEff.toFixed(1)} kg/min</text>
                 {/* Line */}
                 <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Dots */}
@@ -4529,7 +4566,7 @@ import "./styles.css";
               });
             });
           });
-          const prs = Object.values(prMap).sort((a,b) => b.w - a.w).slice(0, 8);
+          const prs = Object.values(prMap).sort((a,b) => b.w - a.w).slice(0, 3);
           if (!prs.length) return null;
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
@@ -4546,7 +4583,7 @@ import "./styles.css";
                     <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>{pr.muscle} · {pr.reps ? `${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}</div>
                   </div>
                   <div style={{ textAlign:"right", flexShrink:0 }}>
-                    <span className="bebas" style={{ fontSize:22, color: i===0 ? "#ffd700" : i===1 ? "#c0c0c0" : i===2 ? "#cd7f32" : th.accentFg, lineHeight:1 }}>{pr.w}</span>
+                    <span className="bebas" style={{ fontSize:22, color: th.accentFg, lineHeight:1 }}>{pr.w}</span>
                     <span style={{ fontSize:10, color:th.dim }}> kg</span>
                   </div>
                 </div>
@@ -4557,12 +4594,15 @@ import "./styles.css";
 
         {/* ── Weekly Volume Trend ── */}
         {sessions.length > 0 && (() => {
-          // Build last 8 weeks of total tonnage (kg lifted per week)
+          // Build last 4 weeks, label with date ranges
           const now = Date.now();
-          const weeks = Array.from({ length: 8 }, (_, i) => {
-            const end = now - i * 7 * 24 * 60 * 60 * 1000;
+          const weeks = Array.from({ length: 4 }, (_, i) => {
+            const end   = now - i * 7 * 24 * 60 * 60 * 1000;
             const start = end - 7 * 24 * 60 * 60 * 1000;
-            return { start, end, label: i === 0 ? "This wk" : `${i}w ago` };
+            const startD = new Date(start); const endD = new Date(end - 1);
+            const fmt = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+            const label = i === 0 ? "This week" : `${fmt(startD)}`;
+            return { start, end, label };
           }).reverse();
           const weekVols = weeks.map(w => {
             const wSess = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end);
@@ -4602,7 +4642,7 @@ import "./styles.css";
                         {v > 0 ? fmtV(v) : ""}
                       </div>
                       <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
-                      <div style={{ fontSize:9, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2 }}>{w.label}</div>
+                      <div style={{ fontSize:8, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
                     </div>
                   );
                 })}
