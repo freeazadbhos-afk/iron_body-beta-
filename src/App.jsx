@@ -3629,7 +3629,7 @@ import "./styles.css";
           <div style={{ display:"flex", gap:4 }}>
             {RANGES.map(r => (
               <button key={r.key} onClick={() => setRange(r.key)} style={{
-                padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:700,
+                padding:"3px 9px", borderRadius:20, fontSize:12, fontWeight:700,
                 border:`1px solid ${range===r.key ? th.accentBg : th.inputB}`,
                 background: range===r.key ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
                 color: range===r.key ? th.accentT : th.muted,
@@ -3871,7 +3871,7 @@ import "./styles.css";
         </div>
 
         {/* Top — added dashboards (drag to reorder) */}
-        <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ON HOME SCREEN</div>
+        <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign: "left" }}>ON HOME SCREEN</div>
         <div ref={listRef} style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
           {addedItems.length === 0 && (
             <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No dashboards added yet.</div>
@@ -3906,7 +3906,7 @@ import "./styles.css";
                     <GripIcon />
                   </div>
                   {/* Label only */}
-                  <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign: "left" }}>{d.label}</span>
                   {/* Remove ✕ */}
                   <button
                     onClick={() => removeItem(d.id)}
@@ -3921,7 +3921,7 @@ import "./styles.css";
 
         {/* Bottom — available (not on home) */}
         <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
-          <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ADD TO HOME</div>
+          <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign: "left" }}>ADD TO HOME</div>
           {availableItems.length === 0 ? (
             <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
           ) : (
@@ -3931,7 +3931,7 @@ import "./styles.css";
                 padding:"9px 0",
                 borderBottom: i < availableItems.length - 1 ? `1px solid ${th.border}` : "none",
               }}>
-                <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign: "left" }}>{d.label}</span>
                 <button
                   onClick={() => addItem(d.id)}
                   style={{
@@ -4057,7 +4057,7 @@ import "./styles.css";
               onClick={() => setEditingDashboards(true)}
               style={{ background:"none", border:"none", color:th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
             >
-              EDIT
+              EDIT ✎
             </button>
           </div>
         )}
@@ -4142,13 +4142,13 @@ import "./styles.css";
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <button onClick={() => { if (!canBack) return; setStreakDir(-1); setStreakOff(o => o-1); }}
                   style={{ background:"none",border:"none",color:canBack?th.text:th.inputB,fontSize:22,cursor:canBack?"pointer":"default",padding:"0 2px",lineHeight:1 }}>‹</button>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.5px", color: th.sub }}>{monthName}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.5px", color: th.sub }}>{monthName}</div>
                 <button onClick={() => { if (!canFwd) return; setStreakDir(1); setStreakOff(o => o+1); }}
                   style={{ background:"none",border:"none",color:canFwd?th.text:th.inputB,fontSize:22,cursor:canFwd?"pointer":"default",padding:"0 2px",lineHeight:1 }}>›</button>
               </div>
               {/* DOW headers */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
-                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:10,color:th.sub,fontWeight:700,letterSpacing:0 }}>{d}</div>)}
+                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:12,color:th.sub,fontWeight:700,letterSpacing:0 }}>{d}</div>)}
               </div>
               {/* Fixed 6-row × 7-col grid */}
               <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 1,
@@ -4167,10 +4167,10 @@ import "./styles.css";
                   return (
                     <div key={ci} style={{ aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <div style={{
-                        width:"96%", height:"96%", borderRadius:"50%", background:bg,
+                        width:"90%", height:"90%", borderRadius:"50%", background:bg,
                         border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
                         display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:12, color: active ? th.accentT : isToday ? th.text : th.sub,
+                        fontSize:13, color: active ? th.accentT : isToday ? th.text : th.sub,
                         fontWeight: active || isToday ? 700 : 400,
                       }}>{day}</div>
                     </div>
@@ -4822,7 +4822,7 @@ import "./styles.css";
               fontWeight: 700,
             }}
           >
-            {editShortcuts ? "DONE ✓" : "EDIT ✎"}
+            {editShortcuts ? "DONE" : "EDIT ✎"}
           </button>
         </div>
 
