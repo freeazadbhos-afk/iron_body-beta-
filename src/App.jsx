@@ -3832,8 +3832,10 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const [order, setOrder] = useState([...activeDashOrder]);
+    const [closing, setClosing] = useState(false);
     const listRef = useRef(null);
     const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(order, setOrder);
+    const dismiss = (cb) => { setClosing(true); setTimeout(cb, 250); };
 
     const addedItems    = order.map(id => ALL_DASHBOARDS.find(d => d.id === id)).filter(Boolean);
     const availableItems = ALL_DASHBOARDS.filter(d => !order.includes(d.id));
@@ -3842,13 +3844,13 @@ import "./styles.css";
     const addItem    = (id) => setOrder(prev => [...prev, id]);
 
     return (
-      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "shortcutBtnIn 0.25s ease-in reverse forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
           <div style={{ display:"flex", gap:6 }}>
-            <button onClick={onCancel} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>Cancel</button>
-            <button onClick={() => onSave(order)} style={{ background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
+            <button onClick={() => dismiss(onCancel)} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>Cancel</button>
+            <button onClick={() => dismiss(() => onSave(order))} style={{ background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
           </div>
         </div>
 
@@ -3902,7 +3904,7 @@ import "./styles.css";
         </div>
 
         {/* Bottom — available (not on home) */}
-        <div style={{ borderTop:`2px solid ${th.accentBg}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
+        <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
           <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ADD TO HOME</div>
           {availableItems.length === 0 ? (
             <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
@@ -4128,11 +4130,11 @@ import "./styles.css";
                   style={{ background:"none",border:"none",color:canFwd?th.text:th.inputB,fontSize:22,cursor:canFwd?"pointer":"default",padding:"0 2px",lineHeight:1 }}>›</button>
               </div>
               {/* DOW headers */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
-                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:11,color:th.sub,fontWeight:700,letterSpacing:"0.2px" }}>{d}</div>)}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1, marginBottom: 1 }}>
+                {DOW.map((d, i) => <div key={i} style={{ textAlign:"center",fontSize:10,color:th.sub,fontWeight:700,letterSpacing:0 }}>{d}</div>)}
               </div>
               {/* Fixed 6-row × 7-col grid */}
-              <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 2,
+              <div key={streakOff} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gridTemplateRows: "repeat(6, 1fr)", gap: 1,
                 animation: streakDir < 0 ? "streakSlideR 0.22s ease-out" : "streakSlideL 0.22s ease-out" }}>
                 {cells.map((day, ci) => {
                   if (!day) return <div key={ci} style={{ aspectRatio:"1" }} />;
@@ -4148,7 +4150,7 @@ import "./styles.css";
                   return (
                     <div key={ci} style={{ aspectRatio:"1", display:"flex", alignItems:"center", justifyContent:"center" }}>
                       <div style={{
-                        width:"88%", height:"88%", borderRadius:"50%", background:bg,
+                        width:"96%", height:"96%", borderRadius:"50%", background:bg,
                         border: isToday && !active ? `1.5px solid ${th.inputB}` : "none",
                         display:"flex", alignItems:"center", justifyContent:"center",
                         fontSize:12, color: active ? th.accentT : isToday ? th.text : th.sub,
