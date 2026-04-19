@@ -1349,7 +1349,19 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null };
+  const ALL_DASHBOARDS = [
+    { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
+    { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
+    { id: "intensity",  label: "Intensity",             icon: "⚡" },
+    { id: "calories",   label: "Calories Burned",       icon: "🔥" },
+    { id: "bodycomp",   label: "Body Composition",      icon: "⚖️" },
+    { id: "recovery",   label: "Muscle Recovery",       icon: "🩺" },
+    { id: "efficiency", label: "Training Efficiency",   icon: "📈" },
+    { id: "strength",   label: "Strength Progression",  icon: "🏋️" },
+    { id: "prs",        label: "Personal Records",      icon: "🏆" },
+    { id: "volume",     label: "Weekly Volume",         icon: "📊" },
+  ];
   // Measurements: array of {date, weight, muscle, fat} entries
   function getMeasurements(uid) {
     return ls("ib3-" + uid + "-measurements", []);
@@ -3815,6 +3827,114 @@ import "./styles.css";
     );
   }
 
+  /* ─── Dashboard Editor — drag-and-drop reorder, split added/available ──────── */
+  function DashboardEditor({ activeDashOrder, onSave, onCancel }) {
+    const th = useTheme();
+    const S = useS();
+    const [order, setOrder] = useState([...activeDashOrder]);
+    const listRef = useRef(null);
+    const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(order, setOrder);
+
+    const addedItems    = order.map(id => ALL_DASHBOARDS.find(d => d.id === id)).filter(Boolean);
+    const availableItems = ALL_DASHBOARDS.filter(d => !order.includes(d.id));
+
+    const removeItem = (id) => setOrder(prev => prev.filter(x => x !== id));
+    const addItem    = (id) => setOrder(prev => [...prev, id]);
+
+    return (
+      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+        {/* Header */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ ...S.label }}>DASHBOARDS</div>
+          <div style={{ display:"flex", gap:6 }}>
+            <button onClick={onCancel} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>Cancel</button>
+            <button onClick={() => onSave(order)} style={{ background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
+          </div>
+        </div>
+
+        {/* Top — added dashboards (drag to reorder) */}
+        <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ON HOME SCREEN</div>
+        <div ref={listRef} style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
+          {addedItems.length === 0 && (
+            <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No dashboards added yet.</div>
+          )}
+          {addedItems.map((d, exI) => {
+            const isBeingDragged = dragIdx === exI;
+            const isOver = insertIdx === exI && dragIdx !== null && insertIdx !== dragIdx;
+            const wasDropped = droppedIdx === exI;
+            return (
+              <div
+                key={d.id}
+                data-drag-item=""
+                style={{
+                  opacity: isBeingDragged ? 0.35 : 1,
+                  transition: "opacity .15s",
+                  animation: wasDropped
+                    ? (dropDir === "down" ? "dropFromAbove 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards" : "dropFromBelow 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards")
+                    : undefined,
+                }}
+              >
+                {isOver && <DropLine />}
+                <div style={{
+                  display:"flex", alignItems:"center", gap:8,
+                  padding:"9px 0",
+                  borderBottom: `1px solid ${th.border}`,
+                }}>
+                  {/* Grip */}
+                  <div
+                    onPointerDown={(e) => { e.stopPropagation(); dragStart(e, exI, listRef); }}
+                    style={{ cursor:"grab", flexShrink:0, touchAction:"none", userSelect:"none", padding:"2px 8px 2px 2px" }}
+                  >
+                    <GripIcon />
+                  </div>
+                  {/* Icon + label */}
+                  <span style={{ fontSize:16, width:22, flexShrink:0 }}>{d.icon}</span>
+                  <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
+                  {/* Remove ✕ */}
+                  <button
+                    onClick={() => removeItem(d.id)}
+                    style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, padding:"0 4px", lineHeight:1, flexShrink:0 }}
+                  >✕</button>
+                </div>
+              </div>
+            );
+          })}
+          {insertIdx === addedItems.length && dragIdx !== null && <DropLine />}
+        </div>
+
+        {/* Bottom — available (not on home) */}
+        <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 6 : 0 }}>
+          <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700 }}>ADD TO HOME</div>
+          {availableItems.length === 0 ? (
+            <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
+          ) : (
+            availableItems.map((d, i) => (
+              <div key={d.id} style={{
+                display:"flex", alignItems:"center", gap:8,
+                padding:"9px 0",
+                borderBottom: i < availableItems.length - 1 ? `1px solid ${th.border}` : "none",
+              }}>
+                <span style={{ fontSize:16, width:22, flexShrink:0 }}>{d.icon}</span>
+                <span style={{ flex:1, fontSize:13, fontWeight:600, color:th.text }}>{d.label}</span>
+                <button
+                  onClick={() => addItem(d.id)}
+                  style={{
+                    background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                    backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+                    border:"none",
+                    borderRadius:9, color:th.accentT,
+                    padding:"4px 14px", cursor:"pointer", fontSize:11,
+                    fontFamily:"'Outfit',sans-serif", fontWeight:700, flexShrink:0,
+                  }}
+                >+ Add</button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
   function HomeView({
     sessions,
     programs,
@@ -3836,6 +3956,10 @@ import "./styles.css";
     const [addingShortcut, setAddingShortcut] = useState(false);
     const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
     const [streakDir, setStreakDir] = useState(1);
+    const [editingDashboards, setEditingDashboards] = useState(false);
+    const enabledDashboards = settings.homeDashboards || ALL_DASHBOARDS.map(d => d.id);
+    const isDashEnabled = (id) => enabledDashboards.includes(id);
+    const cancelDashEdit = () => setEditingDashboards(false);
     const [removingShortcut, setRemovingShortcut] = useState(null);
     const animatedRemoveFromHome = (pid) => {
       setRemovingShortcut(pid);
@@ -3907,28 +4031,50 @@ import "./styles.css";
         </div>
 
         <HighlightsCard sessions={sessions} sessionVol={sessionVol} />
+        <div style={{ height: 8 }} />
 
-        {/* ── Muscles Trained — Last 7 Days ── */}
-        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-          <div style={{ ...S.label, marginBottom: 10 }}>MUSCLES TRAINED</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-            {ALL_MUSCLES.map((m) => {
-              const hit = weekMuscleSet.has(m);
-              return (
-                <div key={m} style={{
-                  padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700,
-                  background: hit ? th.accentBg : "transparent",
-                  color: hit ? th.accentT : th.dim,
-                  border: `1px solid ${hit ? th.accentBg : th.inputB}`,
-                  transition: "all .2s",
-                }}>{m}</div>
-              );
-            })}
+        {/* ── Edit Dashboards button ── */}
+        {!editingDashboards && (
+          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8, marginTop:-6 }}>
+            <button
+              onClick={() => setEditingDashboards(true)}
+              style={{ background:"none", border:"none", color:th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
+            >
+              EDIT DASHBOARDS ✎
+            </button>
           </div>
-        </div>
+        )}
 
-        {/* ── Streak Calendar ── */}
-        {sessions.length > 0 && (() => {
+        {/* ── Dashboard editor panel ── */}
+        {editingDashboards && (
+          <DashboardEditor
+            activeDashOrder={enabledDashboards}
+            onSave={(newOrder) => { onUpdateSettings({ ...settings, homeDashboards: newOrder }); setEditingDashboards(false); }}
+            onCancel={cancelDashEdit}
+          />
+        )}
+
+        {isDashEnabled("muscles") && (
+          <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>MUSCLES TRAINED</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+              {ALL_MUSCLES.map((m) => {
+                const hit = weekMuscleSet.has(m);
+                return (
+                  <div key={m} style={{
+                    padding: "3px 8px", borderRadius: 6, fontSize: 10, fontWeight: 700,
+                    background: hit ? th.accentBg : "transparent",
+                    color: hit ? th.accentT : th.dim,
+                    border: `1px solid ${hit ? th.accentBg : th.inputB}`,
+                    transition: "all .2s",
+                  }}>{m}</div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {isDashEnabled("streak") ? sessions.length > 0 && (() => {
           const todayMs = new Date(); todayMs.setHours(0,0,0,0);
           const sessionDays = new Set(sessions.map(s => {
             const d = new Date(s.startTime || 0); d.setHours(0,0,0,0);
@@ -4020,13 +4166,12 @@ import "./styles.css";
               </div>
             </div>
           );
-        })()}
+        })() : null}
 
         {/* Performance dashboards */}
         {sessions.length > 0 && (
           <>
-            {/* Intensity bar chart */}
-            <div
+            {isDashEnabled("intensity") && <div
               style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}
             >
               <div
@@ -4163,10 +4308,9 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-            </div>
+            </div>}
 
-            {/* Calories chart — same bar chart design as intensity */}
-            <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
+            {isDashEnabled("calories") && <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ ...S.label }}>CALORIES BURNED</div>
                 {(() => {
@@ -4243,12 +4387,11 @@ import "./styles.css";
                   </div>
                 ))}
               </div>
-            </div>
+            </div>}
           </>
         )}
 
-        {/* Body composition dashboard */}
-        {measurements && measurements.length > 0 && (
+        {isDashEnabled("bodycomp") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", }}>
             <div style={{ ...S.label, marginBottom: 12 }}>BODY COMPOSITION</div>
             {(() => {
@@ -4343,8 +4486,7 @@ import "./styles.css";
         )}
 
 
-        {/* ── Muscle Recovery Heatmap ── */}
-        {sessions.length > 0 && (() => {
+        {isDashEnabled("recovery") ? sessions.length > 0 && (() => {
           const now = Date.now();
           // For each muscle, scan all sessions and find: last trained time, total volume (sets×reps) in last 72h
           const muscleData = {};
@@ -4434,10 +4576,9 @@ import "./styles.css";
               </div>
             </div>
           );
-        })()}
+        })() : null}
 
-        {/* ── Training Efficiency Index ── */}
-        {sessions.length > 0 && (() => {
+        {isDashEnabled("efficiency") ? sessions.length > 0 && (() => {
           const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // last 30 days
           const recent = sessions.filter(s => (s.startTime || 0) >= cutoff && (s.duration || 0) > 0);
           if (!recent.length) return null;
@@ -4520,14 +4661,12 @@ import "./styles.css";
               </div>
             </div>
           );
-        })()}
+        })() : null}
 
 
-        {/* ── Strength Progression ── */}
-        {sessions.length > 0 && <StrengthProgression sessions={sessions} />}
+        {isDashEnabled("strength") && sessions.length > 0 && <StrengthProgression sessions={sessions} />}
 
-        {/* ── Personal Records ── */}
-        {sessions.length > 0 && (() => {
+        {isDashEnabled("prs") ? sessions.length > 0 && (() => {
           // Find all-time max weight per exercise across all sessions
           const prMap = {};
           sessions.forEach(s => {
@@ -4566,10 +4705,9 @@ import "./styles.css";
               ))}
             </div>
           );
-        })()}
+        })() : null}
 
-        {/* ── Weekly Volume Trend ── */}
-        {sessions.length > 0 && (() => {
+        {isDashEnabled("volume") ? sessions.length > 0 && (() => {
           // Build last 4 weeks, label with date ranges
           const now = Date.now();
           const weeks = Array.from({ length: 4 }, (_, i) => {
@@ -4625,7 +4763,7 @@ import "./styles.css";
               </div>
             </div>
           );
-        })()}
+        })() : null}
 
         {/* Shortcuts */}
         <div
