@@ -3844,7 +3844,7 @@ import "./styles.css";
     const addItem    = (id) => setOrder(prev => [...prev, id]);
 
     return (
-      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "shortcutBtnIn 0.25s ease-in reverse forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "dashClose 0.2s ease-out forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
@@ -4033,14 +4033,15 @@ import "./styles.css";
         <HighlightsCard sessions={sessions} sessionVol={sessionVol} />
         <div style={{ height: 8 }} />
 
-        {/* ── Edit Dashboards button ── */}
+        {/* ── My Dashboards header ── */}
         {!editingDashboards && (
-          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8, marginTop:-6 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, marginTop:16 }}>
+            <div style={S.label}>MY DASHBOARDS</div>
             <button
               onClick={() => setEditingDashboards(true)}
               style={{ background:"none", border:"none", color:th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
             >
-              EDIT DASHBOARDS ✎
+              EDIT
             </button>
           </div>
         )}
@@ -10293,6 +10294,10 @@ import "./styles.css";
             @keyframes shortcutBtnIn {
               from { opacity: 0; transform: scale(0.88); }
               to   { opacity: 1; transform: scale(1); }
+            }
+            @keyframes dashClose {
+              from { opacity: 1; transform: translateY(0); }
+              to   { opacity: 0; transform: translateY(-6px); }
             }
             @keyframes shortcutListIn {
               from { opacity: 0; transform: translateY(-8px) scale(0.97); }
