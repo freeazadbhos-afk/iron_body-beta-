@@ -3576,6 +3576,72 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     HOME VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
+  /* ─── Highlights Card — toggle 7day / month / year ─────────────────────────── */
+  function HighlightsCard({ sessions, sessionVol }) {
+    const th = useTheme();
+    const S = useS();
+    const [range, setRange] = useState("7d");
+    const now = Date.now();
+    const cutoff = range === "7d"
+      ? now - 7 * 24 * 60 * 60 * 1000
+      : range === "month"
+      ? now - 30 * 24 * 60 * 60 * 1000
+      : new Date(new Date().getFullYear(), 0, 1).getTime();
+    const ws = sessions.filter(s => (s.startTime || 0) >= cutoff);
+    const resistSess = ws.filter(s => (s.exercises||[]).some(e => e.type !== "cardio"));
+    const cardioSess = ws.filter(s => (s.exercises||[]).every(e => e.type === "cardio") && s.exercises.length > 0);
+    const totalMins = ws.reduce((a,s) => a+(s.duration||0),0);
+    const hrsDisplay = totalMins >= 60 ? `${Math.floor(totalMins/60)}h ${totalMins%60}m` : `${totalMins}m`;
+    const totalCals = ws.reduce((a,s) => a+(s.calories||0),0);
+    const avgInt = ws.length ? (ws.reduce((a,s) => a+(s.intensity||0),0)/ws.length).toFixed(1) : "—";
+    const totalKg = ws.reduce((a,s) => a+sessionVol(s),0);
+    const loadsDisplay = totalKg >= 1000 ? `${(totalKg/1000).toFixed(1)}t` : `${Math.round(totalKg)}kg`;
+    const tiles = [
+      { v: resistSess.length, l: "RESISTANCE", col: th.accentFg },
+      { v: cardioSess.length, l: "CARDIO",     col: "#4ecdc4"   },
+      { v: hrsDisplay,        l: "HOURS TRAINED", col: th.accentFg },
+      { v: totalCals ? totalCals.toLocaleString() + " kcal" : "—", l: "CALS BURNED", col: "#fd9644" },
+      { v: avgInt !== "—" ? avgInt + "/10" : "—", l: "AVG INTENSITY", col: th.accentFg },
+      { v: loadsDisplay,      l: "LOADS LIFTED", col: th.accentFg },
+    ];
+    const RANGES = [
+      { key: "7d",    label: "7 Days"  },
+      { key: "month", label: "Month"   },
+      { key: "year",  label: "Year"    },
+    ];
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ ...S.label }}>YOUR HIGHLIGHTS</div>
+          <div style={{ display:"flex", gap:4 }}>
+            {RANGES.map(r => (
+              <button key={r.key} onClick={() => setRange(r.key)} style={{
+                padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:700,
+                border:`1px solid ${range===r.key ? th.accentBg : th.inputB}`,
+                background: range===r.key ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
+                color: range===r.key ? th.accentT : th.muted,
+                cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+                backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+              }}>{r.label}</button>
+            ))}
+          </div>
+        </div>
+        <style>{`
+          @keyframes tabSlideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes tabSlideOut { from{opacity:1} to{opacity:0} }
+        `}</style>
+        <div key={range} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:7, animation:"tabSlideIn 0.2s ease-out" }}>
+          {tiles.map(s => (
+            <div key={s.l} style={{ background:`color-mix(in srgb, ${th.sect} 60%, transparent)`, backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
+              <div className="bebas" style={{ fontSize:22, color:s.col, lineHeight:1, letterSpacing:0.5 }}>{s.v}</div>
+              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1.2px", marginTop:3 }}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   /* ─── Strength Progression — standalone component so useState is valid ──────── */
   /* ─── Body Composition Trend — needs useState for tab toggle ─────────────────── */
   function BodyTrendChart({ measurements }) {
@@ -3612,6 +3678,7 @@ import "./styles.css";
             }}>{t.label}</button>
           ))}
         </div>
+        <div key={selTab} style={{ animation:"tabSlideIn 0.2s ease-out" }}>
         <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
           <path d={areaPath} fill={tab.color} opacity="0.08" />
           <path d={path} fill="none" stroke={tab.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -3627,6 +3694,7 @@ import "./styles.css";
             </g>
           ))}
         </svg>
+        </div>
       </div>
     );
   }
@@ -3634,7 +3702,6 @@ import "./styles.css";
   function StrengthProgression({ sessions }) {
     const th = useTheme();
     const S = useS();
-    // Movement groups: Push, Pull, Legs, Hinge
     const GROUPS = [
       { key: "Push", label: "Push", col: th.accentBg, ids: ["e1","e2","e4","e5","e7","e8","e51","e52","e53","e54","e55","e56","e57","e58","e28","e29","e30","e31","e32","e33","e34","e35","e84","e85","e86","e87","e88","e89","e90","e91","x13","x14","x15","x16","x17","m1","m2","m3","m4","m9","m10","m11","m12","sh1","sh2","sh4","ch1","ch3"] },
       { key: "Pull", label: "Pull", col: "#4ecdc4",   ids: ["e15","e16","e17","e18","e19","e20","e21","e22","e59","e60","e61","e62","e63","e64","e65","e66","e67","e68","e69","x18","x19","x20","x21","x22","x23","x24","m5","m6","m7","m8","bk2","bk3","bk4"] },
@@ -3642,76 +3709,48 @@ import "./styles.css";
       { key: "Arms", label: "Arms", col: "#ff7675",   ids: ["e9","e10","e11","e12","e13","e14","e70","e71","e72","e73","e74","e75","e23","e24","e25","e26","e27","e76","e77","e78","e79","e80","e81","e41","e82","e83","x25","x26","x27","x28","x29","x30","x31","x32","m13","m14","m15","m16","ar5","ar6"] },
     ];
     const [selGroup, setSelGroup] = useState("Push");
+    const [selId, setSelId] = useState("");
     const group = GROUPS.find(g => g.key === selGroup) || GROUPS[0];
 
-    // For this group, find the single most-logged exercise
     const liftHistory = (group.ids || []).map(id => {
       const pts = [];
       sessions.forEach(s => {
         const ex = (s.exercises||[]).find(e => e && (e.id === id || e.exId === id));
         if (!ex) return;
-        const maxRM = Math.max(...(ex.sets||[]).filter(st => st.done && st.weight > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
-        if (maxRM > 0) pts.push({ t: s.startTime||0, w: maxRM });
+        const rm = Math.max(...(ex.sets||[]).filter(st => st.done && (st.weight||0) > 0).map(st => st.weight*(1+(st.reps||1)/30)), 0);
+        if (rm > 0) pts.push({ t: s.startTime||0, w: rm });
       });
       pts.sort((a,b) => a.t - b.t);
       const dbEx = DB.find(d => d && d.id === id);
       return { id, name: dbEx?.name || id, pts };
-    }).filter(l => l.pts.length >= 2).sort((a,b) => b.pts.length - a.pts.length);
+    }).filter(l => l.pts.length >= 1).sort((a,b) => b.pts.length - a.pts.length);
 
-    const [selId, setSelId] = useState(liftHistory[0]?.id || "");
-    const shownLifts = liftHistory.slice(0, 4);
-
-    const hasGroupData = liftHistory.length > 0;
+    const shownLifts = liftHistory.slice(0, 5);
     const lift = shownLifts.find(l => l.id === selId) || shownLifts[0];
-    if (!lift) return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-        <div style={{ ...S.label, marginBottom: 10 }}>STRENGTH PROGRESSION</div>
-        <div style={{ display:"flex", gap:5, marginBottom:12, flexWrap:"wrap" }}>
-          {GROUPS.map(g => (
-            <button key={g.key} onClick={() => { setSelGroup(g.key); setSelId(""); }} style={{
-              padding:"4px 11px", borderRadius:20, fontSize:11, fontWeight:700,
-              border:`1px solid ${selGroup===g.key ? g.col : th.inputB}`,
-              background: selGroup===g.key ? `${g.col}22` : "transparent",
-              color: selGroup===g.key ? g.col : th.muted,
-              cursor:"pointer", fontFamily:"'Outfit',sans-serif",
-            }}>{g.label}</button>
-          ))}
-        </div>
-        <div style={{ fontSize:12, color:th.muted, padding:"12px 0" }}>No data yet for this movement group.</div>
-      </div>
-    );
-    const allPts = lift.pts;
-    const vals = allPts.map(p => p.w);
-    const mn = Math.min(...vals); const mx = Math.max(...vals, mn+1);
-    const range = mx - mn || 1;
-    const W = 280, H = 60, R = 3;
-    const xs = allPts.map((_,i) => (i/(allPts.length-1||1))*W);
-    const ys = allPts.map(p => H - ((p.w - mn)/range)*(H-R*2) - R);
-    const linePath = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
-    const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
-    const latest1RM = allPts[allPts.length-1].w;
-    const first1RM  = allPts[0].w;
-    const delta = latest1RM - first1RM;
-    const pct = first1RM > 0 ? ((delta/first1RM)*100).toFixed(1) : 0;
-    const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
-    const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
     const fmtW = w => w >= 100 ? w.toFixed(0) : w.toFixed(1);
+
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div>
-            <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
-            <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>
-              Est. 1RM · <span style={{ color:trendCol, fontWeight:700 }}>{trend} {delta>0?"+":""}{fmtW(delta)} kg ({pct}%)</span>
-            </div>
-          </div>
-          <div style={{ textAlign:"right" }}>
-            <span className="bebas" style={{ fontSize:28, color:lift.col, lineHeight:1 }}>{fmtW(latest1RM)}</span>
-            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG 1RM</div>
-          </div>
-        </div>
         {/* Group selector */}
-        <div style={{ display:"flex", gap:5, marginBottom:8, flexWrap:"wrap" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
+          {lift && (() => {
+            const allPts = lift.pts;
+            const delta = allPts.length >= 2 ? allPts[allPts.length-1].w - allPts[0].w : 0;
+            const trendCol = delta > 0 ? "#1db954" : delta < 0 ? "#ff6b6b" : th.muted;
+            const trend = delta > 0 ? "↑" : delta < 0 ? "↓" : "→";
+            return (
+              <div style={{ textAlign:"right" }}>
+                <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+                  <span style={{ fontSize:14, color:trendCol, fontWeight:700 }}>{allPts.length >= 2 ? trend : ""}</span>
+                  <span className="bebas" style={{ fontSize:26, color:group.col, lineHeight:1 }}>{fmtW(allPts[allPts.length-1].w)}</span>
+                </div>
+                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG 1RM</div>
+              </div>
+            );
+          })()}
+        </div>
+        <div style={{ display:"flex", gap:5, marginBottom: shownLifts.length > 1 ? 6 : 10, flexWrap:"wrap" }}>
           {GROUPS.map(g => (
             <button key={g.key} onClick={() => { setSelGroup(g.key); setSelId(""); }} style={{
               padding:"4px 11px", borderRadius:20, fontSize:11, fontWeight:700,
@@ -3722,31 +3761,56 @@ import "./styles.css";
             }}>{g.label}</button>
           ))}
         </div>
-        {/* Exercise sub-picker */}
+        {shownLifts.length === 0 && (
+          <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No data yet for this movement group.</div>
+        )}
         {shownLifts.length > 1 && (
           <div style={{ display:"flex", gap:4, marginBottom:10, flexWrap:"wrap" }}>
-            {shownLifts.map(l => (
-              <button key={l.id} onClick={() => setSelId(l.id)} style={{
-                padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:600,
-                border:`1px solid ${selId===l.id ? group.col : th.inputB}`,
-                background: selId===l.id ? `${group.col}18` : "transparent",
-                color: selId===l.id ? group.col : th.dim,
-                cursor:"pointer", fontFamily:"'Outfit',sans-serif",
-                whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:110,
-              }}>{l.name}</button>
-            ))}
+            {shownLifts.map(l => {
+              const isActive = selId===l.id || (!selId && l===shownLifts[0]);
+              return (
+                <button key={l.id} onClick={() => setSelId(l.id)} style={{
+                  padding:"3px 9px", borderRadius:20, fontSize:10, fontWeight:600,
+                  border:`1px solid ${isActive ? "#4ecdc4" : th.inputB}`,
+                  background: isActive ? "#4ecdc418" : "transparent",
+                  color: isActive ? "#4ecdc4" : th.dim,
+                  cursor:"pointer", fontFamily:"'Outfit',sans-serif",
+                  whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", maxWidth:120,
+                  transition:"all .18s",
+                }}>{l.name}</button>
+              );
+            })}
           </div>
         )}
-        <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
-          <path d={areaPath} fill={lift.col} opacity="0.07" />
-          <path d={linePath} fill="none" stroke={lift.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          {allPts.map((p,i) => (
-            <circle key={i} cx={xs[i]} cy={ys[i]} r={i===allPts.length-1?R+1:R}
-              fill={i===allPts.length-1?lift.col:th.card} stroke={lift.col} strokeWidth="1.5" />
-          ))}
-          <text x={xs[0]} y={H+15} textAnchor="start" fontSize="10" fill="#666" fontFamily="Outfit,sans-serif">{fmtW(allPts[0].w)} kg</text>
-          <text x={xs[xs.length-1]} y={H+15} textAnchor="end" fontSize="10" fill={lift.col} fontFamily="Outfit,sans-serif" fontWeight="700">{fmtW(latest1RM)} kg</text>
-        </svg>
+        {lift && (() => {
+          const allPts = lift.pts;
+          if (allPts.length < 2) return (
+            <div key={selGroup+selId} style={{ height:80, display:"flex", flexDirection:"column", justifyContent:"center", gap:4, animation:"tabSlideIn 0.2s ease-out" }}>
+              <div style={{ fontSize:12, color:th.muted, fontWeight:600 }}>Not enough data</div>
+              <div style={{ fontSize:11, color:th.dim }}>Log at least 2 sessions with <span style={{ color:th.sub }}>{lift.name}</span> to see the trend.</div>
+            </div>
+          );
+          const vals = allPts.map(p => p.w);
+          const mn = Math.min(...vals); const mx = Math.max(...vals, mn+1);
+          const range = mx - mn || 1;
+          const W = 280, H = 60, R = 3;
+          const xs = allPts.map((_,i) => (i/(allPts.length-1))*W);
+          const ys = allPts.map(p => H - ((p.w-mn)/range)*(H-R*2) - R);
+          const linePath = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
+          const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+          return (
+            <svg key={selGroup+selId} viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible", minHeight:80, animation:"tabSlideIn 0.2s ease-out" }}>
+              <path d={areaPath} fill={group.col} opacity="0.07" />
+              <path d={linePath} fill="none" stroke={group.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              {allPts.map((p,i) => (
+                <circle key={i} cx={xs[i]} cy={ys[i]} r={i===allPts.length-1?R+1:R}
+                  fill={i===allPts.length-1?group.col:th.card} stroke={group.col} strokeWidth="1.5" />
+              ))}
+              <text x={xs[0]} y={H+15} textAnchor="start" fontSize="10" fill="#666" fontFamily="Outfit,sans-serif">{fmtW(allPts[0].w)} kg</text>
+              <text x={xs[xs.length-1]} y={H+15} textAnchor="end" fontSize="10" fill={group.col} fontFamily="Outfit,sans-serif" fontWeight="700">{fmtW(allPts[allPts.length-1].w)} kg</text>
+            </svg>
+          );
+        })()}
       </div>
     );
   }
@@ -3842,38 +3906,7 @@ import "./styles.css";
           </div>
         </div>
 
-        {/* This Week — 7-day highlights */}
-        <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-          <div style={{ ...S.label, marginBottom: 14 }}>YOUR 7-DAY HIGHLIGHTS</div>
-          {(() => {
-            const resistSess = ws.filter((s) => (s.exercises || []).some((e) => e.type !== "cardio"));
-            const cardioSess = ws.filter((s) => (s.exercises || []).every((e) => e.type === "cardio") && s.exercises.length > 0);
-            const totalMins = ws.reduce((a, s) => a + (s.duration || 0), 0);
-            const hrsDisplay = totalMins >= 60 ? `${Math.floor(totalMins/60)}h ${totalMins%60}m` : `${totalMins}m`;
-            const totalCals = ws.reduce((a, s) => a + (s.calories || 0), 0);
-            const avgInt = ws.length ? (ws.reduce((a, s) => a + (s.intensity || 0), 0) / ws.length).toFixed(1) : "—";
-            const totalKg = ws.reduce((a, s) => a + sessionVol(s), 0);
-            const loadsDisplay = totalKg >= 1000 ? `${(totalKg / 1000).toFixed(1)}t` : `${Math.round(totalKg)}kg`;
-            const tiles = [
-              { v: resistSess.length, l: "RESISTANCE", col: th.accentFg },
-              { v: cardioSess.length, l: "CARDIO", col: "#4ecdc4" },
-              { v: hrsDisplay, l: "HOURS TRAINED", col: th.accentFg },
-              { v: totalCals ? totalCals.toLocaleString() + " kcal" : "—", l: "CALS BURNED", col: "#fd9644" },
-              { v: avgInt !== "—" ? avgInt + "/10" : "—", l: "AVG INTENSITY", col: th.accentFg },
-              { v: loadsDisplay, l: "LOADS LIFTED", col: th.accentFg },
-            ];
-            return (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7, marginBottom: 14 }}>
-                {tiles.map((s) => (
-                  <div key={s.l} style={{ background: `color-mix(in srgb, ${th.sect} 60%, transparent)`, backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)", borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
-                    <div className="bebas" style={{ fontSize: 22, color: s.col, lineHeight: 1, letterSpacing: 0.5 }}>{s.v}</div>
-                    <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1.2px", marginTop: 3 }}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
+        <HighlightsCard sessions={sessions} sessionVol={sessionVol} />
 
         {/* ── Muscles Trained — Last 7 Days ── */}
         <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
@@ -4310,44 +4343,6 @@ import "./styles.css";
         )}
 
 
-        {/* ── Year Stats ── */}
-        {sessions.length > 0 && (() => {
-          const yearStart = new Date(new Date().getFullYear(), 0, 1).getTime();
-          const yrSess = sessions.filter((s) => (s.startTime || 0) >= yearStart);
-          if (!yrSess.length) return null;
-          const yrVol = yrSess.reduce((a, s) => a + sessionVol(s), 0);
-          const yrSets = yrSess.reduce((a, s) => a + (s.doneSets || 0), 0);
-          const yrTotalMins = yrSess.reduce((a, s) => a + (s.duration || 0), 0);
-          const yrHrsDisplay = yrTotalMins >= 60 ? `${Math.floor(yrTotalMins/60)}h` : `${yrTotalMins}m`;
-          const yrAvgInt = (yrSess.reduce((a, s) => a + (s.intensity || 0), 0) / yrSess.length).toFixed(1);
-          const yrAvgDur = Math.round(yrSess.reduce((a, s) => a + (s.duration || 0), 0) / yrSess.length) + "min";
-          const yrVolDisplay = yrVol >= 1000 ? `${(yrVol / 1000).toFixed(1)}t` : `${Math.round(yrVol).toLocaleString()}kg`;
-          const sessWithCals = yrSess.filter((s) => (s.calories || 0) > 0);
-          const avgCals = sessWithCals.length > 0 ? Math.round(sessWithCals.reduce((a, s) => a + s.calories, 0) / sessWithCals.length).toLocaleString() + " kcal" : "—";
-          const tiles = [
-            { v: yrSess.length, l: "SESSIONS" },
-            { v: yrHrsDisplay, l: "TOTAL HOURS" },
-            { v: yrAvgInt + "/10", l: "AVG INTENSITY" },
-            { v: yrVolDisplay, l: "VOLUME" },
-            { v: yrAvgDur, l: "AVG DURATION" },
-            { v: avgCals, l: "AVG CALS/SESSION" },
-          ];
-          return (
-            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-              <div style={{ ...S.label, marginBottom: 12 }}>{new Date().getFullYear()} STATS</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
-                {tiles.map((s) => (
-                  <div key={s.l} style={{ background: th.sect, borderRadius: 10, padding: "12px 8px", textAlign: "center" }}>
-                    <div className="bebas" style={{ fontSize: 22, color: th.accentFg, lineHeight: 1 }}>{s.v}</div>
-                    <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1.5px", marginTop: 3 }}>{s.l}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })()}
-
-
         {/* ── Muscle Recovery Heatmap ── */}
         {sessions.length > 0 && (() => {
           const now = Date.now();
@@ -4406,17 +4401,17 @@ import "./styles.css";
               <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>
                 Based on sets, reps & days since last trained · 72h recovery window
               </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
                 {scored.map(({ m, score, hoursAgo }) => {
                   const c = getColor(score);
                   // Rested: plain gray text, no border
                   if (!hoursAgo || score === 0) return (
-                    <div key={m} style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 400,
+                    <div key={m} style={{ padding: "3px 7px", borderRadius: 6, fontSize: 11, fontWeight: 400,
                       border: "none", color: th.dim, background: "transparent" }}>{m}</div>
                   );
                   return (
-                    <div key={m} title={`${m}: ${hoursAgo < 24 ? Math.round(hoursAgo) + "h ago" : Math.round(hoursAgo/24) + "d ago"}`}
-                      style={{ padding: "4px 9px", borderRadius: 7, fontSize: 10, fontWeight: 700,
+                    <div key={m}
+                      style={{ padding: "3px 7px", borderRadius: 6, fontSize: 11, fontWeight: 700,
                         border: `1px solid ${c.border}`, color: c.text, background: c.bg,
                         cursor: "default", userSelect: "none" }}>
                       {m}
