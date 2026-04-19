@@ -4739,7 +4739,7 @@ import "./styles.css";
         {isDashEnabled("volume") ? sessions.length > 0 && (() => {
           // Build last 4 weeks, label with date ranges
           const now = Date.now();
-          const weeks = Array.from({ length: 4 }, (_, i) => {
+          const weeks = Array.from({ length: 5 }, (_, i) => {
             const end   = now - i * 7 * 24 * 60 * 60 * 1000;
             const start = end - 7 * 24 * 60 * 60 * 1000;
             const startD = new Date(start); const endD = new Date(end - 1);
@@ -4993,14 +4993,12 @@ import "./styles.css";
                 .map((p) => (
                   <div
                     key={p.id}
-                    onClick={() => addToHome(p.id)}
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: 12,
                       padding: "10px 0",
                       borderBottom: `1px solid ${th.border}`,
-                      cursor: "pointer",
                     }}
                   >
                     <ProgramIcon name={p.name} size={32} />
@@ -5015,15 +5013,23 @@ import "./styles.css";
                     >
                       {p.name}
                     </span>
-                    <span
+                    <button
+                      onClick={(e) => { e.stopPropagation(); addToHome(p.id); }}
                       style={{
-                        color: th.accentFg,
-                        fontSize: 28,
+                        background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                        backdropFilter: "blur(8px)",
+                        WebkitBackdropFilter: "blur(8px)",
+                        border: "none",
+                        borderRadius: 9,
+                        color: th.accentT,
+                        padding: "6px 14px",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontFamily: "'Outfit',sans-serif",
                         fontWeight: 700,
+                        flexShrink: 0,
                       }}
-                    >
-                      +
-                    </span>
+                    >+ Add</button>
                   </div>
                 ))
             )}
@@ -7040,15 +7046,15 @@ import "./styles.css";
                         setConfirmDelete(isPendingDelete ? null : s.id);
                       }}
                       style={{
-                        background: "none",
-                        border: "none",
-                        color: th.dim,
+                        background: "rgba(220,50,50,0.12)",
+                        border: "1px solid rgba(220,50,50,0.3)",
+                        borderRadius: 7,
+                        color: th.delText,
                         cursor: "pointer",
-                        padding: "5px 8px",
-                        fontSize: 15,
+                        padding: "5px 9px",
+                        fontSize: 13,
                         lineHeight: 1,
                         fontWeight: 700,
-                        opacity: 0.7,
                       }}
                     >
                       ✕
