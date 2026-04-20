@@ -4392,7 +4392,7 @@ import "./styles.css";
                 {[{ label:"Resistance",col:th.accentBg },{ label:"Cardio",col:"#4ecdc4" },{ label:"Mix",col:"#fd9644" }].map(({label,col})=>(
                   <div key={label} style={{ display:"flex",alignItems:"center",gap:4 }}>
                     <div style={{ width:8,height:8,borderRadius:"50%",background:col }} />
-                    <span style={{ fontSize:9,color:th.dim }}>{label}</span>
+                    <span style={{ fontSize:10,color:th.dim }}>{label}</span>
                   </div>
                 ))}
               </div>
