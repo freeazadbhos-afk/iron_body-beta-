@@ -1362,6 +1362,8 @@ import "./styles.css";
     { id: "strength",   label: "Strength Progression",  icon: "🏋️" },
     { id: "prs",        label: "Personal Records",      icon: "🏆" },
     { id: "volume",     label: "Weekly Volume",         icon: "📊" },
+    { id: "setsbygroup", label: "Sets by Muscle Group", icon: "📋" },
+    { id: "acwr",        label: "Workload Ratio",        icon: "⚠️" },
   ];
   // Measurements: array of {date, weight, muscle, fat} entries
   function getMeasurements(uid) {
@@ -3790,6 +3792,236 @@ import "./styles.css";
     );
   }
 
+  /* ─── Sets by Muscle Group ─────────────────────────────────────────────────── */
+  function SetsByMuscleGroup({ sessions }) {
+    const th = useTheme();
+    const S = useS();
+
+    // Muscle groups to track, with target zone (10–20 weekly sets per Israetel et al.)
+    const GROUPS = [
+      { label: "Chest",       muscles: ["Chest","Upper Chest","Lower Chest"],    min: 10, max: 20 },
+      { label: "Back",        muscles: ["Lats","Mid Back","Upper Back","Full Back","Lower Back","Traps"], min: 10, max: 20 },
+      { label: "Shoulders",   muscles: ["Shoulders","Front Delts","Side Delts","Rear Delts"], min: 12, max: 22 },
+      { label: "Biceps",      muscles: ["Biceps","Brachialis"],                  min: 8,  max: 16 },
+      { label: "Triceps",     muscles: ["Triceps"],                              min: 8,  max: 16 },
+      { label: "Quads",       muscles: ["Quads"],                                min: 8,  max: 16 },
+      { label: "Hamstrings",  muscles: ["Hamstrings","Glutes"],                  min: 6,  max: 14 },
+      { label: "Abs",         muscles: ["Abs","Core"],                           min: 6,  max: 14 },
+    ];
+
+    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const weekSessions = sessions.filter(s => (s.startTime || 0) >= cutoff);
+
+    const setSums = {};
+    weekSessions.forEach(s => {
+      (s.exercises || []).forEach(ex => {
+        if (!ex) return;
+        const exId = ex.id || ex.exId;
+        const dbEx = DB.find(d => d && d.id === exId);
+        const muscle = dbEx?.muscle || ex.muscle || "";
+        if (!muscle) return;
+        const doneSets = (ex.sets || []).filter(st => st.done).length;
+        setSums[muscle] = (setSums[muscle] || 0) + doneSets;
+      });
+    });
+
+    const rows = GROUPS.map(g => {
+      const total = g.muscles.reduce((acc, m) => acc + (setSums[m] || 0), 0);
+      return { ...g, total };
+    }).filter(r => r.total > 0);
+
+    if (!rows.length) return null;
+
+    const maxSets = Math.max(...rows.map(r => r.total), 20);
+    const barWidth = 100; // % chart width
+
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
+          <div style={{ ...S.label }}>SETS BY MUSCLE GROUP</div>
+          <div style={{ fontSize: 10, color: th.dim, letterSpacing: "0.5px" }}>LAST 7 DAYS</div>
+        </div>
+
+        {/* Legend */}
+        <div style={{ display:"flex", gap: 14, marginBottom: 12, flexWrap: "wrap" }}>
+          {[
+            { col: th.accentBg, label: "Target zone" },
+            { col: "#1db954",   label: "Optimal" },
+            { col: "#ff6b6b",   label: "Excess" },
+          ].map(({ col, label }) => (
+            <div key={label} style={{ display:"flex", alignItems:"center", gap: 5 }}>
+              <div style={{ width: 22, height: 8, borderRadius: 2, background: col, opacity: label === "Target zone" ? 0.22 : 1 }} />
+              <span style={{ fontSize: 12, color: th.dim }}>{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:"flex", flexDirection:"column", gap: 7 }}>
+          {rows.map(({ label, total, min, max }) => {
+            const isOver  = total > max;
+            const isUnder = total < min;
+            const barCol  = isOver ? "#ff6b6b" : !isUnder ? "#1db954" : th.accentBg;
+            const pct     = Math.min((total / Math.max(maxSets * 1.05, max * 1.3)) * 100, 100);
+            const minPct  = (min  / Math.max(maxSets * 1.05, max * 1.3)) * 100;
+            const maxPct  = (max  / Math.max(maxSets * 1.05, max * 1.3)) * 100;
+            return (
+              <div key={label}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom: 3 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: th.text }}>{label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: barCol }}>{total} sets</span>
+                </div>
+                <div style={{ position: "relative", height: 10, borderRadius: 5, background: th.sect, overflow: "hidden" }}>
+                  {/* Target zone shading */}
+                  <div style={{
+                    position: "absolute", top: 0, bottom: 0,
+                    left: `${minPct}%`, width: `${maxPct - minPct}%`,
+                    background: `${th.accentBg}28`,
+                    borderLeft: `1px solid ${th.accentBg}55`,
+                    borderRight: `1px solid ${th.accentBg}55`,
+                  }} />
+                  {/* Actual bar */}
+                  <div style={{
+                    position: "absolute", top: 0, bottom: 0, left: 0,
+                    width: `${pct}%`,
+                    background: barCol,
+                    borderRadius: 5,
+                    transition: "width 0.5s cubic-bezier(0.4,0,0.2,1)",
+                    opacity: 0.9,
+                  }} />
+                </div>
+                {isOver && (
+                  <div style={{ fontSize: 10, color: "#ff6b6b", marginTop: 2 }}>
+                    {total - max} sets above target — consider a deload
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Target zone note */}
+        <div style={{ fontSize: 10, color: th.dim, marginTop: 12, lineHeight: 1.5 }}>
+          Shaded zone = evidence-based target (10–20 sets/week). Bars in green are in the hypertrophy range.
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── ACWR — Acute:Chronic Workload Ratio ──────────────────────────────────── */
+  function ACWRDashboard({ sessions, sessionVol }) {
+    const th = useTheme();
+    const S = useS();
+
+    const now = Date.now();
+    const W = 7 * 24 * 60 * 60 * 1000;
+
+    // Acute load = total tonnage last 7 days
+    const acuteSess = sessions.filter(s => (s.startTime || 0) >= now - W);
+    const acuteLoad = acuteSess.reduce((a, s) => a + sessionVol(s), 0);
+
+    // Chronic load = avg weekly tonnage over last 28 days
+    const chronicSess = sessions.filter(s => (s.startTime || 0) >= now - 4 * W);
+    const chronicLoad = chronicSess.reduce((a, s) => a + sessionVol(s), 0) / 4;
+
+    if (chronicLoad < 1) return null; // not enough history
+
+    const acwr = acuteLoad / chronicLoad;
+    const fmtR = r => r.toFixed(2);
+
+    // Status tiers
+    const status =
+      acwr > 1.5  ? { label: "DELOAD RECOMMENDED", col: "#ff6b6b", desc: "Acute load is significantly above chronic baseline. Risk of overtraining is high." } :
+      acwr > 1.3  ? { label: "HIGH LOAD",           col: "#fd9644", desc: "Training load is elevated. Monitor recovery closely." } :
+      acwr >= 0.8 ? { label: "SWEET SPOT",          col: "#1db954", desc: "Load is well-balanced. Ideal for progressive overload." } :
+      acwr >= 0.5 ? { label: "BELOW BASELINE",      col: th.accentBg, desc: "Acute load is lower than usual. Good week to ramp back up." } :
+                    { label: "VERY LOW",             col: th.muted, desc: "Minimal training stimulus this week." };
+
+    // Build 4-week ACWR history for chart
+    const weeks = Array.from({ length: 5 }, (_, i) => {
+      const end   = now - i * W;
+      const start = end - W;
+      const acute  = sessions.filter(s => (s.startTime||0) >= start && (s.startTime||0) < end).reduce((a,s) => a + sessionVol(s), 0);
+      const chronW = sessions.filter(s => (s.startTime||0) >= end - 4*W && (s.startTime||0) < end).reduce((a,s) => a + sessionVol(s), 0) / 4;
+      return { ratio: chronW > 0 ? acute / chronW : 0 };
+    }).reverse();
+
+    const maxR = Math.max(...weeks.map(w => w.ratio), 1.6);
+    const H = 52, W_SVG = 280, R = 3;
+    const xs = weeks.map((_, i) => (i / (weeks.length - 1)) * W_SVG);
+    const yFromR = r => H - Math.min(r / (maxR * 1.1), 1) * (H - R * 2) - R;
+    const ys = weeks.map(w => yFromR(w.ratio));
+    const linePath = xs.map((x, i) => (i === 0 ? `M${x},${ys[i]}` : `L${x},${ys[i]}`)).join(" ");
+    const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+
+    // Sweet spot band in SVG
+    const yBandTop    = yFromR(1.3);
+    const yBandBottom = yFromR(0.8);
+
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
+          <div style={{ ...S.label }}>WORKLOAD RATIO</div>
+          <div style={{ textAlign:"right" }}>
+            <span className="bebas" style={{ fontSize: 28, color: status.col, lineHeight: 1 }}>{fmtR(acwr)}</span>
+            <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>ACWR</div>
+          </div>
+        </div>
+
+        {/* Status badge */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          background: `${status.col}18`,
+          border: `1px solid ${status.col}55`,
+          borderRadius: 8, padding: "5px 10px", marginBottom: 10,
+        }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: status.col, flexShrink: 0 }} />
+          <span style={{ fontSize: 11, fontWeight: 700, color: status.col, letterSpacing: "0.5px" }}>{status.label}</span>
+        </div>
+        <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>{status.desc}</div>
+
+        {/* Line chart with sweet spot band */}
+        <svg viewBox={`0 0 ${W_SVG} ${H + 20}`} width="100%" style={{ overflow: "visible" }}>
+          {/* Sweet spot band */}
+          <rect x="0" y={yBandTop} width={W_SVG} height={yBandBottom - yBandTop}
+            fill="#1db95418" />
+          <line x1="0" y1={yBandTop}    x2={W_SVG} y2={yBandTop}    stroke="#1db95455" strokeWidth="1" strokeDasharray="3 3" />
+          <line x1="0" y1={yBandBottom} x2={W_SVG} y2={yBandBottom} stroke="#1db95455" strokeWidth="1" strokeDasharray="3 3" />
+          <text x={W_SVG - 2} y={yBandTop - 3}    textAnchor="end" fontSize="8" fill="#1db95499" fontFamily="Outfit,sans-serif">1.3</text>
+          <text x={W_SVG - 2} y={yBandBottom + 9}  textAnchor="end" fontSize="8" fill="#1db95499" fontFamily="Outfit,sans-serif">0.8</text>
+          {/* Area fill */}
+          <path d={areaPath} fill={status.col} opacity="0.07" />
+          {/* Line */}
+          <path d={linePath} fill="none" stroke={status.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          {/* Dots */}
+          {weeks.map((w, i) => (
+            <circle key={i} cx={xs[i]} cy={ys[i]}
+              r={i === weeks.length - 1 ? R + 1 : R}
+              fill={i === weeks.length - 1 ? status.col : th.card}
+              stroke={w.ratio > 1.5 ? "#ff6b6b" : w.ratio >= 0.8 ? "#1db954" : th.accentBg}
+              strokeWidth="1.5" />
+          ))}
+          {/* Edge labels */}
+          <text x={xs[0]}             y={H + 14} textAnchor="start" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">{fmtR(weeks[0].ratio)}</text>
+          <text x={xs[xs.length - 1]} y={H + 14} textAnchor="end"   fontSize="9" fill={status.col} fontFamily="Outfit,sans-serif" fontWeight="700">{fmtR(acwr)}</text>
+        </svg>
+
+        {/* Legend */}
+        <div style={{ display:"flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
+          {[
+            { col: "#1db954", label: "Sweet spot  0.8–1.3" },
+            { col: "#fd9644", label: "High  1.3–1.5" },
+            { col: "#ff6b6b", label: "Deload  >1.5" },
+          ].map(({ col, label }) => (
+            <div key={label} style={{ display:"flex", alignItems:"center", gap: 5 }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
+              <span style={{ fontSize: 12, color: th.dim }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function StrengthProgression({ sessions }) {
     const th = useTheme();
     const S = useS();
@@ -4955,6 +5187,17 @@ import "./styles.css";
           );
         })() : null}
         </div>
+
+        {/* ── Sets by Muscle Group ── */}
+        <div style={{ order: enabledDashboards.indexOf("setsbygroup") }}>
+        {isDashEnabled("setsbygroup") && sessions.length > 0 && <SetsByMuscleGroup sessions={sessions} />}
+        </div>
+
+        {/* ── ACWR ── */}
+        <div style={{ order: enabledDashboards.indexOf("acwr") }}>
+        {isDashEnabled("acwr") && sessions.length > 0 && <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />}
+        </div>
+
         </div>{/* end dashboards flex column */}
 
         {/* Shortcuts */}
