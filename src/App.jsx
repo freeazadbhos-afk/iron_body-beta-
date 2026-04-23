@@ -6747,7 +6747,9 @@ import "./styles.css";
     const [exercises, setExercises] = useState(session.exercises);
     const [showExPicker, setShowExPicker] = useState(false);
     const [milestoneMsg, setMilestoneMsg] = useState(null);
+    const [milestoneExIdx, setMilestoneExIdx] = useState(null);
     const lastMilestoneRef = useRef(0);
+    const lastToggledExIdxRef = useRef(0);
     const MILESTONES = [
       { pct: 0.2, msgs: ["20% done — keep moving!", "Great start, stay focused."] },
       { pct: 0.4, msgs: ["40% in — you're building momentum.", "Keep that pace up!"] },
@@ -6769,14 +6771,16 @@ import "./styles.css";
       lastMilestoneRef.current = milestone.pct;
       const msg = milestone.msgs[Math.floor(Math.random() * milestone.msgs.length)];
       setMilestoneMsg(msg);
-      setTimeout(() => setMilestoneMsg(null), 3000);
+      setMilestoneExIdx(lastToggledExIdxRef.current);
+      setTimeout(() => { setMilestoneMsg(null); setMilestoneExIdx(null); }, 2400);
     }, [liveDone]);
 
     const upd = (newExs) => {
       setExercises(newExs);
       onSaveActive({ ...session, exercises: newExs });
     };
-    const toggleSet = (eIdx, sIdx) =>
+    const toggleSet = (eIdx, sIdx) => {
+      lastToggledExIdxRef.current = eIdx;
       upd(
         exercises.map((ex, i) =>
           i !== eIdx
@@ -6789,6 +6793,7 @@ import "./styles.css";
               }
         )
       );
+    };
     const updSetVal = (eIdx, sIdx, f, val) =>
       upd(
         exercises.map((ex, i) =>
@@ -6878,51 +6883,6 @@ import "./styles.css";
 
     return (
       <div style={{ paddingBottom: 120 }}>
-        {/* ── Milestone overlay — centre-screen, countdown-style smash ── */}
-        {milestoneMsg && (
-          <div style={{
-            position: "fixed", inset: 0,
-            zIndex: 998, pointerEvents: "none",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            maxWidth: 480, left: "50%", transform: "translateX(-50%)",
-          }}>
-            <style>{`
-              @keyframes milestoneSmash {
-                0%   { transform: scale(0.3) rotate(-4deg); opacity: 0; }
-                55%  { transform: scale(1.12) rotate(1deg); opacity: 1; }
-                75%  { transform: scale(0.97) rotate(0deg); opacity: 1; }
-                100% { transform: scale(1) rotate(0deg);    opacity: 1; }
-              }
-              @keyframes milestoneFade {
-                0%   { opacity: 1; transform: scale(1); }
-                80%  { opacity: 1; transform: scale(1); }
-                100% { opacity: 0; transform: scale(1.08); }
-              }
-            `}</style>
-            <div
-              key={milestoneMsg}
-              style={{
-                textAlign: "center",
-                padding: "0 32px",
-                animation: "milestoneSmash 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards",
-              }}
-            >
-              <div className="bebas" style={{
-                fontSize: 38,
-                lineHeight: 1.15,
-                color: th.accentBg,
-                letterSpacing: "1px",
-                textShadow: `0 0 40px ${th.accentBg}88, 0 2px 12px rgba(0,0,0,0.5)`,
-                animation: "milestoneFade 3s ease-out forwards",
-                maxWidth: 280,
-                margin: "0 auto",
-              }}>
-                {milestoneMsg}
-              </div>
-            </div>
-          </div>
-        )}
-
         {showExPicker && createPortal(
           <ExercisePicker
             onAdd={addExFromPicker}
@@ -6936,18 +6896,59 @@ import "./styles.css";
         {exercises.map((ex, eIdx) => {
           const allDone = ex.sets.every((s) => s.done);
           const someDone = ex.sets.some((s) => s.done);
+          const showMilestone = milestoneMsg && milestoneExIdx === eIdx;
           return (
             <div
               key={ex.uid}
               style={{
                 ...S.card,
                 marginBottom: 9,
+                position: "relative",
+                overflow: "hidden",
                 borderColor: allDone ? th.doneB : th.border,
                 transition: "border-color .15s",
                 animation: removingExIdx === eIdx ? "removeSlide 0.32s ease-in forwards" : undefined,
                 overflow: "hidden",
               }}
             >
+              {/* Milestone smash overlay — inside this card */}
+              {showMilestone && (
+                <div style={{
+                  position: "absolute", inset: 0,
+                  zIndex: 10, pointerEvents: "none",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <style>{`
+                    @keyframes milestoneSmash {
+                      0%   { transform: scale(0.25) rotate(-6deg); opacity: 0; }
+                      55%  { transform: scale(1.15) rotate(1deg);  opacity: 1; }
+                      75%  { transform: scale(0.97) rotate(0deg);  opacity: 1; }
+                      100% { transform: scale(1)    rotate(0deg);  opacity: 1; }
+                    }
+                    @keyframes milestoneFade {
+                      0%   { opacity: 1; transform: scale(1); }
+                      70%  { opacity: 1; transform: scale(1); }
+                      100% { opacity: 0; transform: scale(1.1); }
+                    }
+                  `}</style>
+                  <div
+                    key={milestoneMsg}
+                    className="bebas"
+                    style={{
+                      fontSize: 32,
+                      lineHeight: 1.2,
+                      textAlign: "center",
+                      padding: "0 20px",
+                      color: th.accentBg,
+                      letterSpacing: "1px",
+                      textShadow: `0 0 30px ${th.accentBg}99, 0 2px 8px rgba(0,0,0,0.6)`,
+                      animation: "milestoneSmash 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards, milestoneFade 2.4s ease-out forwards",
+                    }}
+                  >
+                    {milestoneMsg}
+                  </div>
+                </div>
+              )}
               {/* Exercise header */}
               <div
                 style={{
