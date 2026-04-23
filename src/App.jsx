@@ -1040,6 +1040,55 @@ import "./styles.css";
     c8:"E", c9:"E", c10:"E", c11:"E", c12:"E", c13:"E",
   };
 
+  // ── Secondary muscles (synergists) ──────────────────────────────────────────
+  const SECONDARY = {
+    // Chest
+    e1:"Triceps · Front Delts", e2:"Triceps · Front Delts", e4:"Triceps · Front Delts",
+    e5:"Triceps · Front Delts", e7:"Triceps · Front Delts", e8:"Triceps · Core",
+    e51:"Triceps · Front Delts · Core", e52:"Triceps · Front Delts",
+    e55:"Triceps · Front Delts",
+    // Back
+    e15:"Biceps · Rear Delts", e16:"Biceps · Rear Delts", e17:"Biceps · Rear Delts",
+    e18:"Biceps · Rear Delts", e19:"Biceps · Rear Delts", e20:"Biceps · Lower Back",
+    e59:"Glutes · Hamstrings", e60:"Glutes · Hamstrings", e61:"Glutes",
+    e62:"Biceps · Rear Delts", e63:"Biceps · Core", e64:"Biceps · Core",
+    e67:"Glutes", e68:"Glutes · Hamstrings",
+    // Shoulders
+    e28:"Triceps · Upper Chest", e29:"Triceps · Upper Chest",
+    e30:"Upper Traps", e31:"Upper Traps", e32:"Upper Traps", e33:"Upper Traps",
+    e84:"Upper Traps", e85:"Mid Back", e86:"Mid Back", e87:"Mid Back",
+    e90:"Triceps · Upper Chest",
+    // Arms
+    e9:"Biceps", e13:"Biceps", e27:"Lats · Chest",
+    e70:"Forearms", e71:"Forearms", e73:"Biceps",
+    e23:"Triceps", e24:"Chest · Lats", e25:"Chest",
+    e76:"Chest · Lats", e77:"Chest · Lats", e78:"Lats · Chest",
+    // Legs
+    e92:"Glutes · Hamstrings · Core", e93:"Glutes · Hamstrings · Core",
+    e94:"Glutes · Core", e95:"Hamstrings", e96:"Quads",
+    e42:"Hamstrings · Glutes", e43:"Quads", e44:"Hamstrings",
+    e47:"Glutes · Hamstrings", e100:"Glutes · Hamstrings",
+    e101:"Quads · Hamstrings", e102:"Quads",
+  };
+
+  // ── Difficulty badge helper ──────────────────────────────────────────────────
+  function DiffBadge({ id }) {
+    const d = DIFFICULTY[id];
+    if (!d) return null;
+    const cfg = d === "H"
+      ? { label: "HARD", bg: "rgba(204,31,66,0.14)",  color: "#CC1F42" }
+      : d === "M"
+      ? { label: "MED",  bg: "rgba(232,97,44,0.14)",  color: "#E8612C" }
+      : { label: "EASY", bg: "rgba(13,158,142,0.14)", color: "#0D9E8E" };
+    return (
+      <span style={{
+        fontSize: 9, fontWeight: 700, letterSpacing: "0.8px",
+        padding: "2px 6px", borderRadius: 4,
+        background: cfg.bg, color: cfg.color, flexShrink: 0,
+      }}>{cfg.label}</span>
+    );
+  }
+
   /* ─── Exercise picker muscle filter chips ─────────────────────────────────────
     Each entry: label shown in UI + filter function against a DB entry
   ─────────────────────────────────────────────────────────────────────────────── */
@@ -2495,6 +2544,7 @@ import "./styles.css";
                       {(db.muscle || "").toUpperCase()}
                     </span>
                   )}
+                  <DiffBadge id={ex.id} />
                   <span style={{ fontSize: 11, color: th.muted }}>
                     {isCardio
                       ? "Cardio"
@@ -2503,6 +2553,18 @@ import "./styles.css";
                         }kg`}
                   </span>
                 </div>
+                {SECONDARY[ex.id] && (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:4 }}>
+                    {SECONDARY[ex.id].split(" · ").map(m => {
+                      const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                      return (
+                        <span key={m} style={{ ...S.tag(grp), opacity:0.6, fontSize:10, padding:"2px 7px" }}>
+                          {m.toUpperCase()}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
             <button
@@ -2759,9 +2821,9 @@ import "./styles.css";
         `}</style>
         <div
           style={{
-            background: `color-mix(in srgb, ${th.card} 85%, transparent)`,
-            backdropFilter: "blur(5px)",
-            WebkitBackdropFilter: "blur(10px)",
+            background: `color-mix(in srgb, ${th.card} 88%, transparent)`,
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
             borderRadius: "20px 20px 0 0",
             borderTop: `1px solid ${th.border}`,
             marginTop: 50,
@@ -2912,25 +2974,20 @@ import "./styles.css";
                       <span style={{ fontSize: 11, color: gc(e.group), fontWeight: 600 }}>
                         {e.muscle.toUpperCase()}
                       </span>
-                      {(() => {
-                        const d = DIFFICULTY[e.id];
-                        if (!d) return null;
-                        const cfg = d === "H"
-                          ? { label: "HARD", bg: "rgba(255,107,107,0.15)", color: "#CC1F42" }
-                          : d === "M"
-                          ? { label: "MED",  bg: "rgba(253,150,68,0.15)",  color: "#E8612C" }
-                          : { label: "EASY", bg: "rgba(34,168,85,0.15)",   color: "#2db55d" };
-                        return (
-                          <span style={{
-                            fontSize: 9, fontWeight: 700, letterSpacing: "0.8px",
-                            padding: "2px 6px", borderRadius: 4,
-                            background: cfg.bg, color: cfg.color,
-                          }}>
-                            {cfg.label}
-                          </span>
-                        );
-                      })()}
+                      <DiffBadge id={e.id} />
                     </div>
+                    {SECONDARY[e.id] && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:3, marginTop:3 }}>
+                        {SECONDARY[e.id].split(" · ").map(m => {
+                          const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                          return (
+                            <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:9, padding:"2px 6px" }}>
+                              {m.toUpperCase()}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div
                     style={{
@@ -6241,6 +6298,7 @@ import "./styles.css";
                         <span style={S.tag(ex.group)}>
                           {ex.muscle.toUpperCase()}
                         </span>
+                        <DiffBadge id={ex.id} />
                         {isCardio ? (
                           <span style={{ fontSize: 11, color: th.muted }}>
                             Cardio — log from wearable
@@ -6252,6 +6310,18 @@ import "./styles.css";
                           </span>
                         )}
                       </div>
+                      {SECONDARY[ex.id] && (
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:4 }}>
+                          {SECONDARY[ex.id].split(" · ").map(m => {
+                            const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                            return (
+                              <span key={m} style={{ ...S.tag(grp), opacity:0.6, fontSize:10, padding:"2px 7px" }}>
+                                {m.toUpperCase()}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
