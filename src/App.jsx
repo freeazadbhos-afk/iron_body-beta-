@@ -2565,11 +2565,11 @@ import "./styles.css";
               style={{
                 background: "rgba(220,50,50,0.12)",
                 border: "1px solid rgba(220,50,50,0.3)",
-                borderRadius: 8,
+                borderRadius: 7,
                 color: th.delText,
                 cursor: "pointer",
-                fontSize: 15,
-                padding: "6px 12px",
+                fontSize: 13,
+                padding: "4px 9px",
                 flexShrink: 0,
                 marginLeft: 8,
                 alignSelf: "flex-start",
@@ -2714,12 +2714,12 @@ import "./styles.css";
                         style={{
                           background: "rgba(220,50,50,0.12)",
                           border: "1px solid rgba(220,50,50,0.3)",
-                          borderRadius: 7,
+                          borderRadius: 6,
                           color: th.delText,
                           cursor: "pointer",
-                          fontSize: 14,
+                          fontSize: 12,
                           lineHeight: 1,
-                          padding: "5px 10px",
+                          padding: "3px 7px",
                           flexShrink: 0,
                         }}
                       >
@@ -4465,7 +4465,7 @@ import "./styles.css";
                   {/* Remove ✕ */}
                   <button
                     onClick={() => removeItem(d.id)}
-                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:8, color:th.delText, cursor:"pointer", fontSize:16, padding:"5px 11px", lineHeight:1, flexShrink:0 }}
+                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
                   >✕</button>
                 </div>
               </div>
@@ -5391,11 +5391,11 @@ import "./styles.css";
                       background: "rgba(220,50,50,0.15)",
                       border: "1px solid rgba(220,50,50,0.3)",
                       borderRadius: 7,
-                      width: 30,
-                      height: 30,
+                      width: 22,
+                      height: 22,
                       cursor: "pointer",
                       color: th.delText,
-                      fontSize: 15,
+                      fontSize: 12,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -6878,26 +6878,47 @@ import "./styles.css";
 
     return (
       <div style={{ paddingBottom: 120 }}>
-        {/* ── Milestone toast ── */}
+        {/* ── Milestone overlay — centre-screen, countdown-style smash ── */}
         {milestoneMsg && (
           <div style={{
-            position: "fixed", top: "env(safe-area-inset-top, 0px)", left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 999, pointerEvents: "none",
-            padding: "0 16px", width: "100%", maxWidth: 480,
-            boxSizing: "border-box",
+            position: "fixed", inset: 0,
+            zIndex: 998, pointerEvents: "none",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            maxWidth: 480, left: "50%", transform: "translateX(-50%)",
           }}>
-            <div style={{
-              marginTop: 12,
-              background: `color-mix(in srgb, ${th.accentBg} 90%, transparent)`,
-              backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-              borderRadius: 14, padding: "12px 18px",
-              color: th.accentT, fontWeight: 700, fontSize: 14,
-              textAlign: "center", lineHeight: 1.4,
-              animation: "milestoneIn 0.35s cubic-bezier(0.34,1.3,0.64,1) forwards",
-              boxShadow: `0 4px 24px ${th.accentBg}44`,
-            }}>
-              {milestoneMsg}
+            <style>{`
+              @keyframes milestoneSmash {
+                0%   { transform: scale(0.3) rotate(-4deg); opacity: 0; }
+                55%  { transform: scale(1.12) rotate(1deg); opacity: 1; }
+                75%  { transform: scale(0.97) rotate(0deg); opacity: 1; }
+                100% { transform: scale(1) rotate(0deg);    opacity: 1; }
+              }
+              @keyframes milestoneFade {
+                0%   { opacity: 1; transform: scale(1); }
+                80%  { opacity: 1; transform: scale(1); }
+                100% { opacity: 0; transform: scale(1.08); }
+              }
+            `}</style>
+            <div
+              key={milestoneMsg}
+              style={{
+                textAlign: "center",
+                padding: "0 32px",
+                animation: "milestoneSmash 0.45s cubic-bezier(0.34,1.56,0.64,1) forwards",
+              }}
+            >
+              <div className="bebas" style={{
+                fontSize: 38,
+                lineHeight: 1.15,
+                color: th.accentBg,
+                letterSpacing: "1px",
+                textShadow: `0 0 40px ${th.accentBg}88, 0 2px 12px rgba(0,0,0,0.5)`,
+                animation: "milestoneFade 3s ease-out forwards",
+                maxWidth: 280,
+                margin: "0 auto",
+              }}>
+                {milestoneMsg}
+              </div>
             </div>
           </div>
         )}
@@ -6993,11 +7014,11 @@ import "./styles.css";
                   style={{
                     background: "rgba(220,50,50,0.12)",
                     border: "1px solid rgba(220,50,50,0.3)",
-                    borderRadius: 8,
+                    borderRadius: 7,
                     color: th.delText,
                     cursor: "pointer",
-                    fontSize: 13,
-                    padding: "7px 13px",
+                    fontSize: 10,
+                    padding: "4px 9px",
                     flexShrink: 0,
                     marginLeft: 8,
                     fontFamily: "'Outfit',sans-serif",
@@ -7128,13 +7149,14 @@ import "./styles.css";
                           style={{
                             background: "rgba(220,50,50,0.12)",
                             border: "1px solid rgba(220,50,50,0.3)",
-                            borderRadius: 7,
+                            borderRadius: 6,
                             color: th.delText,
                             cursor: "pointer",
                             fontSize: 16,
                             lineHeight: 1,
-                            padding: "6px 10px",
+                            padding: "4px",
                             flexShrink: 0,
+                            opacity: 0.6,
                           }}
                         >
                           ✕
@@ -7665,9 +7687,9 @@ import "./styles.css";
                           border: "1px solid rgba(220, 50, 50, 0.3)",
                           borderRadius: 7,
                           color: th.delText,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: 700,
-                          padding: "7px 14px",
+                          padding: "5px 12px",
                           cursor: "pointer",
                           fontFamily: "'Outfit',sans-serif",
                         }}
