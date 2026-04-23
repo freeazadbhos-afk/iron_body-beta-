@@ -2565,11 +2565,11 @@ import "./styles.css";
               style={{
                 background: "rgba(220,50,50,0.12)",
                 border: "1px solid rgba(220,50,50,0.3)",
-                borderRadius: 7,
+                borderRadius: 8,
                 color: th.delText,
                 cursor: "pointer",
-                fontSize: 13,
-                padding: "4px 9px",
+                fontSize: 15,
+                padding: "6px 12px",
                 flexShrink: 0,
                 marginLeft: 8,
                 alignSelf: "flex-start",
@@ -2714,12 +2714,12 @@ import "./styles.css";
                         style={{
                           background: "rgba(220,50,50,0.12)",
                           border: "1px solid rgba(220,50,50,0.3)",
-                          borderRadius: 6,
+                          borderRadius: 7,
                           color: th.delText,
                           cursor: "pointer",
-                          fontSize: 12,
+                          fontSize: 14,
                           lineHeight: 1,
-                          padding: "3px 7px",
+                          padding: "5px 10px",
                           flexShrink: 0,
                         }}
                       >
@@ -4096,23 +4096,36 @@ import "./styles.css";
             fill={`${th.accentBg}18`} />
           <line x1="0" y1={yBandTop}    x2={W_SVG} y2={yBandTop}    stroke={`${th.accentBg}55`} strokeWidth="1" strokeDasharray="3 3" />
           <line x1="0" y1={yBandBottom} x2={W_SVG} y2={yBandBottom} stroke={`${th.accentBg}55`} strokeWidth="1" strokeDasharray="3 3" />
-          <text x={W_SVG - 2} y={yBandTop - 3}    textAnchor="end" fontSize="8" fill={`${th.accentBg}99`} fontFamily="Outfit,sans-serif">1.3</text>
-          <text x={W_SVG - 2} y={yBandBottom + 9}  textAnchor="end" fontSize="8" fill={`${th.accentBg}99`} fontFamily="Outfit,sans-serif">0.8</text>
+          {/* Sweet spot labels on left — never obscured by chart */}
+          <text x="3" y={yBandTop - 3}   textAnchor="start" fontSize="8" fill={`${th.accentBg}99`} fontFamily="Outfit,sans-serif">1.3 max</text>
+          <text x="3" y={yBandBottom + 9} textAnchor="start" fontSize="8" fill={`${th.accentBg}99`} fontFamily="Outfit,sans-serif">0.8 min</text>
           {/* Area fill */}
           <path d={areaPath} fill={status.col} opacity="0.07" />
           {/* Line */}
           <path d={linePath} fill="none" stroke={status.col} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          {/* Dots */}
-          {weeks.map((w, i) => (
-            <circle key={i} cx={xs[i]} cy={ys[i]}
-              r={i === weeks.length - 1 ? R + 1 : R}
-              fill={i === weeks.length - 1 ? status.col : th.card}
-              stroke={w.ratio > 1.5 ? APP_RED : w.ratio > 1.3 ? APP_ORANGE : w.ratio >= 0.8 ? th.accentBg : th.accentFg}
-              strokeWidth="1.5" />
-          ))}
-          {/* Edge labels */}
-          <text x={xs[0]}             y={H + 14} textAnchor="start" fontSize="9" fill={th.dim} fontFamily="Outfit,sans-serif">{fmtR(weeks[0].ratio)}</text>
-          <text x={xs[xs.length - 1]} y={H + 14} textAnchor="end"   fontSize="9" fill={status.col} fontFamily="Outfit,sans-serif" fontWeight="700">{fmtR(acwr)}</text>
+          {/* Dots + value labels above each dot */}
+          {weeks.map((w, i) => {
+            const dotCol = w.ratio > 1.5 ? APP_RED : w.ratio > 1.3 ? APP_ORANGE : w.ratio >= 0.8 ? th.accentBg : th.accentFg;
+            const isLast = i === weeks.length - 1;
+            return (
+              <g key={i}>
+                {w.ratio > 0 && (
+                  <text x={xs[i]} y={ys[i] - 6}
+                    textAnchor={i === 0 ? "start" : i === weeks.length - 1 ? "end" : "middle"}
+                    fontSize="9" fill={dotCol}
+                    fontFamily="Outfit,sans-serif"
+                    fontWeight={isLast ? "700" : "400"}>
+                    {fmtR(w.ratio)}
+                  </text>
+                )}
+                <circle cx={xs[i]} cy={ys[i]}
+                  r={isLast ? R + 1 : R}
+                  fill={isLast ? dotCol : th.card}
+                  stroke={dotCol}
+                  strokeWidth="1.5" />
+              </g>
+            );
+          })}
         </svg>
 
         {/* Legend */}
@@ -4452,7 +4465,7 @@ import "./styles.css";
                   {/* Remove ✕ */}
                   <button
                     onClick={() => removeItem(d.id)}
-                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
+                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:8, color:th.delText, cursor:"pointer", fontSize:16, padding:"5px 11px", lineHeight:1, flexShrink:0 }}
                   >✕</button>
                 </div>
               </div>
@@ -5378,11 +5391,11 @@ import "./styles.css";
                       background: "rgba(220,50,50,0.15)",
                       border: "1px solid rgba(220,50,50,0.3)",
                       borderRadius: 7,
-                      width: 22,
-                      height: 22,
+                      width: 30,
+                      height: 30,
                       cursor: "pointer",
                       color: th.delText,
-                      fontSize: 12,
+                      fontSize: 15,
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -6733,6 +6746,31 @@ import "./styles.css";
     const S = useS();
     const [exercises, setExercises] = useState(session.exercises);
     const [showExPicker, setShowExPicker] = useState(false);
+    const [milestoneMsg, setMilestoneMsg] = useState(null);
+    const lastMilestoneRef = useRef(0);
+    const MILESTONES = [
+      { pct: 0.2, msgs: ["20% done — keep moving!", "Great start, stay focused."] },
+      { pct: 0.4, msgs: ["40% in — you're building momentum.", "Keep that pace up!"] },
+      { pct: 0.6, msgs: ["Over halfway — the hardest part is behind you.", "60% done. Don't stop now."] },
+      { pct: 0.8, msgs: ["80%! Almost there — finish strong.", "The last stretch separates the dedicated."] },
+      { pct: 1.0, msgs: ["100%! Every rep counted.", "Full program complete — respect."] },
+    ];
+
+    // Compute live done/total from local exercises state
+    const liveDone  = exercises.reduce((a, ex) => a + ex.sets.filter(s => s.done).length, 0);
+    const liveTotal = exercises.reduce((a, ex) => a + ex.sets.length, 0);
+    const livePct   = liveTotal > 0 ? liveDone / liveTotal : 0;
+
+    useEffect(() => {
+      if (liveTotal === 0) return;
+      const milestone = MILESTONES.slice().reverse().find(m => livePct >= m.pct);
+      if (!milestone) return;
+      if (milestone.pct <= lastMilestoneRef.current) return;
+      lastMilestoneRef.current = milestone.pct;
+      const msg = milestone.msgs[Math.floor(Math.random() * milestone.msgs.length)];
+      setMilestoneMsg(msg);
+      setTimeout(() => setMilestoneMsg(null), 3000);
+    }, [liveDone]);
 
     const upd = (newExs) => {
       setExercises(newExs);
@@ -6840,6 +6878,30 @@ import "./styles.css";
 
     return (
       <div style={{ paddingBottom: 120 }}>
+        {/* ── Milestone toast ── */}
+        {milestoneMsg && (
+          <div style={{
+            position: "fixed", top: "env(safe-area-inset-top, 0px)", left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 999, pointerEvents: "none",
+            padding: "0 16px", width: "100%", maxWidth: 480,
+            boxSizing: "border-box",
+          }}>
+            <div style={{
+              marginTop: 12,
+              background: `color-mix(in srgb, ${th.accentBg} 90%, transparent)`,
+              backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+              borderRadius: 14, padding: "12px 18px",
+              color: th.accentT, fontWeight: 700, fontSize: 14,
+              textAlign: "center", lineHeight: 1.4,
+              animation: "milestoneIn 0.35s cubic-bezier(0.34,1.3,0.64,1) forwards",
+              boxShadow: `0 4px 24px ${th.accentBg}44`,
+            }}>
+              {milestoneMsg}
+            </div>
+          </div>
+        )}
+
         {showExPicker && createPortal(
           <ExercisePicker
             onAdd={addExFromPicker}
@@ -6931,11 +6993,11 @@ import "./styles.css";
                   style={{
                     background: "rgba(220,50,50,0.12)",
                     border: "1px solid rgba(220,50,50,0.3)",
-                    borderRadius: 7,
+                    borderRadius: 8,
                     color: th.delText,
                     cursor: "pointer",
-                    fontSize: 10,
-                    padding: "4px 9px",
+                    fontSize: 13,
+                    padding: "7px 13px",
                     flexShrink: 0,
                     marginLeft: 8,
                     fontFamily: "'Outfit',sans-serif",
@@ -7066,14 +7128,13 @@ import "./styles.css";
                           style={{
                             background: "rgba(220,50,50,0.12)",
                             border: "1px solid rgba(220,50,50,0.3)",
-                            borderRadius: 6,
+                            borderRadius: 7,
                             color: th.delText,
                             cursor: "pointer",
                             fontSize: 16,
                             lineHeight: 1,
-                            padding: "4px",
+                            padding: "6px 10px",
                             flexShrink: 0,
-                            opacity: 0.6,
                           }}
                         >
                           ✕
@@ -7604,9 +7665,9 @@ import "./styles.css";
                           border: "1px solid rgba(220, 50, 50, 0.3)",
                           borderRadius: 7,
                           color: th.delText,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: 700,
-                          padding: "5px 12px",
+                          padding: "7px 14px",
                           cursor: "pointer",
                           fontFamily: "'Outfit',sans-serif",
                         }}
@@ -10964,6 +11025,10 @@ import "./styles.css";
             @keyframes dashClose {
               from { opacity: 1; transform: translateY(0); }
               to   { opacity: 0; transform: translateY(-6px); }
+            }
+            @keyframes milestoneIn {
+              from { opacity: 0; transform: translateY(-12px) scale(0.96); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
             }
             @keyframes shortcutListIn {
               from { opacity: 0; transform: translateY(-8px) scale(0.97); }
