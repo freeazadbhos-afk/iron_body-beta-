@@ -2981,9 +2981,10 @@ import "./styles.css";
                   borderRadius: 13,
                   padding: "14px",
                   cursor: "pointer",
-                  fontFamily: "'Bebas Neue',sans-serif",
-                  fontSize: 18,
-                  letterSpacing: 2,
+                  fontFamily: "'Outfit',sans-serif",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  letterSpacing: 0.5,
                   color: th.accentT,
                 }}
               >
