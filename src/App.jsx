@@ -2572,6 +2572,7 @@ import "./styles.css";
                 padding: "5px 9px",
                 flexShrink: 0,
                 marginLeft: 8,
+                alignSelf: "flex-start",
               }}
             >
               ✕
@@ -7699,6 +7700,7 @@ import "./styles.css";
                         fontSize: 13,
                         lineHeight: 1,
                         fontWeight: 700,
+                        alignSelf: "flex-start",
                       }}
                     >
                       ✕
