@@ -2528,43 +2528,33 @@ import "./styles.css";
                 <GripIcon />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: th.text }}>
-                  {db?.name || ex.id}
+                {/* Row 1: name + difficulty */}
+                <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: th.text }}>
+                    {db?.name || ex.id}
+                  </span>
+                  <DiffBadge id={ex.id} />
                 </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 6,
-                    marginTop: 3,
-                  }}
-                >
+                {/* Row 2: primary + secondary muscle tags */}
+                <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4, flexWrap:"wrap" }}>
                   {db && (
                     <span style={S.tag(db.group)}>
                       {(db.muscle || "").toUpperCase()}
                     </span>
                   )}
-                  <DiffBadge id={ex.id} />
-                  <span style={{ fontSize: 11, color: th.muted }}>
-                    {isCardio
-                      ? "Cardio"
-                      : `${sets.length} sets · ${sets[0]?.reps ?? "?"}reps · ${
-                          sets[0]?.weight ?? "?"
-                        }kg`}
-                  </span>
+                  {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
+                    const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                    return (
+                      <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                        {m.toUpperCase()}
+                      </span>
+                    );
+                  })}
                 </div>
-                {SECONDARY[ex.id] && (
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:4 }}>
-                    {SECONDARY[ex.id].split(" · ").map(m => {
-                      const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
-                      return (
-                        <span key={m} style={{ ...S.tag(grp), opacity:0.6, fontSize:10, padding:"2px 7px" }}>
-                          {m.toUpperCase()}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
+                {/* Row 3: sets info */}
+                <div style={{ fontSize:11, color:th.muted, marginTop:4 }}>
+                  {isCardio ? "Cardio" : `${sets.length} sets · ${sets[0]?.reps ?? "?"}reps · ${sets[0]?.weight ?? "?"}kg`}
+                </div>
               </div>
             </div>
             <button
@@ -6281,47 +6271,33 @@ import "./styles.css";
                     }}
                     onClick={() => setExpandedEx(isOpen ? null : ex.uid)}
                   >
-                    <div style={{ flex: 1 }}>
-                      <div
-                        style={{ fontWeight: 600, fontSize: 14, color: th.text }}
-                      >
-                        {ex.name}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {/* Row 1: name + difficulty */}
+                      <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap" }}>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: th.text }}>
+                          {ex.name}
+                        </span>
+                        <DiffBadge id={ex.id} />
                       </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 7,
-                          marginTop: 4,
-                        }}
-                      >
+                      {/* Row 2: primary + secondary muscle tags */}
+                      <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4, flexWrap:"wrap" }}>
                         <span style={S.tag(ex.group)}>
                           {ex.muscle.toUpperCase()}
                         </span>
-                        <DiffBadge id={ex.id} />
-                        {isCardio ? (
-                          <span style={{ fontSize: 11, color: th.muted }}>
-                            Cardio — log from wearable
-                          </span>
-                        ) : (
-                          <span style={{ fontSize: 11, color: th.muted }}>
-                            {ex.sets.length} sets · {ex.sets[0]?.reps} reps ·{" "}
-                            {ex.sets[0]?.weight}kg
-                          </span>
-                        )}
+                        {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
+                          const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                          return (
+                            <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                              {m.toUpperCase()}
+                            </span>
+                          );
+                        })}
                       </div>
-                      {SECONDARY[ex.id] && (
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:4 }}>
-                          {SECONDARY[ex.id].split(" · ").map(m => {
-                            const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
-                            return (
-                              <span key={m} style={{ ...S.tag(grp), opacity:0.6, fontSize:10, padding:"2px 7px" }}>
-                                {m.toUpperCase()}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
+                      {/* Row 3: sets info */}
+                      <div style={{ fontSize:11, color:th.muted, marginTop:4 }}>
+                        {isCardio ? "Cardio — log from wearable"
+                          : `${ex.sets.length} sets · ${ex.sets[0]?.reps} reps · ${ex.sets[0]?.weight}kg`}
+                      </div>
                     </div>
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 8 }}
