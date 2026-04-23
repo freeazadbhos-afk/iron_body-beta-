@@ -2568,8 +2568,8 @@ import "./styles.css";
                 borderRadius: 7,
                 color: th.delText,
                 cursor: "pointer",
-                fontSize: 12,
-                padding: "2px 8px",
+                fontSize: 13,
+                padding: "5px 9px",
                 flexShrink: 0,
                 marginLeft: 8,
               }}
@@ -8506,7 +8506,7 @@ import "./styles.css";
                   )}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: th.text }}>
+                  <div style={{ fontSize: 13, textAlign: "left", fontWeight: 700, color: th.text }}>
                     {ePhoto ? "Change photo" : "Upload from camera roll"}
                   </div>
                   <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
