@@ -2953,31 +2953,30 @@ import "./styles.css";
                   <div>
                     <div
                       style={{
+                        display: "flex",      // Added for alignment
+                        alignItems: "center", // Added for alignment
+                        gap: 8,               // Added for spacing (adjust as needed)
                         fontWeight: 500,
                         fontSize: 14,
                         color: isAdded ? th.dim : th.text,
                       }}
                     >
                       {e.name}
+                      <DiffBadge id={e.id} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
                       <span style={{ fontSize: 11, color: gc(e.group), fontWeight: 600 }}>
                         {e.muscle.toUpperCase()}
-                      </span>
-                      <DiffBadge id={e.id} />
-                    </div>
-                    {SECONDARY[e.id] && (
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:3, marginTop:3 }}>
-                        {SECONDARY[e.id].split(" · ").map(m => {
+                        </span>
+                        {SECONDARY[e.id] && SECONDARY[e.id].split(" · ").map(m => {
                           const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                           return (
-                            <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:9, padding:"2px 6px" }}>
-                              {m.toUpperCase()}
+                          <span key={m} style={{ ...S.tag(grp), opacity: 0.55, fontSize: 9, padding: "2px 6px" }}>
+                            {m.toUpperCase()}
                             </span>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                            })}
+                            </div>
                   </div>
                   <div
                     style={{
