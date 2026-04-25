@@ -6677,7 +6677,7 @@ import "./styles.css";
               fontWeight: 700,
               fontSize: 14,
               letterSpacing: "0.5px",
-              color: (!name.trim() || exs.length === 0) ? th.dim : th.sub,
+              color: (!name.trim() || exs.length === 0) ? th.dim : th.accentFg,
               transition: "background .2s, color .2s, border-color .2s",
             }}
           >
@@ -11163,14 +11163,20 @@ import "./styles.css";
         label: "WORKOUTS",
         icon: (c) => (
           <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Left weight plates */}
-            <rect x="0" y="7" width="3" height="8" rx="1.5" fill={c} />
-            <rect x="3" y="9" width="2" height="4" rx="1" fill={c} />
-            {/* Bar */}
-            <rect x="5" y="10.25" width="14" height="1.5" rx="0.75" fill={c} />
-            {/* Right weight plates */}
-            <rect x="19" y="9" width="2" height="4" rx="1" fill={c} />
-            <rect x="21" y="7" width="3" height="8" rx="1.5" fill={c} />
+            {/* Left collar */}
+            <rect x="1" y="8" width="2.5" height="6" rx="1.25" fill={c} />
+            {/* Left plate */}
+            <rect x="3.5" y="6" width="2" height="10" rx="1" fill={c} />
+            {/* Left handle grip */}
+            <rect x="5.5" y="9.75" width="4" height="2.5" rx="1.25" fill={c} />
+            {/* Grip centre bar */}
+            <rect x="9.5" y="9.75" width="5" height="2.5" rx="1.25" fill={c} />
+            {/* Right handle grip */}
+            <rect x="14.5" y="9.75" width="4" height="2.5" rx="1.25" fill={c} />
+            {/* Right plate */}
+            <rect x="18.5" y="6" width="2" height="10" rx="1" fill={c} />
+            {/* Right collar */}
+            <rect x="20.5" y="8" width="2.5" height="6" rx="1.25" fill={c} />
           </svg>
         ),
       },
