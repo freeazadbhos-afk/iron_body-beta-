@@ -1414,7 +1414,6 @@ import "./styles.css";
     { id: "volume",     label: "Weekly Volume",         icon: "📊" },
     { id: "setsbygroup", label: "Sets by Muscle Group", icon: "📋" },
     { id: "acwr",           label: "Workload Ratio",           icon: "⚠️" },
-    { id: "volumeintensity",label: "Volume & Intensity",       icon: "📊" },
     { id: "relstrength",    label: "Relative Strength",        icon: "🔢" },
     { id: "trainingdensity",label: "Training Density",         icon: "⏱" },
   ];
@@ -3956,25 +3955,31 @@ import "./styles.css";
                   <div style={{
                     position:"absolute", top:-2, bottom:-2,
                     left:0, width:`${minP}%`,
-                    background:"rgba(128,128,128,0.10)",
-                    zIndex:0,
-                  }} />
-                  {/* Zone 1: Optimal min-max (green tint) */}
+                    background:"rgba(128,128,128,0.12)",
+                    zIndex:0, display:"flex", alignItems:"center", justifyContent:"center",
+                  }}>
+                    <span style={{ fontSize:7, color:th.dim, opacity:0.7 }}>0-{min}</span>
+                  </div>
+                  {/* Zone 1: Optimal min-max (teal tint) */}
                   <div style={{
                     position:"absolute", top:-2, bottom:-2,
                     left:`${minP}%`, width:`${maxP - minP}%`,
                     background:`${th.accentBg}1A`,
                     borderLeft:`2px solid ${th.accentBg}50`,
                     borderRight:`2px solid ${th.accentBg}50`,
-                    zIndex:0,
-                  }} />
-                  {/* Zone 2: Junk volume max-FIXED_MAX (red tint) */}
+                    zIndex:0, display:"flex", alignItems:"center", justifyContent:"center",
+                  }}>
+                    <span style={{ fontSize:7, color:th.accentFg, opacity:0.6 }}>{min}-{max}</span>
+                  </div>
+                  {/* Zone 2: Excess max+ (red tint) */}
                   <div style={{
                     position:"absolute", top:-2, bottom:-2,
                     left:`${maxP}%`, right:0,
-                    background:"rgba(204,31,66,0.10)",
-                    zIndex:0,
-                  }} />
+                    background:`${th.delText}14`,
+                    zIndex:0, display:"flex", alignItems:"center", paddingLeft:4,
+                  }}>
+                    <span style={{ fontSize:7, color:th.delText, opacity:0.6 }}>{max}+</span>
+                  </div>
 
                   {/* Stacked actual bar */}
                   {!isEmpty && (
@@ -4016,7 +4021,7 @@ import "./styles.css";
         {/* Legend */}
         <div style={{ display:"flex", gap:10, marginTop:6, flexWrap:"wrap", borderTop:`1px solid ${th.border}`, paddingTop:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-            <div style={{ width:14, height:10, borderRadius:2, background:"rgba(128,128,128,0.18)" }} />
+            <div style={{ width:14, height:10, borderRadius:2, background:"rgba(128,128,128,0.15)" }} />
             <span style={{ fontSize:11, color:th.dim }}>Maintenance (0-9)</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
@@ -4024,7 +4029,7 @@ import "./styles.css";
             <span style={{ fontSize:11, color:th.dim }}>Optimal (10-20)</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-            <div style={{ width:14, height:10, borderRadius:2, background:"rgba(204,31,66,0.14)" }} />
+            <div style={{ width:14, height:10, borderRadius:2, background:`${th.delText}22` }} />
             <span style={{ fontSize:11, color:th.dim }}>Excess (21+)</span>
           </div>
         </div>
@@ -4284,7 +4289,6 @@ import "./styles.css";
     const bw = measurements?.[0]?.weight || null;
     if (!bw) return null;
 
-    // Key lifts to display (id, label, movement)
     const KEY_LIFTS = [
       { ids: ["e92","e93","lg1"], label: "Squat",     target: 1.5 },
       { ids: ["e1","e2","e51"],   label: "Bench",     target: 1.25 },
@@ -4314,48 +4318,41 @@ import "./styles.css";
 
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-        <div style={{ ...S.label, marginBottom:12 }}>RELATIVE STRENGTH</div>
-        <div style={{ fontSize:11, color:th.muted, marginBottom:12 }}>
-          Est. 1RM ÷ body weight ({bw}kg)
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
+          <div style={{ fontSize:10, color:th.dim }}>BW: {bw}kg</div>
         </div>
-        {rows.map(({ label, best, mult, target }) => {
+        {rows.map(({ label, mult, target }) => {
           const pct = Math.min((mult / (target * 1.5)) * 100, 100);
-          const col = mult >= target ? "#1db954" : mult >= target * 0.8 ? "#E8612C" : th.dim;
+          const targetPct = (target / (target * 1.5)) * 100;
+          const hit = mult >= target;
           return (
             <div key={label} style={{ marginBottom:14 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-                <span style={{ fontSize:13, fontWeight:600, color:th.text }}>{label}</span>
-                <div style={{ textAlign:"right" }}>
-                  <span className="bebas" style={{ fontSize:22, color:col, lineHeight:1 }}>{mult.toFixed(2)}x</span>
-                  <span style={{ fontSize:10, color:th.dim }}> BW</span>
-                  <div style={{ fontSize:9, color:th.dim }}>target: {target}x</div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:5 }}>
+                <div>
+                  <span style={{ fontSize:13, fontWeight:600, color:th.text }}>{label}</span>
+                  <span style={{ fontSize:10, color:th.dim, marginLeft:6 }}>target {target}x</span>
                 </div>
+                <span className="bebas" style={{ fontSize:24, color: hit ? th.accentFg : th.muted, lineHeight:1 }}>
+                  {mult.toFixed(2)}x
+                </span>
               </div>
-              <div style={{ position:"relative", height:8, borderRadius:4, background:th.sect }}>
-                {/* Target marker */}
+              <div style={{ position:"relative", height:10, borderRadius:5, background:th.sect }}>
                 <div style={{
-                  position:"absolute", top:-2, bottom:-2,
-                  left:`${(target/(target*1.5))*100}%`,
-                  width:2, background:`${th.accentBg}88`, borderRadius:1,
+                  position:"absolute", top:-3, bottom:-3,
+                  left:`${targetPct}%`,
+                  width:2, background:`${th.accentBg}`, borderRadius:1,
                 }} />
-                {/* Progress bar */}
                 <div style={{
                   position:"absolute", top:0, bottom:0, left:0,
-                  width:`${pct}%`, background:col,
-                  borderRadius:4, transition:"width 0.5s ease",
+                  width:`${pct}%`,
+                  background: hit ? th.accentBg : `${th.accentBg}60`,
+                  borderRadius:5, transition:"width 0.5s ease",
                 }} />
               </div>
             </div>
           );
         })}
-        <div style={{ display:"flex", gap:12, marginTop:4, flexWrap:"wrap" }}>
-          {[{ col:"#1db954",label:"At/above target" }, { col:"#E8612C",label:"Close (80%+)" }, { col:th.dim,label:"Building" }].map(({col,label})=>(
-            <div key={label} style={{ display:"flex", alignItems:"center", gap:4 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:col }} />
-              <span style={{ fontSize:12, color:th.dim }}>{label}</span>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
@@ -4369,44 +4366,33 @@ import "./styles.css";
 
     const weeks = Array.from({ length: 6 }, (_, i) => {
       const end = now - i * W7; const start = end - W7;
-      return { start, end };
+      const fmt = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+      return { start, end, label: i === 0 ? "This wk" : fmt(new Date(start)) };
     }).reverse();
 
     const densities = weeks.map(w => {
       const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.duration||0) > 0);
-      if (!ws.length) return null;
+      if (!ws.length) return 0;
       const totalVol = ws.reduce((a,s) => a + sessionVol(s), 0);
       const totalMins = ws.reduce((a,s) => a + (s.duration||0), 0);
-      return totalMins > 0 ? totalVol / totalMins : null;
+      return totalMins > 0 ? totalVol / totalMins : 0;
     });
 
-    const validPts = densities.map((d,i) => d != null ? { i, d } : null).filter(Boolean);
-    if (validPts.length < 2) return null;
+    if (densities.every(d => d === 0)) return null;
 
     const latest = densities[densities.length-1];
-    const prev = densities.slice(0,-1).reverse().find(d => d != null);
-    const delta = latest != null && prev != null ? latest - prev : null;
+    const prev = densities.slice(0,-1).reverse().find(d => d > 0);
+    const delta = latest > 0 && prev ? latest - prev : null;
     const arrow = delta != null ? (delta > 0 ? "↑" : delta < 0 ? "↓" : null) : null;
     const arrowCol = delta > 0 ? "#1db954" : "#CC1F42";
-
-    const dMax = Math.max(...validPts.map(p => p.d), 1);
-    const dMin = Math.min(...validPts.map(p => p.d), 0);
-    const dRange = dMax - dMin || 1;
-    const W = 280; const H = 56; const R = 3;
-    const ix = (i) => (i / (weeks.length - 1)) * W;
-    const iy = (d) => H - ((d - dMin) / dRange) * (H - R*2) - R;
-    const linePath = validPts.map((p,j) => `${j===0?"M":"L"}${ix(p.i)},${iy(p.d)}`).join(" ");
-    const areaPath = `${linePath} L${ix(validPts[validPts.length-1].i)},${H+4} L${ix(validPts[0].i)},${H+4} Z`;
-    const fmtD = d => d >= 100 ? `${Math.round(d)}` : d.toFixed(1);
+    const maxD = Math.max(...densities, 1);
+    const fmtD = d => d >= 100 ? Math.round(d) : d.toFixed(1);
 
     return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div>
-            <div style={{ ...S.label }}>TRAINING DENSITY</div>
-            <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Volume ÷ Duration</div>
-          </div>
-          {latest != null && (
+      <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ ...S.label }}>TRAINING DENSITY</div>
+          {latest > 0 && (
             <div style={{ textAlign:"right" }}>
               <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
                 {arrow && <span style={{ fontSize:14, color:arrowCol, fontWeight:700 }}>{arrow}</span>}
@@ -4416,25 +4402,22 @@ import "./styles.css";
             </div>
           )}
         </div>
-        <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
-          <path d={areaPath} fill={th.accentBg} opacity="0.08" />
-          <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2"
-            strokeLinecap="round" strokeLinejoin="round" />
-          {validPts.map((p,j) => (
-            <g key={p.i}>
-              <circle cx={ix(p.i)} cy={iy(p.d)} r={p.i===weeks.length-1?R+1:R}
-                fill={p.i===weeks.length-1?th.accentBg:th.card} stroke={th.accentBg} strokeWidth="1.5" />
-              {(j===0 || p.i===weeks.length-1) && (
-                <text x={ix(p.i)} y={H+14}
-                  textAnchor={j===0?"start":"end"}
-                  fontSize="9" fill={p.i===weeks.length-1?th.accentFg:th.dim}
-                  fontFamily="Outfit,sans-serif" fontWeight={p.i===weeks.length-1?"700":"400"}>
-                  {fmtD(p.d)}kg/min
-                </text>
-              )}
-            </g>
-          ))}
-        </svg>
+        <div style={{ display:"flex", gap:5, alignItems:"flex-end", height:64 }}>
+          {weeks.map((w, i) => {
+            const d = densities[i];
+            const h = d > 0 ? Math.max(6, (d / maxD) * 64) : 3;
+            const isCur = i === weeks.length - 1;
+            return (
+              <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-end", height:"100%" }}>
+                <div style={{ fontSize:10, color: isCur ? th.accentFg : th.dim, fontWeight: isCur ? 700 : 400, marginBottom:2, lineHeight:1, textAlign:"center" }}>
+                  {d > 0 ? fmtD(d) : ""}
+                </div>
+                <div style={{ width:"100%", height:h, background: isCur ? th.accentBg : `${th.accentBg}55`, borderRadius:"3px 3px 0 0" }} />
+                <div style={{ fontSize:7, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -5582,23 +5565,77 @@ import "./styles.css";
                   <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
                 </div>
               </div>
-              <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
-                {weeks.map((w, i) => {
-                  const v = weekVols[i];
-                  const h = v > 0 ? Math.max(8, (v/maxVol)*72) : 4;
-                  const isCurrent = i === weeks.length-1;
-                  const col = isCurrent ? th.accentBg : v > weekVols[i-1||0]*1.1 ? `${th.accentBg}99` : `${th.accentBg}55`;
-                  return (
-                    <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
-                      <div style={{ fontSize:10, color: isCurrent ? th.accentFg : th.dim, fontWeight: isCurrent ? 700 : 400, marginBottom:2, lineHeight:1 }}>
-                        {v > 0 ? fmtV(v) : ""}
-                      </div>
-                      <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
-                      <div style={{ fontSize:8, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+              {(() => {
+                const BAR_H = 72;
+                // Compute avg intensity per week for line overlay
+                const weekInts = weeks.map(w => {
+                  const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.intensity||0) > 0);
+                  return ws.length ? ws.reduce((a,s) => a + (s.intensity||0), 0) / ws.length : null;
+                });
+                const intPts = weekInts.map((v,i) => v != null ? { i, v } : null).filter(Boolean);
+                const intMax = Math.max(...intPts.map(p => p.v), 10);
+                const intMin = Math.min(...intPts.map(p => p.v), 0);
+                const iR = intMax - intMin || 1;
+                return (
+                  <div style={{ position:"relative" }}>
+                    <div style={{ display:"flex", gap:5, alignItems:"flex-end", height:BAR_H }}>
+                      {weeks.map((w, i) => {
+                        const v = weekVols[i];
+                        const h = v > 0 ? Math.max(8, (v/maxVol)*BAR_H) : 4;
+                        const isCurrent = i === weeks.length-1;
+                        const col = isCurrent ? th.accentBg : `${th.accentBg}55`;
+                        return (
+                          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-end", height:"100%" }}>
+                            <div style={{ fontSize:10, color: isCurrent ? th.accentFg : th.dim, fontWeight: isCurrent ? 700 : 400, marginBottom:2, lineHeight:1, textAlign:"center" }}>
+                              {v > 0 ? fmtV(v) : ""}
+                            </div>
+                            <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
+                    {intPts.length >= 2 && (
+                      <svg viewBox={`0 0 280 ${BAR_H}`} width="100%"
+                        style={{ position:"absolute", top:0, left:0, height:BAR_H, overflow:"visible", pointerEvents:"none" }}>
+                        {intPts.map((p,j) => {
+                          const x = (p.i / (weeks.length-1)) * 280;
+                          const y = BAR_H - ((p.v - intMin) / iR) * (BAR_H - 8) - 4;
+                          const isLast = p.i === weeks.length-1;
+                          return (
+                            <g key={p.i}>
+                              {j > 0 && (() => {
+                                const pp = intPts[j-1];
+                                const px = (pp.i / (weeks.length-1)) * 280;
+                                const py = BAR_H - ((pp.v - intMin) / iR) * (BAR_H - 8) - 4;
+                                return <line x1={px} y1={py} x2={x} y2={y} stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" />;
+                              })()}
+                              <circle cx={x} cy={y} r={isLast ? 4 : 3}
+                                fill={isLast ? "#5B9CF6" : th.card} stroke="#5B9CF6" strokeWidth="1.5" />
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    )}
+                    <div style={{ display:"flex", gap:5, marginTop:3 }}>
+                      {weeks.map((w,i) => (
+                        <div key={i} style={{ flex:1, fontSize:8, color:th.dim, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+                      ))}
+                    </div>
+                    {intPts.length >= 2 && (
+                      <div style={{ display:"flex", gap:12, marginTop:8 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                          <div style={{ width:14, height:8, borderRadius:2, background:th.accentBg }} />
+                          <span style={{ fontSize:12, color:th.dim }}>Volume</span>
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+                          <div style={{ width:14, height:2, borderRadius:1, background:"#5B9CF6" }} />
+                          <span style={{ fontSize:12, color:th.dim }}>Intensity /10</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           );
         })() : null}
@@ -5612,11 +5649,6 @@ import "./styles.css";
         {/* ── ACWR ── */}
         <div style={{ order: enabledDashboards.indexOf("acwr") }}>
         {isDashEnabled("acwr") && sessions.length > 0 && <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />}
-        </div>
-
-        {/* ── Volume & Intensity Dual-Axis ── */}
-        <div style={{ order: enabledDashboards.indexOf("volumeintensity") }}>
-        {isDashEnabled("volumeintensity") && sessions.length > 0 && <VolumeIntensityChart sessions={sessions} sessionVol={sessionVol} />}
         </div>
 
         {/* ── Relative Strength ── */}
