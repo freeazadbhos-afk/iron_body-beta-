@@ -1473,7 +1473,7 @@ import "./styles.css";
     const [dragIdx, setDragIdx] = useState(null);
     const [insertIdx, setInsertIdx] = useState(null);
     const [droppedIdx, setDroppedIdx] = useState(null);
-    const [dropDir, setDropDir] = useState(null); // 'up' | 'down'
+    const [dropDir, setDropDir] = useState(null);
     const itemRects = useRef([]);
     const dragIdxRef = useRef(null);
     const insertIdxRef = useRef(null);
@@ -1482,7 +1482,6 @@ import "./styles.css";
       e.preventDefault();
       const startY = e.touches ? e.touches[0].clientY : e.clientY;
       let hasMoved = false;
-      // Cache all item rects at drag start (before dragged item fades)
       const children = containerRef.current
         ? Array.from(containerRef.current.querySelectorAll("[data-drag-item]"))
         : [];
@@ -1493,23 +1492,15 @@ import "./styles.css";
       setInsertIdx(idx);
 
       const onMove = (ev) => {
-        if (
-          !hasMoved &&
-          Math.abs((ev.touches ? ev.touches[0].clientY : ev.clientY) - startY) > 4
-        ) {
+        if (!hasMoved && Math.abs((ev.touches ? ev.touches[0].clientY : ev.clientY) - startY) > 4) {
           hasMoved = true;
         }
         const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
         const rects = itemRects.current;
-        // Find which gap the pointer is in.
-        // Gap i is between item i-1 and item i (gap 0 = before first, gap n = after last).
         let insert = 0;
         for (let i = 0; i < rects.length; i++) {
-          if (clientY > rects[i].top + rects[i].height / 2) {
-            insert = i + 1;
-          }
+          if (clientY > rects[i].top + rects[i].height / 2) insert = i + 1;
         }
-        // Clamp
         insert = Math.max(0, Math.min(rects.length, insert));
         if (insert !== insertIdxRef.current) {
           insertIdxRef.current = insert;
@@ -1519,18 +1510,12 @@ import "./styles.css";
 
       const onEnd = () => {
         const from = dragIdxRef.current;
-        const to = insertIdxRef.current;
+        const to   = insertIdxRef.current;
         if (hasMoved) {
-          // Suppress the synthetic click that fires after pointerup
-          window.addEventListener("click", (ev) => ev.stopPropagation(), {
-            capture: true,
-            once: true,
-          });
+          window.addEventListener("click", (ev) => ev.stopPropagation(), { capture: true, once: true });
         }
-        // 'to' is an insert gap index. Convert to final array index.
-        // After removing item at 'from', insert at 'to' (adjusted for removal).
         if (from !== null && to !== null) {
-          const rawTo = to > from ? to - 1 : to; // adjust for splice
+          const rawTo = to > from ? to - 1 : to;
           if (rawTo !== from) {
             const next = [...items];
             const [moved] = next.splice(from, 1);
@@ -1547,11 +1532,14 @@ import "./styles.css";
         setInsertIdx(null);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onEnd);
+        window.removeEventListener("touchmove", onMove);
+        window.removeEventListener("touchend", onEnd);
       };
 
-      // Pointer events cover both mouse and touch (via setPointerCapture)
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onEnd);
+      window.addEventListener("touchmove", onMove, { passive: false });
+      window.addEventListener("touchend", onEnd);
     };
 
     return { dragIdx, insertIdx, droppedIdx, dropDir, start };
@@ -1589,14 +1577,15 @@ import "./styles.css";
 
   /* ─── Drop line between cards ────────────────────────────────────────────────── */
   function DropLine() {
+    const th = useTheme();
     return (
       <div
         style={{
           height: 3,
-          background: "#c8f030",
+          background: th.accentBg,
           borderRadius: 2,
           margin: "2px 0",
-          boxShadow: "0 0 8px #c8f030",
+          boxShadow: `0 0 8px ${th.accentBg}`,
         }}
       />
     );
@@ -4752,8 +4741,8 @@ import "./styles.css";
     const S = useS();
     const [order, setOrder] = useState([...activeDashOrder]);
     const [closing, setClosing] = useState(false);
-    const [dragId, setDragId] = useState(null);   // id being dragged
-    const [dropId, setDropId] = useState(null);   // id of target slot
+    const listRef = useRef(null);
+    const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(order, setOrder);
     const dismiss = (cb) => { setClosing(true); setTimeout(cb, 250); };
 
     const addedItems    = order.map(id => ALL_DASHBOARDS.find(d => d.id === id)).filter(Boolean);
@@ -4762,29 +4751,8 @@ import "./styles.css";
     const removeItem = (id) => setOrder(prev => prev.filter(x => x !== id));
     const addItem    = (id) => setOrder(prev => [...prev, id]);
 
-    const commitDrop = () => {
-      if (dragId && dropId && dragId !== dropId) {
-        setOrder(prev => {
-          const next = [...prev];
-          const from = next.indexOf(dragId);
-          const to   = next.indexOf(dropId);
-          if (from < 0 || to < 0) return prev;
-          next.splice(from, 1);
-          next.splice(to, 0, dragId);
-          return next;
-        });
-      }
-      setDragId(null);
-      setDropId(null);
-    };
-
     return (
-      <div
-        style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "dashClose 0.2s ease-out forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}
-        onPointerUp={commitDrop}
-        onPointerCancel={() => { setDragId(null); setDropId(null); }}
-      >
-        {/* Header */}
+      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "dashClose 0.2s ease-out forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
           <div style={{ display:"flex", gap:6 }}>
@@ -4793,46 +4761,40 @@ import "./styles.css";
           </div>
         </div>
 
-        {/* ON HOME SCREEN — drag to reorder */}
-        <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ON HOME SCREEN</div>
-        <div style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
+        <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ON HOME SCREEN</div>
+        <div ref={listRef} style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
           {addedItems.length === 0 && (
             <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No dashboards added yet.</div>
           )}
-          {addedItems.map((d) => {
-            const isDragging = dragId === d.id;
-            const isTarget   = dropId === d.id && dragId !== null && dragId !== d.id;
+          {addedItems.map((d, exI) => {
+            const isBeingDragged = dragIdx === exI;
+            const isOver = insertIdx === exI && dragIdx !== null && insertIdx !== dragIdx;
+            const wasDropped = droppedIdx === exI;
             return (
               <div
                 key={d.id}
-                onPointerEnter={() => { if (dragId && dragId !== d.id) setDropId(d.id); }}
+                data-drag-item=""
                 style={{
-                  borderRadius: 8,
-                  background: isTarget ? `${th.accentBg}22` : "transparent",
-                  borderTop: isTarget ? `2px solid ${th.accentBg}` : "2px solid transparent",
-                  transition: "background 0.12s, border-color 0.12s",
+                  opacity: isBeingDragged ? 0.35 : 1,
+                  transition: "opacity .15s",
+                  animation: wasDropped
+                    ? (dropDir === "down" ? "dropFromAbove 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards" : "dropFromBelow 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards")
+                    : undefined,
                 }}
               >
+                {isOver && <DropLine />}
                 <div style={{
                   display:"flex", alignItems:"center", gap:8,
                   padding:"9px 0",
-                  borderBottom: `1px solid ${th.border}`,
-                  opacity: isDragging ? 0.35 : 1,
-                  transition: "opacity .15s",
+                  borderBottom:`1px solid ${th.border}`,
                 }}>
-                  {/* Grip */}
                   <div
-                    onPointerDown={(e) => {
-                      e.preventDefault();
-                      e.currentTarget.setPointerCapture(e.pointerId);
-                      setDragId(d.id);
-                      setDropId(null);
-                    }}
+                    onPointerDown={(e) => { e.stopPropagation(); dragStart(e, exI, listRef); }}
                     style={{ cursor:"grab", flexShrink:0, touchAction:"none", userSelect:"none", padding:"2px 8px 2px 2px" }}
                   >
                     <GripIcon />
                   </div>
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:isTarget ? th.accentFg : th.text, textAlign:"left" }}>{d.label}</span>
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign:"left" }}>{d.label}</span>
                   <button
                     onClick={() => removeItem(d.id)}
                     style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
@@ -4841,11 +4803,11 @@ import "./styles.css";
               </div>
             );
           })}
+          {insertIdx === addedItems.length && dragIdx !== null && <DropLine />}
         </div>
 
-        {/* ADD TO HOME */}
         <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
-          <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ADD TO HOME</div>
+          <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ADD TO HOME</div>
           {availableItems.length === 0 ? (
             <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
           ) : (
