@@ -1832,7 +1832,7 @@ import "./styles.css";
   }
   async function fsSaveSettings(uid, settings) {
     try {
-      await setDoc(doc(fbDb, "users", uid, "data", "settings"), strip(settings));
+      await setDoc(doc(fbDb, "users", uid, "data", "settings"), strip(settings), { merge: true });
     } catch (e) {
       console.error("fsSaveSettings:", e.code, e.message);
     }
@@ -10606,18 +10606,25 @@ import "./styles.css";
       const unsub = onSnapshot(
         doc(fbDb, "users", user.id, "data", "settings"),
         (snap) => {
+          // Skip snapshots caused by our own local writes — only apply confirmed server data
+          if (snap.metadata.hasPendingWrites) return;
           if (snap.exists()) {
             const remote = snap.data();
             setSettings(prev => {
-              // Only update if remote has different homeDashboards or homePrograms
-              // to avoid overwriting local optimistic updates
+              // Merge remote into defaults; never overwrite a valid array with null
               const merged = { ...DEFAULT_SETTINGS, ...remote };
-              if (
+              if (Array.isArray(prev.homeDashboards) && !Array.isArray(remote.homeDashboards)) {
+                merged.homeDashboards = prev.homeDashboards; // keep local if remote lost it
+              }
+              if (Array.isArray(prev.homePrograms) && !Array.isArray(remote.homePrograms)) {
+                merged.homePrograms = prev.homePrograms;
+              }
+              const changed =
                 JSON.stringify(merged.homeDashboards) !== JSON.stringify(prev.homeDashboards) ||
-                JSON.stringify(merged.homePrograms) !== JSON.stringify(prev.homePrograms) ||
-                merged.hasDashOnboarded !== prev.hasDashOnboarded ||
-                merged.hasProgramOnboarded !== prev.hasProgramOnboarded
-              ) {
+                JSON.stringify(merged.homePrograms)   !== JSON.stringify(prev.homePrograms)   ||
+                merged.hasDashOnboarded    !== prev.hasDashOnboarded    ||
+                merged.hasProgramOnboarded !== prev.hasProgramOnboarded;
+              if (changed) {
                 lsSet(uKey(user.id, "settings"), merged);
                 return merged;
               }
