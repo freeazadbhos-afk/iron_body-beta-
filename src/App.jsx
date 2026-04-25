@@ -12324,7 +12324,7 @@ import "./styles.css";
               </div>
 
               {/* Scrollable content */}
-              <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8 }}>
+              <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8, paddingLeft: 14, paddingRight: 14 }}>
                 <ProfileView
                   user={user}
                   sessions={sessions}
