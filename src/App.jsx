@@ -3679,7 +3679,10 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div style={{ ...S.label }}>YOUR HIGHLIGHTS</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>YOUR HIGHLIGHTS</div>
+              <DashInfoBtn text="A summary of your key training stats for the selected time period — sessions, volume, calories, and more." />
+            </div>
           <div style={{ display:"flex", gap:4 }}>
             {RANGES.map(r => (
               <button key={r.key} onClick={() => setRange(r.key)} style={{
@@ -3804,7 +3807,10 @@ import "./styles.css";
           @keyframes prSlideR { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
         `}</style>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ ...S.label }}>PERSONAL RECORDS</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>PERSONAL RECORDS</div>
+              <DashInfoBtn text="Your all-time personal records — the heaviest estimated 1RM achieved per exercise, ranked by weight." />
+            </div>
           {totalPages > 1 && (
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <button onClick={() => goTo(Math.max(0, page-1))} disabled={page===0}
@@ -3844,6 +3850,42 @@ import "./styles.css";
   }
 
   /* ─── Sets by Muscle Group ─────────────────────────────────────────────────── */
+  /* ─── Dashboard info button ────────────────────────────────────────────────── */
+  function DashInfoBtn({ text }) {
+    const th = useTheme();
+    const [open, setOpen] = useState(false);
+    return (
+      <div style={{ position:"relative", display:"inline-flex" }}>
+        <button
+          onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+          style={{
+            background:"none", border:"none", cursor:"pointer",
+            fontSize:13, lineHeight:1, padding:"0 2px",
+            color: open ? th.accentFg : th.dim, opacity: open ? 1 : 0.55,
+            fontWeight:700,
+          }}>ⓘ</button>
+        {open && (
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position:"absolute", top:"calc(100% + 6px)", left:0,
+              zIndex:100, width:220,
+              background: th.card, border:`1px solid ${th.border}`,
+              borderRadius:10, padding:"10px 12px",
+              boxShadow:"0 4px 20px rgba(0,0,0,0.18)",
+              fontSize:12, color:th.muted, lineHeight:1.5,
+            }}>
+            {text}
+            <button onClick={() => setOpen(false)} style={{
+              display:"block", marginTop:8, background:"none", border:"none",
+              cursor:"pointer", fontSize:11, color:th.accentFg, fontWeight:700, padding:0,
+            }}>Got it</button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function SetsByMuscleGroup({ sessions }) {
     const th = useTheme();
     const S = useS();
@@ -3902,8 +3944,11 @@ import "./styles.css";
         `}</style>
 
         {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 14 }}>
-          <div style={{ ...S.label }}>SETS BY MUSCLE GROUP</div>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>SETS BY MUSCLE GROUP</div>
+              <DashInfoBtn text="Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand." />
+            </div>
           <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
             <span style={{ fontSize: 10, color: th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</span>
             {totalPages > 1 && (
@@ -4021,15 +4066,15 @@ import "./styles.css";
         <div style={{ display:"flex", gap:10, marginTop:6, flexWrap:"wrap", borderTop:`1px solid ${th.border}`, paddingTop:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:"rgba(128,128,128,0.15)" }} />
-            <span style={{ fontSize:11, color:th.dim }}>Maintenance (0-9)</span>
+            <span style={{ fontSize:11, color:th.dim }}>Maintenance</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:`${th.accentBg}20`, border:`1px solid ${th.accentBg}55` }} />
-            <span style={{ fontSize:11, color:th.dim }}>Optimal (10-20)</span>
+            <span style={{ fontSize:11, color:th.dim }}>Optimal</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:`${th.delText}22` }} />
-            <span style={{ fontSize:11, color:th.dim }}>Excess (21+)</span>
+            <span style={{ fontSize:11, color:th.dim }}>Excess</span>
           </div>
         </div>
       </div>
@@ -4091,7 +4136,10 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
-          <div style={{ ...S.label }}>WORKLOAD RATIO</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>WORKLOAD RATIO</div>
+              <DashInfoBtn text="Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load." />
+            </div>
           <div style={{ textAlign:"right" }}>
             <span className="bebas" style={{ fontSize: 28, color: status.col, lineHeight: 1 }}>{fmtR(acwr)}</span>
             <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>ACWR</div>
@@ -4318,7 +4366,10 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
+              <DashInfoBtn text="Estimated 1RM relative to your body weight for key lifts. A squat of 1.5x BW means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
+            </div>
           <div style={{ fontSize:10, color:th.dim }}>BW: {bw}kg</div>
         </div>
         {rows.map(({ label, mult, target, best }) => {
@@ -4371,7 +4422,9 @@ import "./styles.css";
     const weeks = Array.from({ length: 5 }, (_, i) => {
       const end = now - i * W7; const start = end - W7;
       const fmtShort = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-      const label = `${fmtShort(new Date(start))}-${new Date(end-1).getDate()}`;
+      const startD = new Date(start); const endD = new Date(end - 1);
+      const fmtDay = d => `${d.getDate()} ${d.toLocaleDateString("en-GB",{month:"short"})}`;
+      const label = `${fmtDay(startD)} - ${fmtDay(endD)}`;
       return { start, end, label };
     }).reverse();
 
@@ -4396,7 +4449,10 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ ...S.label }}>TRAINING DENSITY</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>TRAINING DENSITY</div>
+              <DashInfoBtn text="Total tonnage lifted divided by total workout duration each week (kg/min). Higher density means you accomplished more work in less time." />
+            </div>
           {latest > 0 && (
             <div style={{ textAlign:"right" }}>
               <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
@@ -4476,7 +4532,10 @@ import "./styles.css";
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         {/* Group selector */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
+              <DashInfoBtn text="Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula." />
+            </div>
           {lift && (() => {
             const allPts = lift.pts;
             const delta = allPts.length >= 2 ? allPts[allPts.length-1].w - allPts[0].w : 0;
@@ -4921,7 +4980,10 @@ import "./styles.css";
           <div style={{ order: enabledDashboards.indexOf("muscles") }}>
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-            <div style={{ ...S.label }}>MUSCLES TRAINED</div>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>MUSCLES TRAINED</div>
+              <DashInfoBtn text="Muscles you have trained in the last 7 days, based on exercises logged in your workouts." />
+            </div>
             <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</div>
           </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
@@ -4979,7 +5041,10 @@ import "./styles.css";
               `}</style>
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <div style={{ ...S.label }}>STREAK</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>STREAK</div>
+              <DashInfoBtn text="Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout." />
+            </div>
                 <div style={{ textAlign: "right" }}>
                   <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
                   <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>DAYS</div>
@@ -5051,7 +5116,10 @@ import "./styles.css";
                   marginBottom: 10,
                 }}
               >
-                <div style={{ ...S.label }}>INTENSITY</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>INTENSITY</div>
+              <DashInfoBtn text="Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period." />
+            </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
                   const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.intensity||0) > 0);
@@ -5189,7 +5257,10 @@ import "./styles.css";
 
             {isDashEnabled("calories") && <div style={{ order: enabledDashboards.indexOf("calories") }}><div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ ...S.label }}>CALORIES BURNED</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>CALORIES BURNED</div>
+              <DashInfoBtn text="Average estimated calories burned per session over the last 7 days, compared to the prior week." />
+            </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
                   const r7 = sessions.filter(s => (s.startTime||0) >= cut7 && (s.calories||0) > 0);
@@ -5279,7 +5350,11 @@ import "./styles.css";
         <div style={{ order: enabledDashboards.indexOf("bodycomp") }}>
         {isDashEnabled("bodycomp") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-            <div style={{ ...S.label, marginBottom: 12 }}>BODY COMPOSITION</div>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>BODY COMPOSITION</div>
+              <DashInfoBtn text="Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section." />
+            </div>
+            
             {(() => {
               const latest = measurements[0];
               const prev = measurements[1] || null;
@@ -5324,7 +5399,11 @@ import "./styles.css";
         <div style={{ order: enabledDashboards.indexOf("bodytrends") }}>
         {isDashEnabled("bodytrends") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
-            <div style={{ ...S.label, marginBottom: 12 }}>BODY TRENDS</div>
+            <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>BODY TRENDS</div>
+              <DashInfoBtn text="Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend." />
+            </div>
+            
             <BodyTrendChart measurements={measurements} />
           </div>
         )}
@@ -5382,7 +5461,10 @@ import "./styles.css";
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
+              <DashInfoBtn text="Estimated recovery status per muscle group based on how long ago it was last trained. Higher score means more recovered." />
+            </div>
                 <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
               </div>
               <div style={{ fontSize: 11, color: th.muted, marginBottom: 12 }}>
@@ -5465,7 +5547,10 @@ import "./styles.css";
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
-                  <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
+              <DashInfoBtn text="A ratio of strength output relative to total training volume. Rising efficiency means you are getting stronger without needing more volume." />
+            </div>
 
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -5561,7 +5646,10 @@ import "./styles.css";
           return (
             <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <div style={{ ...S.label }}>WEEKLY VOLUME</div>
+                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+              <div style={{ ...S.label }}>WEEKLY VOLUME</div>
+              <DashInfoBtn text="Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management." />
+            </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
                     {trend && <span style={{ fontSize:16, color:trendCol, fontWeight:700, lineHeight:1 }}>{trend}</span>}
@@ -5570,83 +5658,23 @@ import "./styles.css";
                   <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
                 </div>
               </div>
-              {(() => {
-                const BAR_H = 72;
-                // Compute avg intensity per week for line overlay
-                const weekInts = weeks.map(w => {
-                  const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.intensity||0) > 0);
-                  return ws.length ? ws.reduce((a,s) => a + (s.intensity||0), 0) / ws.length : null;
-                });
-                const intPts = weekInts.map((v,i) => v != null ? { i, v } : null).filter(Boolean);
-                const intMax = Math.max(...intPts.map(p => p.v), 10);
-                const intMin = Math.min(...intPts.map(p => p.v), 0);
-                const iR = intMax - intMin || 1;
-                return (
-                  <div style={{ position:"relative" }}>
-                    <div style={{ display:"flex", gap:5, alignItems:"flex-end", height:BAR_H }}>
-                      {weeks.map((w, i) => {
-                        const v = weekVols[i];
-                        const h = v > 0 ? Math.max(8, (v/maxVol)*BAR_H) : 4;
-                        const isCurrent = i === weeks.length-1;
-                        const col = isCurrent ? th.accentBg : `${th.accentBg}55`;
-                        return (
-                          <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-end", height:"100%" }}>
-                            <div style={{ fontSize:10, color: isCurrent ? th.accentFg : th.dim, fontWeight: isCurrent ? 700 : 400, marginBottom:2, lineHeight:1, textAlign:"center" }}>
-                              {v > 0 ? fmtV(v) : ""}
-                            </div>
-                            <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    {intPts.length >= 2 && (
-                      <svg viewBox={`0 0 280 ${BAR_H + 14}`} width="100%"
-                        style={{ position:"absolute", top:0, left:0, height:BAR_H + 14, overflow:"visible", pointerEvents:"none" }}>
-                        {intPts.map((p,j) => {
-                          const x = (p.i / (weeks.length-1)) * 280;
-                          const y = BAR_H - ((p.v - intMin) / iR) * (BAR_H - 8) - 4;
-                          const isLast = p.i === weeks.length-1;
-                          const anchor = p.i === 0 ? "start" : p.i === weeks.length-1 ? "end" : "middle";
-                          return (
-                            <g key={p.i}>
-                              {j > 0 && (() => {
-                                const pp = intPts[j-1];
-                                const px = (pp.i / (weeks.length-1)) * 280;
-                                const py = BAR_H - ((pp.v - intMin) / iR) * (BAR_H - 8) - 4;
-                                return <line x1={px} y1={py} x2={x} y2={y} stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" />;
-                              })()}
-                              <circle cx={x} cy={y} r={isLast ? 4 : 3}
-                                fill={isLast ? "#5B9CF6" : th.card} stroke="#5B9CF6" strokeWidth="1.5" />
-                              <text x={x} y={y - 6} textAnchor={anchor}
-                                fontSize="9" fill="#5B9CF6" fontFamily="Outfit,sans-serif"
-                                fontWeight={isLast ? "700" : "400"}>
-                                {p.v.toFixed(1)}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    )}
-                    <div style={{ display:"flex", gap:5, marginTop:3 }}>
-                      {weeks.map((w,i) => (
-                        <div key={i} style={{ flex:1, fontSize:8, color:th.dim, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
-                      ))}
-                    </div>
-                    {intPts.length >= 2 && (
-                      <div style={{ display:"flex", gap:12, marginTop:8 }}>
-                        <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                          <div style={{ width:14, height:8, borderRadius:2, background:th.accentBg }} />
-                          <span style={{ fontSize:12, color:th.dim }}>Volume</span>
-                        </div>
-                        <div style={{ display:"flex", alignItems:"center", gap:5 }}>
-                          <div style={{ width:14, height:2, borderRadius:1, background:"#5B9CF6" }} />
-                          <span style={{ fontSize:12, color:th.dim }}>Intensity /10</span>
-                        </div>
+              <div style={{ display:"flex", gap:5, alignItems:"flex-end" }}>
+                {weeks.map((w, i) => {
+                  const v = weekVols[i];
+                  const h = v > 0 ? Math.max(8, (v/maxVol)*72) : 4;
+                  const isCurrent = i === weeks.length-1;
+                  const col = isCurrent ? th.accentBg : v > weekVols[i-1||0]*1.1 ? `${th.accentBg}99` : `${th.accentBg}55`;
+                  return (
+                    <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:0 }}>
+                      <div style={{ fontSize:10, color: isCurrent ? th.accentFg : th.dim, fontWeight: isCurrent ? 700 : 400, marginBottom:2, lineHeight:1 }}>
+                        {v > 0 ? fmtV(v) : ""}
                       </div>
-                    )}
-                  </div>
-                );
-              })()}
+                      <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
+                      <div style={{ fontSize:8, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           );
         })() : null}
