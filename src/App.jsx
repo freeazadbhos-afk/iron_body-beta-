@@ -3956,10 +3956,8 @@ import "./styles.css";
                     position:"absolute", top:-2, bottom:-2,
                     left:0, width:`${minP}%`,
                     background:"rgba(128,128,128,0.12)",
-                    zIndex:0, display:"flex", alignItems:"center", justifyContent:"center",
-                  }}>
-                    <span style={{ fontSize:7, color:th.dim, opacity:0.7 }}>0-{min}</span>
-                  </div>
+                    zIndex:0,
+                  }} />
                   {/* Zone 1: Optimal min-max (teal tint) */}
                   <div style={{
                     position:"absolute", top:-2, bottom:-2,
@@ -3967,19 +3965,15 @@ import "./styles.css";
                     background:`${th.accentBg}1A`,
                     borderLeft:`2px solid ${th.accentBg}50`,
                     borderRight:`2px solid ${th.accentBg}50`,
-                    zIndex:0, display:"flex", alignItems:"center", justifyContent:"center",
-                  }}>
-                    <span style={{ fontSize:7, color:th.accentFg, opacity:0.6 }}>{min}-{max}</span>
-                  </div>
+                    zIndex:0,
+                  }} />
                   {/* Zone 2: Excess max+ (red tint) */}
                   <div style={{
                     position:"absolute", top:-2, bottom:-2,
                     left:`${maxP}%`, right:0,
                     background:`${th.delText}14`,
-                    zIndex:0, display:"flex", alignItems:"center", paddingLeft:4,
-                  }}>
-                    <span style={{ fontSize:7, color:th.delText, opacity:0.6 }}>{max}+</span>
-                  </div>
+                    zIndex:0,
+                  }} />
 
                   {/* Stacked actual bar */}
                   {!isEmpty && (
@@ -4012,6 +4006,11 @@ import "./styles.css";
                       )}
                     </div>
                   )}
+                </div>
+                {/* Milestone labels below bar */}
+                <div style={{ position:"relative", height:14, marginTop:2 }}>
+                  <span style={{ position:"absolute", left:`${minP}%`, transform:"translateX(-50%)", fontSize:8, color:th.dim, whiteSpace:"nowrap" }}>{min}</span>
+                  <span style={{ position:"absolute", left:`${maxP}%`, transform:"translateX(-50%)", fontSize:8, color:th.accentFg, whiteSpace:"nowrap" }}>{max}</span>
                 </div>
               </div>
             );
@@ -4290,10 +4289,10 @@ import "./styles.css";
     if (!bw) return null;
 
     const KEY_LIFTS = [
-      { ids: ["e92","e93","lg1"], label: "Squat",     target: 1.5 },
-      { ids: ["e1","e2","e51"],   label: "Bench",     target: 1.25 },
-      { ids: ["e59","e60"],       label: "Deadlift",  target: 2.0 },
-      { ids: ["e28","e29","e90"], label: "OHP",       target: 0.75 },
+      { ids: ["e92","e93","lg1"], label: "Back Squat",          target: 1.5 },
+      { ids: ["e1","e2","e51"],   label: "Bench Press",         target: 1.25 },
+      { ids: ["e59","e60"],       label: "Deadlift",            target: 2.0 },
+      { ids: ["e28","e29","e90"], label: "Overhead Press",      target: 0.75 },
     ];
 
     const pr = {};
@@ -4322,7 +4321,7 @@ import "./styles.css";
           <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
           <div style={{ fontSize:10, color:th.dim }}>BW: {bw}kg</div>
         </div>
-        {rows.map(({ label, mult, target }) => {
+        {rows.map(({ label, mult, target, best }) => {
           const pct = Math.min((mult / (target * 1.5)) * 100, 100);
           const targetPct = (target / (target * 1.5)) * 100;
           const hit = mult >= target;
@@ -4337,18 +4336,23 @@ import "./styles.css";
                   {mult.toFixed(2)}x
                 </span>
               </div>
-              <div style={{ position:"relative", height:10, borderRadius:5, background:th.sect }}>
-                <div style={{
-                  position:"absolute", top:-3, bottom:-3,
-                  left:`${targetPct}%`,
-                  width:2, background:`${th.accentBg}`, borderRadius:1,
-                }} />
-                <div style={{
-                  position:"absolute", top:0, bottom:0, left:0,
-                  width:`${pct}%`,
-                  background: hit ? th.accentBg : `${th.accentBg}60`,
-                  borderRadius:5, transition:"width 0.5s ease",
-                }} />
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                <div style={{ flex:1, position:"relative", height:10, borderRadius:5, background:th.sect }}>
+                  <div style={{
+                    position:"absolute", top:-3, bottom:-3,
+                    left:`${targetPct}%`,
+                    width:2, background:th.accentBg, borderRadius:1,
+                  }} />
+                  <div style={{
+                    position:"absolute", top:0, bottom:0, left:0,
+                    width:`${pct}%`,
+                    background: hit ? th.accentBg : `${th.accentBg}60`,
+                    borderRadius:5, transition:"width 0.5s ease",
+                  }} />
+                </div>
+                <span style={{ fontSize:11, fontWeight:700, color: hit ? th.accentFg : th.muted, minWidth:42, textAlign:"right", flexShrink:0 }}>
+                  {Math.round(best)}kg
+                </span>
               </div>
             </div>
           );
@@ -4364,10 +4368,11 @@ import "./styles.css";
     const now = Date.now();
     const W7 = 7 * 24 * 60 * 60 * 1000;
 
-    const weeks = Array.from({ length: 6 }, (_, i) => {
+    const weeks = Array.from({ length: 5 }, (_, i) => {
       const end = now - i * W7; const start = end - W7;
-      const fmt = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-      return { start, end, label: i === 0 ? "This wk" : fmt(new Date(start)) };
+      const fmtShort = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+      const label = `${fmtShort(new Date(start))}-${new Date(end-1).getDate()}`;
+      return { start, end, label };
     }).reverse();
 
     const densities = weeks.map(w => {
@@ -4413,7 +4418,7 @@ import "./styles.css";
                   {d > 0 ? fmtD(d) : ""}
                 </div>
                 <div style={{ width:"100%", height:h, background: isCur ? th.accentBg : `${th.accentBg}55`, borderRadius:"3px 3px 0 0" }} />
-                <div style={{ fontSize:7, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+                <div style={{ fontSize:7, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2 }}>{w.label}</div>
               </div>
             );
           })}
@@ -5595,12 +5600,13 @@ import "./styles.css";
                       })}
                     </div>
                     {intPts.length >= 2 && (
-                      <svg viewBox={`0 0 280 ${BAR_H}`} width="100%"
-                        style={{ position:"absolute", top:0, left:0, height:BAR_H, overflow:"visible", pointerEvents:"none" }}>
+                      <svg viewBox={`0 0 280 ${BAR_H + 14}`} width="100%"
+                        style={{ position:"absolute", top:0, left:0, height:BAR_H + 14, overflow:"visible", pointerEvents:"none" }}>
                         {intPts.map((p,j) => {
                           const x = (p.i / (weeks.length-1)) * 280;
                           const y = BAR_H - ((p.v - intMin) / iR) * (BAR_H - 8) - 4;
                           const isLast = p.i === weeks.length-1;
+                          const anchor = p.i === 0 ? "start" : p.i === weeks.length-1 ? "end" : "middle";
                           return (
                             <g key={p.i}>
                               {j > 0 && (() => {
@@ -5611,6 +5617,11 @@ import "./styles.css";
                               })()}
                               <circle cx={x} cy={y} r={isLast ? 4 : 3}
                                 fill={isLast ? "#5B9CF6" : th.card} stroke="#5B9CF6" strokeWidth="1.5" />
+                              <text x={x} y={y - 6} textAnchor={anchor}
+                                fontSize="9" fill="#5B9CF6" fontFamily="Outfit,sans-serif"
+                                fontWeight={isLast ? "700" : "400"}>
+                                {p.v.toFixed(1)}
+                              </text>
                             </g>
                           );
                         })}
