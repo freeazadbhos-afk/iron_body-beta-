@@ -36,6 +36,11 @@ import "./styles.css";
     getDocs,
     deleteDoc,
     onSnapshot,
+    addDoc,
+    query,
+    where,
+    updateDoc,
+    serverTimestamp,
   } from "firebase/firestore";
 
   const firebaseConfig = {
@@ -1820,6 +1825,83 @@ import "./styles.css";
       console.error("fsDeleteSession FAILED:", e.code, e.message);
       return false;
     }
+  }
+
+  /* ─── Sharing / Invitations ─────────────────────────────────────────────────── */
+  async function fsSendInvitation(fromUid, fromName, fromEmail, toEmail) {
+    try {
+      await addDoc(collection(fbDb, "invitations"), {
+        fromUid,
+        fromName,
+        fromEmail: fromEmail.toLowerCase().trim(),
+        toEmail: toEmail.toLowerCase().trim(),
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      return { ok: true };
+    } catch (e) {
+      console.error("fsSendInvitation:", e);
+      return { ok: false, error: e.message };
+    }
+  }
+  async function fsAcceptInvitation(inviteId, invite, currentUser) {
+    try {
+      await updateDoc(doc(fbDb, "invitations", inviteId), { status: "accepted" });
+      const now = serverTimestamp();
+      // Add invite sender to current user's friends
+      await setDoc(doc(fbDb, "users", currentUser.id, "friends", invite.fromUid), {
+        uid: invite.fromUid, name: invite.fromName,
+        email: invite.fromEmail, photoURL: null, since: now,
+      });
+      // Add current user to invite sender's friends
+      await setDoc(doc(fbDb, "users", invite.fromUid, "friends", currentUser.id), {
+        uid: currentUser.id, name: currentUser.name,
+        email: currentUser.email, photoURL: currentUser.photoURL || null, since: now,
+      });
+      return true;
+    } catch (e) {
+      console.error("fsAcceptInvitation:", e);
+      return false;
+    }
+  }
+  async function fsDeclineInvitation(inviteId) {
+    try {
+      await updateDoc(doc(fbDb, "invitations", inviteId), { status: "declined" });
+      return true;
+    } catch (e) {
+      console.error("fsDeclineInvitation:", e);
+      return false;
+    }
+  }
+  async function fsGetFriendSessions(friendUid) {
+    try {
+      const snap = await getDocs(collection(fbDb, "users", friendUid, "sessions"));
+      const docs = snap.docs.map(d => d.data());
+      return docs.sort((a, b) => (b.startTime || 0) - (a.startTime || 0)).slice(0, 20);
+    } catch (e) {
+      return [];
+    }
+  }
+  function fsListenInvitationsReceived(userEmail, cb) {
+    const q = query(
+      collection(fbDb, "invitations"),
+      where("toEmail", "==", userEmail.toLowerCase().trim()),
+      where("status", "==", "pending")
+    );
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  }
+  function fsListenInvitationsSent(userUid, cb) {
+    const q = query(
+      collection(fbDb, "invitations"),
+      where("fromUid", "==", userUid),
+      where("status", "==", "pending")
+    );
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+  }
+  function fsListenFriends(uid, cb) {
+    return onSnapshot(collection(fbDb, "users", uid, "friends"),
+      snap => cb(snap.docs.map(d => ({ ...d.data() })))
+    );
   }
   async function fsGetSettings(uid) {
     try {
@@ -5707,104 +5789,219 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     SHARING VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
-  function SharingView({ user }) {
+  function FriendCard({ friend, onGetFriendSessions }) {
+    const th = useTheme();
+    const S = useS();
+    const [expanded, setExpanded] = useState(false);
+    const [sessions, setSessions] = useState(null); // null = not loaded
+    const [loading, setLoading] = useState(false);
+
+    const handleExpand = async () => {
+      if (!expanded && sessions === null) {
+        setLoading(true);
+        const s = await onGetFriendSessions(friend.uid);
+        setSessions(s);
+        setLoading(false);
+      }
+      setExpanded(e => !e);
+    };
+
+    // Compute friend stats from sessions
+    const streak = sessions ? (() => {
+      let s = 0, d = new Date(); d.setHours(0,0,0,0);
+      const days = new Set(sessions.map(x => { const dt = new Date(x.startTime||0); dt.setHours(0,0,0,0); return dt.getTime(); }));
+      while (days.has(d.getTime())) { s++; d.setDate(d.getDate()-1); }
+      // allow yesterday as starting point
+      if (s === 0) { d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); while(days.has(d.getTime())){s++;d.setDate(d.getDate()-1);} }
+      return s;
+    })() : null;
+
+    const last7 = sessions ? sessions.filter(s => (s.startTime||0) >= Date.now() - 7*864e5).length : null;
+    const lastSession = sessions?.[0];
+    const lastDate = lastSession ? new Date(lastSession.startTime||0).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : null;
+
+    const initials = (friend.name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+
+    return (
+      <div style={{ ...S.card, marginBottom: 10, overflow: "hidden" }}>
+        {/* Main row */}
+        <div
+          onClick={handleExpand}
+          style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+        >
+          {/* Avatar */}
+          {friend.photoURL ? (
+            <img src={friend.photoURL} alt={friend.name} style={{ width:42, height:42, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+          ) : (
+            <div style={{ width:42, height:42, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+              {initials}
+            </div>
+          )}
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{friend.name}</div>
+            <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{friend.email}</div>
+          </div>
+          {loading ? (
+            <div style={{ fontSize:12, color:th.dim }}>…</div>
+          ) : (
+            <div style={{ fontSize:18, color:th.dim, transition:"transform .2s", transform: expanded ? "rotate(180deg)" : "none" }}>⌄</div>
+          )}
+        </div>
+
+        {/* Expanded dashboard */}
+        {expanded && sessions !== null && (
+          <div style={{ borderTop:`1px solid ${th.border}`, padding:"14px 16px" }}>
+            {sessions.length === 0 ? (
+              <div style={{ fontSize:13, color:th.muted, textAlign:"center", padding:"8px 0" }}>No workout history yet.</div>
+            ) : (
+              <>
+                {/* Stats row */}
+                <div style={{ display:"flex", gap:8, marginBottom:14 }}>
+                  {[
+                    { label:"STREAK", value: streak ? `${streak}d` : "—" },
+                    { label:"LAST 7 DAYS", value: last7 ?? "—" },
+                    { label:"LAST WORKOUT", value: lastDate || "—" },
+                  ].map(({ label, value }) => (
+                    <div key={label} style={{ flex:1, background:th.sect, borderRadius:10, padding:"10px 8px", textAlign:"center" }}>
+                      <div className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* Last 3 sessions */}
+                {sessions.slice(0,3).map((s,i) => (
+                  <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderTop:`1px solid ${th.border}` }}>
+                    <div style={{ width:6, height:6, borderRadius:"50%", background:th.accentBg, flexShrink:0 }} />
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:600, color:th.text }}>{s.name || "Workout"}</div>
+                      <div style={{ fontSize:11, color:th.muted }}>
+                        {new Date(s.startTime||0).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
+                        {s.exercises?.length ? ` · ${s.exercises.length} exercises` : ""}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function SharingView({ user, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
-    const [inviteSent, setInviteSent] = useState(false);
+    const [inviteStatus, setInviteStatus] = useState("idle"); // idle | sending | sent | error | duplicate
+    const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
+    const [actioning, setActioning] = useState({}); // inviteId → true while accepting/declining
 
-    // Mock friends data — will be replaced with real Firebase data in a future update
-    const MOCK_FRIENDS = [];
-    const MOCK_PENDING = [];
+    const handleSendInvite = async () => {
+      const email = inviteEmail.trim().toLowerCase();
+      if (!email) return;
+      if (email === user.email.toLowerCase()) { setInviteStatus("error"); setInviteError("That's your own email!"); return; }
+      if (friends.some(f => f.email.toLowerCase() === email)) { setInviteStatus("error"); setInviteError("Already friends!"); return; }
+      if (sentInvitations.some(i => i.toEmail === email)) { setInviteStatus("error"); setInviteError("Invitation already sent."); return; }
+      setInviteStatus("sending");
+      const result = await onSendInvite(email);
+      if (result?.ok) {
+        setInviteStatus("sent");
+        setTimeout(() => { setInviteStatus("idle"); setInviteEmail(""); setShowInvitePanel(false); }, 2400);
+      } else {
+        setInviteStatus("error"); setInviteError("Failed to send. Try again.");
+      }
+    };
 
-    const handleSendInvite = () => {
-      if (!inviteEmail.trim()) return;
-      setInviteSent(true);
-      setTimeout(() => {
-        setInviteSent(false);
-        setInviteEmail("");
-        setShowInvitePanel(false);
-      }, 2200);
+    const handleAction = async (id, invite, action) => {
+      setActioning(a => ({ ...a, [id]: true }));
+      if (action === "accept") await onAcceptInvite(id, invite);
+      else await onDeclineInvite(id);
+      setActioning(a => ({ ...a, [id]: false }));
     };
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
         <style>{`
-          @keyframes sharingFadeUp {
-            from { opacity: 0; transform: translateY(14px); }
-            to   { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes invitePop {
-            from { opacity: 0; transform: scale(0.96) translateY(-8px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-          }
-          @keyframes sentBounce {
-            0%   { transform: scale(0.7); opacity: 0; }
-            60%  { transform: scale(1.12); opacity: 1; }
-            100% { transform: scale(1); }
-          }
+          @keyframes sharingFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes invitePop     { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+          @keyframes sentBounce    { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1)} }
+          @keyframes inviteShake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
         `}</style>
 
-        {/* ── Hero empty state ── */}
-        {MOCK_FRIENDS.length === 0 && (
-          <div style={{
-            display: "flex", flexDirection: "column", alignItems: "center",
-            textAlign: "center", paddingTop: 24, paddingBottom: 8,
-            animation: "sharingFadeUp 0.4s cubic-bezier(0,0,0.2,1) forwards",
-          }}>
-            {/* Illustration */}
-            <div style={{
-              width: 100, height: 100, borderRadius: "50%", marginBottom: 20,
-              background: `color-mix(in srgb, ${th.accentBg} 10%, ${th.card})`,
-              border: `1.5px solid ${th.border}`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
+        {/* ── Pending invitations received ── */}
+        {pendingInvitations.length > 0 && (
+          <div style={{ marginBottom: 20, animation: "sharingFadeUp 0.3s ease both" }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>
+              PENDING FOR YOU ({pendingInvitations.length})
+            </div>
+            {pendingInvitations.map(inv => (
+              <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                    {(inv.fromName||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{inv.fromName}</div>
+                    <div style={{ fontSize:12, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize:12, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+                  Wants to share workout progress with you.
+                </div>
+                <div style={{ display:"flex", gap:8 }}>
+                  <button
+                    onClick={() => handleAction(inv.id, inv, "decline")}
+                    disabled={actioning[inv.id]}
+                    style={{ flex:1, background:`color-mix(in srgb, ${th.card} 70%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid ${th.border}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
+                  >DECLINE</button>
+                  <button
+                    onClick={() => handleAction(inv.id, inv, "accept")}
+                    disabled={actioning[inv.id]}
+                    style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
+                  >{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Friends list ── */}
+        {friends.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>FRIENDS ({friends.length})</div>
+            {friends.map(f => (
+              <FriendCard key={f.uid} friend={f} onGetFriendSessions={onGetFriendSessions} />
+            ))}
+          </div>
+        )}
+
+        {/* ── Empty state hero (only when no friends and no pending) ── */}
+        {friends.length === 0 && pendingInvitations.length === 0 && (
+          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", paddingTop:24, paddingBottom:8, animation:"sharingFadeUp 0.4s cubic-bezier(0,0,0.2,1) forwards" }}>
+            <div style={{ width:100, height:100, borderRadius:"50%", marginBottom:20, background:`color-mix(in srgb, ${th.accentBg} 10%, ${th.card})`, border:`1.5px solid ${th.border}`, display:"flex", alignItems:"center", justifyContent:"center" }}>
               <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
-                {/* Two people */}
                 <circle cx="18" cy="16" r="7" stroke={th.accentFg} strokeWidth="2.2" />
                 <path d="M4 44c0-7.732 6.268-14 14-14" stroke={th.accentFg} strokeWidth="2.2" strokeLinecap="round" />
                 <circle cx="34" cy="16" r="7" stroke={th.accentFg} strokeWidth="2.2" />
                 <path d="M48 44c0-7.732-6.268-14-14-14" stroke={th.accentFg} strokeWidth="2.2" strokeLinecap="round" />
-                {/* Trophy/star in the middle */}
                 <circle cx="26" cy="34" r="6" fill={`${th.accentBg}22`} stroke={th.accentFg} strokeWidth="1.8" />
                 <text x="26" y="38" textAnchor="middle" fontSize="8" fill={th.accentFg} fontFamily="Outfit,sans-serif" fontWeight="700">★</text>
               </svg>
             </div>
-            <div className="bebas" style={{ fontSize: 26, letterSpacing: 2, color: th.text, marginBottom: 8 }}>
-              TRAIN TOGETHER
-            </div>
-            <div style={{ fontSize: 14, color: th.muted, lineHeight: 1.6, maxWidth: 280, marginBottom: 28 }}>
-              Add friends to see their progress, celebrate their wins, and compete on workouts — just like Apple Fitness, but iron-clad.
+            <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, marginBottom:8 }}>TRAIN TOGETHER</div>
+            <div style={{ fontSize:14, color:th.muted, lineHeight:1.6, maxWidth:280, marginBottom:28 }}>
+              Invite friends to share progress, celebrate wins, and compete on workouts.
             </div>
           </div>
         )}
 
-        {/* ── Invite a Friend button / panel ── */}
+        {/* ── Invite button / panel ── */}
         {!showInvitePanel ? (
           <button
-            onClick={() => setShowInvitePanel(true)}
-            style={{
-              width: "100%",
-              background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border: "none",
-              borderRadius: 16,
-              padding: "16px 20px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              fontFamily: "'Outfit',sans-serif",
-              fontWeight: 700,
-              fontSize: 15,
-              color: th.accentT,
-              letterSpacing: "0.5px",
-              marginBottom: 20,
-              animation: "sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both",
-            }}
+            onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
+            style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}
           >
             <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
               <circle cx="9" cy="7.5" r="3.5" stroke={th.accentT} strokeWidth="2" />
@@ -5815,133 +6012,76 @@ import "./styles.css";
             INVITE A FRIEND
           </button>
         ) : (
-          <div style={{
-            ...S.card, padding: 18, marginBottom: 20,
-            animation: "invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ ...S.card, padding:18, marginBottom:20, animation:"invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <div style={S.label}>SEND INVITATION</div>
-              <button onClick={() => { setShowInvitePanel(false); setInviteEmail(""); setInviteSent(false); }}
-                style={{ background: "none", border: "none", color: th.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+              <button onClick={() => { setShowInvitePanel(false); setInviteStatus("idle"); setInviteEmail(""); }} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18 }}>✕</button>
             </div>
-            {inviteSent ? (
-              <div style={{
-                textAlign: "center", padding: "18px 0",
-                animation: "sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards",
-              }}>
-                <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
-                <div style={{ color: th.accentFg, fontWeight: 700, fontSize: 15 }}>Invitation sent!</div>
-                <div style={{ color: th.muted, fontSize: 12, marginTop: 4 }}>They'll get a link to join Iron Body.</div>
+            {inviteStatus === "sent" ? (
+              <div style={{ textAlign:"center", padding:"18px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
+                <div style={{ fontSize:36, marginBottom:8 }}>✓</div>
+                <div style={{ color:th.accentFg, fontWeight:700, fontSize:15 }}>Invitation sent!</div>
+                <div style={{ color:th.muted, fontSize:12, marginTop:4 }}>They'll see it in their Sharing tab.</div>
               </div>
             ) : (
               <>
-                <div style={{ fontSize: 13, color: th.muted, marginBottom: 12, lineHeight: 1.5 }}>
-                  Enter your friend's email. Once they accept, you'll both be able to see each other's workout activity.
+                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+                  Enter your friend's email. Once they accept, you'll both see each other's workouts.
                 </div>
                 <input
                   type="email"
                   placeholder="friend@example.com"
                   value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onChange={(e) => { setInviteEmail(e.target.value); if (inviteStatus === "error") setInviteStatus("idle"); }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
-                  style={{ ...S.input, marginBottom: 12 }}
+                  style={{ ...S.input, marginBottom: inviteStatus === "error" ? 6 : 12, animation: inviteStatus === "error" ? "inviteShake 0.3s ease" : "none" }}
                   autoFocus
                 />
+                {inviteStatus === "error" && (
+                  <div style={{ fontSize:12, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>
+                )}
                 <button
                   onClick={handleSendInvite}
-                  disabled={!inviteEmail.trim()}
-                  style={{
-                    width: "100%",
-                    background: inviteEmail.trim()
-                      ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)`
-                      : th.inputB,
-                    border: "none",
-                    borderRadius: 12,
-                    padding: "13px 0",
-                    cursor: inviteEmail.trim() ? "pointer" : "default",
-                    fontFamily: "'Outfit',sans-serif",
-                    fontWeight: 700,
-                    fontSize: 14,
-                    color: inviteEmail.trim() ? th.accentT : th.dim,
-                    transition: "background .2s, color .2s",
-                    letterSpacing: "0.5px",
-                  }}
+                  disabled={!inviteEmail.trim() || inviteStatus === "sending"}
+                  style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}
                 >
-                  SEND INVITE →
+                  {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
                 </button>
               </>
             )}
           </div>
         )}
 
-        {/* ── Pending invitations ── */}
-        {MOCK_PENDING.length > 0 && (
+        {/* ── Sent invitations (pending) ── */}
+        {sentInvitations.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>PENDING INVITATIONS</div>
-            {MOCK_PENDING.map((p, i) => (
-              <div key={i} style={{ ...S.card, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: th.row, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⏳</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: th.text }}>{p.email}</div>
-                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>Invitation pending</div>
+            <div style={{ ...S.label, marginBottom: 10 }}>AWAITING RESPONSE</div>
+            {sentInvitations.map(inv => (
+              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
+                <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:th.dim }}>⏳</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
+                  <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>Invitation pending</div>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── Friends list ── */}
-        {MOCK_FRIENDS.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>FRIENDS</div>
-            {MOCK_FRIENDS.map((f, i) => (
-              <div key={i} style={{ ...S.card, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: th.row, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: th.accentFg }}>
-                  {f.name?.[0] || "?"}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: th.text }}>{f.name}</div>
-                  <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>{f.lastActivity || "No recent activity"}</div>
-                </div>
-                <div style={{ fontSize: 11, color: th.accentFg, fontWeight: 700 }}>VIEW →</div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Coming soon feature cards ── */}
-        <div style={{ marginBottom: 12, animation: "sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
-          <div style={{ ...S.label, marginBottom: 10 }}>COMING SOON</div>
+        {/* ── Coming soon ── */}
+        <div style={{ marginBottom:12, animation:"sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
+          <div style={{ ...S.label, marginBottom:10 }}>COMING SOON</div>
           {[
-            { icon: "📊", title: "Friend Dashboards", desc: "See your friends' recent sessions, volume, and streak side-by-side with yours." },
-            { icon: "🏆", title: "Competitions", desc: "Challenge a friend to a weekly volume or sets race. Winner gets the trophy." },
-            { icon: "🔥", title: "Reactions", desc: "Drop a fire emoji or quick kudos on a friend's completed workout." },
-            { icon: "📅", title: "Shared History", desc: "Browse overlapping training days and compare intensity over time." },
+            { icon:"🏆", title:"Competitions", desc:"Challenge a friend to a weekly volume or sets race." },
+            { icon:"🔥", title:"Reactions", desc:"Drop a fire emoji on a friend's completed workout." },
           ].map((item, i) => (
-            <div key={i} style={{
-              ...S.card,
-              padding: "14px 16px",
-              marginBottom: 8,
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 14,
-              opacity: 0.7,
-            }}>
-              <div style={{
-                width: 40, height: 40, flexShrink: 0, borderRadius: 12,
-                background: `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 18,
-              }}>{item.icon}</div>
+            <div key={i} style={{ ...S.card, padding:"14px 16px", marginBottom:8, display:"flex", alignItems:"flex-start", gap:14, opacity:0.7 }}>
+              <div style={{ width:40, height:40, flexShrink:0, borderRadius:12, background:`color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{item.icon}</div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: th.text, marginBottom: 3 }}>{item.title}</div>
-                <div style={{ fontSize: 12, color: th.muted, lineHeight: 1.5 }}>{item.desc}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:th.text, marginBottom:3 }}>{item.title}</div>
+                <div style={{ fontSize:12, color:th.muted, lineHeight:1.5 }}>{item.desc}</div>
               </div>
-              <div style={{
-                flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: "1px",
-                color: th.dim, border: `1px solid ${th.inputB}`, borderRadius: 6,
-                padding: "3px 7px", alignSelf: "center",
-              }}>SOON</div>
+              <div style={{ flexShrink:0, fontSize:9, fontWeight:700, letterSpacing:"1px", color:th.dim, border:`1px solid ${th.inputB}`, borderRadius:6, padding:"3px 7px", alignSelf:"center" }}>SOON</div>
             </div>
           ))}
         </div>
@@ -10681,6 +10821,10 @@ import "./styles.css";
       setProfileClosing(true);
       setTimeout(() => { setProfileOpen(false); setProfileClosing(false); }, 360);
     };
+    // Sharing / friends state
+    const [pendingInvitations, setPendingInvitations] = useState([]); // invites received
+    const [sentInvitations, setSentInvitations]       = useState([]); // invites sent
+    const [friends, setFriends]                       = useState([]);
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -10847,6 +10991,15 @@ import "./styles.css";
       );
       return () => unsub();
     }, [user?.id]);
+
+    // Real-time sharing listeners — invitations received, sent, and friends list
+    useEffect(() => {
+      if (!user?.id || !user?.email || user?.isGuest) return;
+      const unsubReceived = fsListenInvitationsReceived(user.email, setPendingInvitations);
+      const unsubSent     = fsListenInvitationsSent(user.id, setSentInvitations);
+      const unsubFriends  = fsListenFriends(user.id, setFriends);
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); };
+    }, [user?.id, user?.email]);
     const saveActive = (a) => {
       setActive(a);
       lsSet(uKey(user.id, "active"), a);
@@ -11195,16 +11348,24 @@ import "./styles.css";
         id: "sharing",
         label: "SHARING",
         icon: (c) => (
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Left person */}
-            <circle cx="7" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
-            <path d="M1 19c0-3.314 2.686-6 6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-            {/* Right person */}
-            <circle cx="15" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
-            <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-            {/* Connection link in center */}
-            <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
+          <div style={{ position: "relative", display: "inline-flex" }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="7" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
+              <path d="M1 19c0-3.314 2.686-6 6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+              <circle cx="15" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
+              <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+              <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            {pendingInvitations.length > 0 && (
+              <div style={{
+                position: "absolute", top: -3, right: -3,
+                width: 9, height: 9, borderRadius: "50%",
+                background: "#CC1F42",
+                border: `1.5px solid ${th.nav}`,
+                animation: "pulse 1.5s ease-in-out infinite",
+              }} />
+            )}
+          </div>
         ),
       },
     ];
@@ -11879,7 +12040,16 @@ import "./styles.css";
               />
             )}
             {view === "sharing" && (
-              <SharingView user={user} />
+              <SharingView
+                user={user}
+                pendingInvitations={pendingInvitations}
+                sentInvitations={sentInvitations}
+                friends={friends}
+                onSendInvite={(toEmail) => fsSendInvitation(user.id, user.name, user.email, toEmail)}
+                onAcceptInvite={(inviteId, invite) => fsAcceptInvitation(inviteId, invite, user)}
+                onDeclineInvite={(inviteId) => fsDeclineInvitation(inviteId)}
+                onGetFriendSessions={fsGetFriendSessions}
+              />
             )}
           </div>
 
