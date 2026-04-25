@@ -1408,7 +1408,7 @@ import "./styles.css";
     { id: "bodycomp",   label: "Body Composition",      icon: "⚖️" },
     { id: "bodytrends", label: "Body Trends",           icon: "📉" },
     { id: "recovery",   label: "Muscle Recovery",       icon: "🩺" },
-    { id: "efficiency", label: "Training Efficiency",   icon: "📈" },
+    { id: "efficiency", label: "Session Pace",           icon: "📈" },
     { id: "strength",   label: "Strength Progression",  icon: "🏋️" },
     { id: "prs",        label: "Personal Records",      icon: "🏆" },
     { id: "volume",     label: "Weekly Volume",         icon: "📊" },
@@ -1547,15 +1547,11 @@ import "./styles.css";
         setInsertIdx(null);
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onEnd);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("touchend", onEnd);
       };
 
-      // Attach to window so drag works even if pointer leaves the grip
+      // Pointer events cover both mouse and touch (via setPointerCapture)
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onEnd);
-      window.addEventListener("touchmove", onMove, { passive: false });
-      window.addEventListener("touchend", onEnd);
     };
 
     return { dragIdx, insertIdx, droppedIdx, dropDir, start };
@@ -4065,8 +4061,8 @@ import "./styles.css";
                 </div>
                 {/* Milestone labels below bar */}
                 <div style={{ position:"relative", height:14, marginTop:2 }}>
-                  <span style={{ position:"absolute", left:`${minP}%`, transform:"translateX(-50%)", fontSize:8, color:th.dim, whiteSpace:"nowrap" }}>{min}</span>
-                  <span style={{ position:"absolute", left:`${maxP}%`, transform:"translateX(-50%)", fontSize:8, color:th.accentFg, whiteSpace:"nowrap" }}>{max}</span>
+                  <span style={{ position:"absolute", left:`${minP}%`, transform:"translateX(-50%)", fontSize:11, fontWeight:600, color:th.muted, whiteSpace:"nowrap" }}>{min}</span>
+                  <span style={{ position:"absolute", left:`${maxP}%`, transform:"translateX(-50%)", fontSize:11, fontWeight:700, color:th.accentFg, whiteSpace:"nowrap" }}>{max}</span>
                 </div>
               </div>
             );
@@ -4462,7 +4458,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>TRAINING DENSITY</div>
-              <DashInfoBtn title="Training Density" text="Total tonnage lifted divided by total workout duration each week (kg/min). Higher density means you accomplished more work in less time." />
+              <DashInfoBtn title="Training Density" text="Weekly tonnage divided by total session time for that week (kg/min). Tracks whether you're doing more work per hour across 5-week periods." />
             </div>
           {latest > 0 && (
             <div style={{ textAlign:"right" }}>
@@ -4470,7 +4466,7 @@ import "./styles.css";
                 {arrow && <span style={{ fontSize:14, color:arrowCol, fontWeight:700 }}>{arrow}</span>}
                 <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtD(latest)}</span>
               </div>
-              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG/MIN</div>
+              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG/MIN (WEEKLY)</div>
             </div>
           )}
         </div>
@@ -4807,7 +4803,7 @@ import "./styles.css";
                 }}>
                   {/* Grip */}
                   <div
-                    onPointerDown={(e) => { e.stopPropagation(); dragStart(e, exI, listRef); }}
+                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); e.stopPropagation(); dragStart(e, exI, listRef); }}
                     style={{ cursor:"grab", flexShrink:0, touchAction:"none", userSelect:"none", padding:"2px 8px 2px 2px" }}
                   >
                     <GripIcon />
@@ -4885,6 +4881,7 @@ import "./styles.css";
       onUpdateSettings({ ...settings, hasDashOnboarded: true });
     };
     const enabledDashboards = settings.homeDashboards || ["streak","intensity","strength","volume"];
+    const dashOrder = (id) => { const i = enabledDashboards.indexOf(id); return i >= 0 ? i : 999; };
     const isDashEnabled = (id) => enabledDashboards.includes(id);
     const cancelDashEdit = () => setEditingDashboards(false);
     const [removingShortcut, setRemovingShortcut] = useState(null);
@@ -4988,7 +4985,7 @@ import "./styles.css";
         {/* ── Dashboards ordered by enabledDashboards ── */}
         <div style={{ display:"flex", flexDirection:"column" }}>
         {isDashEnabled("muscles") && (
-          <div style={{ order: enabledDashboards.indexOf("muscles") }}>
+          <div style={{ order: dashOrder("muscles") }}>
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -5014,7 +5011,7 @@ import "./styles.css";
           </div>
         </div>)}
 
-        <div style={{ order: enabledDashboards.indexOf("streak") }}>
+        <div style={{ order: dashOrder("streak") }}>
         {isDashEnabled("streak") ? sessions.length > 0 && (() => {
           const todayMs = new Date(); todayMs.setHours(0,0,0,0);
           const sessionDays = new Set(sessions.map(s => {
@@ -5116,7 +5113,7 @@ import "./styles.css";
         {/* Performance dashboards */}
         {sessions.length > 0 && (
           <>
-            {isDashEnabled("intensity") && <div style={{ order: enabledDashboards.indexOf("intensity") }}><div
+            {isDashEnabled("intensity") && <div style={{ order: dashOrder("intensity") }}><div
               style={{ ...S.card, padding: 16, marginBottom: 16 }}
             >
               <div
@@ -5266,7 +5263,7 @@ import "./styles.css";
               </div>
             </div></div>}
 
-            {isDashEnabled("calories") && <div style={{ order: enabledDashboards.indexOf("calories") }}><div style={{ ...S.card, padding: 16, marginBottom: 16 }}>
+            {isDashEnabled("calories") && <div style={{ order: dashOrder("calories") }}><div style={{ ...S.card, padding: 16, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>CALORIES BURNED</div>
@@ -5358,7 +5355,7 @@ import "./styles.css";
           </>
         )}
 
-        <div style={{ order: enabledDashboards.indexOf("bodycomp") }}>
+        <div style={{ order: dashOrder("bodycomp") }}>
         {isDashEnabled("bodycomp") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -5407,7 +5404,7 @@ import "./styles.css";
         )}
         </div>
 
-        <div style={{ order: enabledDashboards.indexOf("bodytrends") }}>
+        <div style={{ order: dashOrder("bodytrends") }}>
         {isDashEnabled("bodytrends") && measurements && measurements.length > 0 && (
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
@@ -5420,7 +5417,7 @@ import "./styles.css";
         )}
         </div>
 
-        <div style={{ order: enabledDashboards.indexOf("recovery") }}>
+        <div style={{ order: dashOrder("recovery") }}>
         {isDashEnabled("recovery") ? sessions.length > 0 && (() => {
           const now = Date.now();
           // For each muscle, scan all sessions and find: last trained time, total volume (sets×reps) in last 72h
@@ -5517,7 +5514,7 @@ import "./styles.css";
         })() : null}
         </div>
 
-        <div style={{ order: enabledDashboards.indexOf("efficiency") }}>
+        <div style={{ order: dashOrder("efficiency") }}>
         {isDashEnabled("efficiency") ? sessions.length > 0 && (() => {
           const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000; // last 30 days
           const recent = sessions.filter(s => (s.startTime || 0) >= cutoff && (s.duration || 0) > 0);
@@ -5559,8 +5556,8 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
-              <DashInfoBtn title="Training Efficiency" text="A ratio of strength output relative to total training volume. Rising efficiency means you are getting stronger without needing more volume." />
+              <div style={{ ...S.label }}>SESSION PACE</div>
+              <DashInfoBtn title="Session Pace" text="Tonnage lifted per minute for each individual session over the last 30 days. A rising trend means your sessions are becoming more productive over time." />
             </div>
 
                 </div>
@@ -5569,7 +5566,7 @@ import "./styles.css";
                     {trend && <span style={{ fontSize: 16, color: trendCol, fontWeight: 700, lineHeight: 1 }}>{trend}</span>}
                     <span className="bebas" style={{ fontSize: 28, color: effColor(latest.eff), lineHeight: 1 }}>{latest.eff.toFixed(1)}</span>
                   </div>
-                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>KG/MIN LATEST</div>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>KG/MIN (SESSION)</div>
                 </div>
               </div>
               <svg viewBox={`0 0 ${W} ${H + 22}`} width="100%" style={{ overflow: "visible", marginTop: 8 }}>
@@ -5607,9 +5604,9 @@ import "./styles.css";
         })() : null}
         </div>
 
-        <div style={{ order: enabledDashboards.indexOf("strength") }}>{isDashEnabled("strength") && sessions.length > 0 && <StrengthProgression sessions={sessions} />}</div>
+        <div style={{ order: dashOrder("strength") }}>{isDashEnabled("strength") && sessions.length > 0 && <StrengthProgression sessions={sessions} />}</div>
 
-        <div style={{ order: enabledDashboards.indexOf("prs") }}>
+        <div style={{ order: dashOrder("prs") }}>
         {isDashEnabled("prs") ? sessions.length > 0 && (() => {
           const prMap = {};
           sessions.forEach(s => {
@@ -5630,7 +5627,7 @@ import "./styles.css";
         })() : null}
         </div>
 
-        <div style={{ order: enabledDashboards.indexOf("volume") }}>
+        <div style={{ order: dashOrder("volume") }}>
         {isDashEnabled("volume") ? sessions.length > 0 && (() => {
           // Build last 4 weeks, label with date ranges
           const now = Date.now();
@@ -5692,22 +5689,22 @@ import "./styles.css";
         </div>
 
         {/* ── Sets by Muscle Group ── */}
-        <div style={{ order: enabledDashboards.indexOf("setsbygroup") }}>
+        <div style={{ order: dashOrder("setsbygroup") }}>
         {isDashEnabled("setsbygroup") && sessions.length > 0 && <SetsByMuscleGroup sessions={sessions} />}
         </div>
 
         {/* ── ACWR ── */}
-        <div style={{ order: enabledDashboards.indexOf("acwr") }}>
+        <div style={{ order: dashOrder("acwr") }}>
         {isDashEnabled("acwr") && sessions.length > 0 && <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />}
         </div>
 
         {/* ── Relative Strength ── */}
-        <div style={{ order: enabledDashboards.indexOf("relstrength") }}>
+        <div style={{ order: dashOrder("relstrength") }}>
         {isDashEnabled("relstrength") && sessions.length > 0 && <RelativeStrengthDashboard sessions={sessions} measurements={measurements} />}
         </div>
 
         {/* ── Training Density ── */}
-        <div style={{ order: enabledDashboards.indexOf("trainingdensity") }}>
+        <div style={{ order: dashOrder("trainingdensity") }}>
         {isDashEnabled("trainingdensity") && sessions.length > 0 && <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />}
         </div>
 
