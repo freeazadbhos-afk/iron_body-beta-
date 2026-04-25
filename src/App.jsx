@@ -4752,8 +4752,8 @@ import "./styles.css";
     const S = useS();
     const [order, setOrder] = useState([...activeDashOrder]);
     const [closing, setClosing] = useState(false);
-    const listRef = useRef(null);
-    const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(order, setOrder);
+    const [dragId, setDragId] = useState(null);   // id being dragged
+    const [dropId, setDropId] = useState(null);   // id of target slot
     const dismiss = (cb) => { setClosing(true); setTimeout(cb, 250); };
 
     const addedItems    = order.map(id => ALL_DASHBOARDS.find(d => d.id === id)).filter(Boolean);
@@ -4762,8 +4762,28 @@ import "./styles.css";
     const removeItem = (id) => setOrder(prev => prev.filter(x => x !== id));
     const addItem    = (id) => setOrder(prev => [...prev, id]);
 
+    const commitDrop = () => {
+      if (dragId && dropId && dragId !== dropId) {
+        setOrder(prev => {
+          const next = [...prev];
+          const from = next.indexOf(dragId);
+          const to   = next.indexOf(dropId);
+          if (from < 0 || to < 0) return prev;
+          next.splice(from, 1);
+          next.splice(to, 0, dragId);
+          return next;
+        });
+      }
+      setDragId(null);
+      setDropId(null);
+    };
+
     return (
-      <div style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "dashClose 0.2s ease-out forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+      <div
+        style={{ ...S.card, padding: 14, marginBottom: 10, animation: closing ? "dashClose 0.2s ease-out forwards" : "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}
+        onPointerUp={commitDrop}
+        onPointerCancel={() => { setDragId(null); setDropId(null); }}
+      >
         {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
@@ -4773,58 +4793,59 @@ import "./styles.css";
           </div>
         </div>
 
-        {/* Top — added dashboards (drag to reorder) */}
-        <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign: "left" }}>ON HOME SCREEN</div>
-        <div ref={listRef} style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
+        {/* ON HOME SCREEN — drag to reorder */}
+        <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ON HOME SCREEN</div>
+        <div style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
           {addedItems.length === 0 && (
             <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No dashboards added yet.</div>
           )}
-          {addedItems.map((d, exI) => {
-            const isBeingDragged = dragIdx === exI;
-            const isOver = insertIdx === exI && dragIdx !== null && insertIdx !== dragIdx;
-            const wasDropped = droppedIdx === exI;
+          {addedItems.map((d) => {
+            const isDragging = dragId === d.id;
+            const isTarget   = dropId === d.id && dragId !== null && dragId !== d.id;
             return (
               <div
                 key={d.id}
-                data-drag-item=""
+                onPointerEnter={() => { if (dragId && dragId !== d.id) setDropId(d.id); }}
                 style={{
-                  opacity: isBeingDragged ? 0.35 : 1,
-                  transition: "opacity .15s",
-                  animation: wasDropped
-                    ? (dropDir === "down" ? "dropFromAbove 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards" : "dropFromBelow 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards")
-                    : undefined,
+                  borderRadius: 8,
+                  background: isTarget ? `${th.accentBg}22` : "transparent",
+                  borderTop: isTarget ? `2px solid ${th.accentBg}` : "2px solid transparent",
+                  transition: "background 0.12s, border-color 0.12s",
                 }}
               >
-                {isOver && <DropLine />}
                 <div style={{
                   display:"flex", alignItems:"center", gap:8,
                   padding:"9px 0",
                   borderBottom: `1px solid ${th.border}`,
+                  opacity: isDragging ? 0.35 : 1,
+                  transition: "opacity .15s",
                 }}>
                   {/* Grip */}
                   <div
-                    onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); e.stopPropagation(); dragStart(e, exI, listRef); }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      setDragId(d.id);
+                      setDropId(null);
+                    }}
                     style={{ cursor:"grab", flexShrink:0, touchAction:"none", userSelect:"none", padding:"2px 8px 2px 2px" }}
                   >
                     <GripIcon />
                   </div>
-                  {/* Label only */}
-                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign: "left" }}>{d.label}</span>
-                  {/* Remove ✕ */}
+                  <span style={{ flex:1, fontSize:14, fontWeight:600, color:isTarget ? th.accentFg : th.text, textAlign:"left" }}>{d.label}</span>
                   <button
                     onClick={() => removeItem(d.id)}
-                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
+                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
                   >✕</button>
                 </div>
               </div>
             );
           })}
-          {insertIdx === addedItems.length && dragIdx !== null && <DropLine />}
         </div>
 
-        {/* Bottom — available (not on home) */}
+        {/* ADD TO HOME */}
         <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:10, marginTop: addedItems.length > 0 ? 8 : 0 }}>
-          <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign: "left" }}>ADD TO HOME</div>
+          <div style={{ fontSize:12, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ADD TO HOME</div>
           {availableItems.length === 0 ? (
             <div style={{ fontSize:12, color:th.muted, padding:"8px 0" }}>All dashboards are added.</div>
           ) : (
@@ -4834,14 +4855,13 @@ import "./styles.css";
                 padding:"9px 0",
                 borderBottom: i < availableItems.length - 1 ? `1px solid ${th.border}` : "none",
               }}>
-                <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign: "left" }}>{d.label}</span>
+                <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign:"left" }}>{d.label}</span>
                 <button
                   onClick={() => addItem(d.id)}
                   style={{
                     background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
                     backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
-                    border:"none",
-                    borderRadius:9, color:th.accentT,
+                    border:"none", borderRadius:9, color:th.accentT,
                     padding:"6px 14px", cursor:"pointer", fontSize:12,
                     fontFamily:"'Outfit',sans-serif", fontWeight:700, flexShrink:0,
                   }}
