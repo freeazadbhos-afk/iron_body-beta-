@@ -1357,7 +1357,7 @@ import "./styles.css";
     65.0, 67.5, 70.0, 72.5, 75.0, 77.5, 80.0, 82.5, 85.0, 87.5, 90.0, 92.5, 95.0,
     97.5, 100.0, 102.5, 105.0, 107.5, 110.0, 112.5, 115.0, 117.5, 120.0, 122.5,
     125.0, 127.5, 130.0, 132.5, 135.0, 137.5, 140.0,
-  ]; // ruler: 0–140 in 2.5kg steps
+  ]; // ruler: 0-140 in 2.5kg steps
   const GC = {
     Chest: "#CC1F42",
     Back: "#5B9CF6",
@@ -1413,7 +1413,10 @@ import "./styles.css";
     { id: "prs",        label: "Personal Records",      icon: "🏆" },
     { id: "volume",     label: "Weekly Volume",         icon: "📊" },
     { id: "setsbygroup", label: "Sets by Muscle Group", icon: "📋" },
-    { id: "acwr",        label: "Workload Ratio",        icon: "⚠️" },
+    { id: "acwr",           label: "Workload Ratio",           icon: "⚠️" },
+    { id: "volumeintensity",label: "Volume & Intensity",       icon: "📊" },
+    { id: "relstrength",    label: "Relative Strength",        icon: "🔢" },
+    { id: "trainingdensity",label: "Training Density",         icon: "⏱" },
   ];
   // Measurements: array of {date, weight, muscle, fat} entries
   function getMeasurements(uid) {
@@ -2407,7 +2410,7 @@ import "./styles.css";
                   }}
                 />
               </div>
-              {/* Quick-tap: all presets (0–140 in 10kg steps) */}
+              {/* Quick-tap: all presets (0-140 in 10kg steps) */}
               <div
                 style={{
                   display: "flex",
@@ -3949,15 +3952,28 @@ import "./styles.css";
 
                 {/* Bar track — fixed height */}
                 <div style={{ position:"relative", height: 12, borderRadius: 6, background: th.sect, overflow:"visible" }}>
-                  {/* Target zone band (always visible as background) */}
+                  {/* Zone 0: Maintenance 0-min (gray) */}
                   <div style={{
-                    position:"absolute", top: -2, bottom: -2,
+                    position:"absolute", top:-2, bottom:-2,
+                    left:0, width:`${minP}%`,
+                    background:"rgba(128,128,128,0.10)",
+                    zIndex:0,
+                  }} />
+                  {/* Zone 1: Optimal min-max (green tint) */}
+                  <div style={{
+                    position:"absolute", top:-2, bottom:-2,
                     left:`${minP}%`, width:`${maxP - minP}%`,
-                    background: `${th.accentBg}18`,
-                    borderLeft: `2px solid ${th.accentBg}60`,
-                    borderRight: `2px solid ${th.accentBg}60`,
-                    borderRadius: 0,
-                    zIndex: 0,
+                    background:`${th.accentBg}1A`,
+                    borderLeft:`2px solid ${th.accentBg}50`,
+                    borderRight:`2px solid ${th.accentBg}50`,
+                    zIndex:0,
+                  }} />
+                  {/* Zone 2: Junk volume max-FIXED_MAX (red tint) */}
+                  <div style={{
+                    position:"absolute", top:-2, bottom:-2,
+                    left:`${maxP}%`, right:0,
+                    background:"rgba(204,31,66,0.10)",
+                    zIndex:0,
                   }} />
 
                   {/* Stacked actual bar */}
@@ -3998,18 +4014,19 @@ import "./styles.css";
         </div>
 
         {/* Legend */}
-        <div style={{ display:"flex", gap: 12, marginTop: 4, flexWrap:"wrap", borderTop:`1px solid ${th.border}`, paddingTop: 10 }}>
-          {[
-            { render: () => <div style={{ width:18, height:10, borderRadius:2, background:`${th.accentBg}18`, border:`2px solid ${th.accentBg}60` }} />, label: "Target (10–20)" },
-            { render: () => <div style={{ width:10, height:10, borderRadius:2, background:th.accentBg }} />, label: "In range" },
-            { render: () => <div style={{ width:10, height:10, borderRadius:2, background:`${th.accentBg}70` }} />, label: "Below target" },
-            { render: () => <div style={{ width:10, height:10, borderRadius:2, background:th.delText }} />, label: "Exceeded" },
-          ].map(({ render, label }) => (
-            <div key={label} style={{ display:"flex", alignItems:"center", gap: 5 }}>
-              {render()}
-              <span style={{ fontSize: 12, color: th.dim }}>{label}</span>
-            </div>
-          ))}
+        <div style={{ display:"flex", gap:10, marginTop:6, flexWrap:"wrap", borderTop:`1px solid ${th.border}`, paddingTop:10 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <div style={{ width:14, height:10, borderRadius:2, background:"rgba(128,128,128,0.18)" }} />
+            <span style={{ fontSize:11, color:th.dim }}>Maintenance (0-9)</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <div style={{ width:14, height:10, borderRadius:2, background:`${th.accentBg}20`, border:`1px solid ${th.accentBg}55` }} />
+            <span style={{ fontSize:11, color:th.dim }}>Optimal (10-20)</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+            <div style={{ width:14, height:10, borderRadius:2, background:"rgba(204,31,66,0.14)" }} />
+            <span style={{ fontSize:11, color:th.dim }}>Excess (21+)</span>
+          </div>
         </div>
       </div>
     );
@@ -4131,8 +4148,8 @@ import "./styles.css";
         {/* Legend */}
         <div style={{ display:"flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
           {[
-            { col: th.accentBg, label: "Sweet spot  0.8–1.3" },
-            { col: APP_ORANGE, label: "High  1.3–1.5" },
+            { col: th.accentBg, label: "Sweet spot  0.8-1.3" },
+            { col: APP_ORANGE, label: "High  1.3-1.5" },
             { col: APP_RED,    label: "Deload  >1.5" },
           ].map(({ col, label }) => (
             <div key={label} style={{ display:"flex", alignItems:"center", gap: 5 }}>
@@ -4141,6 +4158,283 @@ import "./styles.css";
             </div>
           ))}
         </div>
+      </div>
+    );
+  }
+
+  /* ─── Volume & Intensity Dual-Axis Chart ───────────────────────────────────── */
+  function VolumeIntensityChart({ sessions, sessionVol }) {
+    const th = useTheme();
+    const S = useS();
+    const now = Date.now();
+    const W7 = 7 * 24 * 60 * 60 * 1000;
+    const weeks = Array.from({ length: 6 }, (_, i) => {
+      const end = now - i * W7; const start = end - W7;
+      const startD = new Date(start);
+      const fmt = d => d.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+      return { start, end, label: i === 0 ? "Now" : fmt(startD) };
+    }).reverse();
+
+    const weekVols = weeks.map(w =>
+      sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end)
+        .reduce((a,s) => a + sessionVol(s), 0)
+    );
+    const weekInts = weeks.map(w => {
+      const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.intensity||0) > 0);
+      return ws.length ? ws.reduce((a,s) => a + (s.intensity||0), 0) / ws.length : null;
+    });
+
+    const maxVol = Math.max(...weekVols, 1);
+    const hasData = weekVols.some(v => v > 0);
+    if (!hasData) return null;
+
+    const BAR_H = 64;
+    const W = 280; const H = 50; const R = 3;
+    // Line chart for intensity — only non-null points
+    const intPts = weeks.map((w, i) => ({ i, v: weekInts[i] })).filter(p => p.v != null);
+    const intMin = Math.min(...intPts.map(p => p.v), 0);
+    const intMax = Math.max(...intPts.map(p => p.v), 10);
+    const iRange = intMax - intMin || 1;
+    const ix = (i) => (i / (weeks.length - 1)) * W;
+    const iy = (v) => H - ((v - intMin) / iRange) * (H - R * 2) - R;
+    const linePath = intPts.length >= 2
+      ? intPts.map((p, j) => `${j === 0 ? "M" : "L"}${ix(p.i)},${iy(p.v)}`).join(" ")
+      : null;
+
+    const latestVol = weekVols[weekVols.length - 1];
+    const prevVol   = weekVols[weekVols.length - 2] || 0;
+    const volDelta  = latestVol - prevVol;
+    const volArrow  = volDelta > 0 ? "↑" : volDelta < 0 ? "↓" : null;
+    const volCol    = volDelta > 0 ? "#1db954" : "#CC1F42";
+    const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
+
+    return (
+      <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ ...S.label }}>VOLUME & INTENSITY</div>
+          <div style={{ textAlign:"right" }}>
+            <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+              {volArrow && <span style={{ fontSize:14, color:volCol, fontWeight:700 }}>{volArrow}</span>}
+              <span className="bebas" style={{ fontSize:26, color:th.accentFg, lineHeight:1 }}>{fmtV(latestVol)}</span>
+            </div>
+            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
+          </div>
+        </div>
+
+        {/* Bars (volume) + SVG line (intensity) overlaid */}
+        <div style={{ position:"relative" }}>
+          {/* Volume bars */}
+          <div style={{ display:"flex", gap:5, alignItems:"flex-end", height: BAR_H }}>
+            {weeks.map((w, i) => {
+              const v = weekVols[i];
+              const h = v > 0 ? Math.max(6, (v / maxVol) * BAR_H) : 3;
+              const isCur = i === weeks.length - 1;
+              return (
+                <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-end", height:"100%" }}>
+                  <div style={{
+                    width:"100%", height: h,
+                    background: isCur ? th.accentBg : `${th.accentBg}55`,
+                    borderRadius:"3px 3px 0 0",
+                  }} />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Intensity line overlay */}
+          {linePath && (
+            <svg viewBox={`0 0 ${W} ${H}`} width="100%"
+              style={{ position:"absolute", top:0, left:0, overflow:"visible", height: BAR_H, pointerEvents:"none" }}>
+              <path d={linePath} fill="none" stroke="#5B9CF6" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" />
+              {intPts.map((p) => (
+                <circle key={p.i} cx={ix(p.i)} cy={iy(p.v)} r={p.i === weeks.length-1 ? R+1 : R}
+                  fill={p.i === weeks.length-1 ? "#5B9CF6" : th.card} stroke="#5B9CF6" strokeWidth="1.5" />
+              ))}
+            </svg>
+          )}
+        </div>
+
+        {/* X-axis labels */}
+        <div style={{ display:"flex", gap:5, marginTop:3 }}>
+          {weeks.map((w,i) => (
+            <div key={i} style={{ flex:1, fontSize:7, color: i===weeks.length-1?th.accentFg:th.dim,
+              textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap", overflow:"hidden" }}>{w.label}</div>
+          ))}
+        </div>
+
+        {/* Legend */}
+        <div style={{ display:"flex", gap:12, marginTop:8 }}>
+          {[{ col:th.accentBg, label:"Volume" }, { col:"#5B9CF6", label:"Avg intensity /10" }].map(({col,label}) => (
+            <div key={label} style={{ display:"flex", alignItems:"center", gap:5 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:col }} />
+              <span style={{ fontSize:12, color:th.dim }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Relative Strength Multiplier ─────────────────────────────────────────── */
+  function RelativeStrengthDashboard({ sessions, measurements }) {
+    const th = useTheme();
+    const S = useS();
+
+    const bw = measurements?.[0]?.weight || null;
+    if (!bw) return null;
+
+    // Key lifts to display (id, label, movement)
+    const KEY_LIFTS = [
+      { ids: ["e92","e93","lg1"], label: "Squat",     target: 1.5 },
+      { ids: ["e1","e2","e51"],   label: "Bench",     target: 1.25 },
+      { ids: ["e59","e60"],       label: "Deadlift",  target: 2.0 },
+      { ids: ["e28","e29","e90"], label: "OHP",       target: 0.75 },
+    ];
+
+    const pr = {};
+    sessions.forEach(s => {
+      (s.exercises||[]).forEach(ex => {
+        if (!ex) return;
+        const id = ex.id || ex.exId;
+        const bestRm = Math.max(...(ex.sets||[]).filter(st=>st.done&&(st.weight||0)>0)
+          .map(st => st.weight * (1 + (st.reps||1)/30)), 0);
+        if (bestRm > 0 && (!pr[id] || bestRm > pr[id])) pr[id] = bestRm;
+      });
+    });
+
+    const rows = KEY_LIFTS.map(lift => {
+      const best = Math.max(...lift.ids.map(id => pr[id] || 0));
+      if (best === 0) return null;
+      const mult = best / bw;
+      return { ...lift, best, mult };
+    }).filter(Boolean);
+
+    if (!rows.length) return null;
+
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+        <div style={{ ...S.label, marginBottom:12 }}>RELATIVE STRENGTH</div>
+        <div style={{ fontSize:11, color:th.muted, marginBottom:12 }}>
+          Est. 1RM ÷ body weight ({bw}kg)
+        </div>
+        {rows.map(({ label, best, mult, target }) => {
+          const pct = Math.min((mult / (target * 1.5)) * 100, 100);
+          const col = mult >= target ? "#1db954" : mult >= target * 0.8 ? "#E8612C" : th.dim;
+          return (
+            <div key={label} style={{ marginBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+                <span style={{ fontSize:13, fontWeight:600, color:th.text }}>{label}</span>
+                <div style={{ textAlign:"right" }}>
+                  <span className="bebas" style={{ fontSize:22, color:col, lineHeight:1 }}>{mult.toFixed(2)}x</span>
+                  <span style={{ fontSize:10, color:th.dim }}> BW</span>
+                  <div style={{ fontSize:9, color:th.dim }}>target: {target}x</div>
+                </div>
+              </div>
+              <div style={{ position:"relative", height:8, borderRadius:4, background:th.sect }}>
+                {/* Target marker */}
+                <div style={{
+                  position:"absolute", top:-2, bottom:-2,
+                  left:`${(target/(target*1.5))*100}%`,
+                  width:2, background:`${th.accentBg}88`, borderRadius:1,
+                }} />
+                {/* Progress bar */}
+                <div style={{
+                  position:"absolute", top:0, bottom:0, left:0,
+                  width:`${pct}%`, background:col,
+                  borderRadius:4, transition:"width 0.5s ease",
+                }} />
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ display:"flex", gap:12, marginTop:4, flexWrap:"wrap" }}>
+          {[{ col:"#1db954",label:"At/above target" }, { col:"#E8612C",label:"Close (80%+)" }, { col:th.dim,label:"Building" }].map(({col,label})=>(
+            <div key={label} style={{ display:"flex", alignItems:"center", gap:4 }}>
+              <div style={{ width:8, height:8, borderRadius:"50%", background:col }} />
+              <span style={{ fontSize:12, color:th.dim }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  /* ─── Training Density (Tonnage per Minute) ─────────────────────────────────── */
+  function TrainingDensityDashboard({ sessions, sessionVol }) {
+    const th = useTheme();
+    const S = useS();
+    const now = Date.now();
+    const W7 = 7 * 24 * 60 * 60 * 1000;
+
+    const weeks = Array.from({ length: 6 }, (_, i) => {
+      const end = now - i * W7; const start = end - W7;
+      return { start, end };
+    }).reverse();
+
+    const densities = weeks.map(w => {
+      const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.duration||0) > 0);
+      if (!ws.length) return null;
+      const totalVol = ws.reduce((a,s) => a + sessionVol(s), 0);
+      const totalMins = ws.reduce((a,s) => a + (s.duration||0), 0);
+      return totalMins > 0 ? totalVol / totalMins : null;
+    });
+
+    const validPts = densities.map((d,i) => d != null ? { i, d } : null).filter(Boolean);
+    if (validPts.length < 2) return null;
+
+    const latest = densities[densities.length-1];
+    const prev = densities.slice(0,-1).reverse().find(d => d != null);
+    const delta = latest != null && prev != null ? latest - prev : null;
+    const arrow = delta != null ? (delta > 0 ? "↑" : delta < 0 ? "↓" : null) : null;
+    const arrowCol = delta > 0 ? "#1db954" : "#CC1F42";
+
+    const dMax = Math.max(...validPts.map(p => p.d), 1);
+    const dMin = Math.min(...validPts.map(p => p.d), 0);
+    const dRange = dMax - dMin || 1;
+    const W = 280; const H = 56; const R = 3;
+    const ix = (i) => (i / (weeks.length - 1)) * W;
+    const iy = (d) => H - ((d - dMin) / dRange) * (H - R*2) - R;
+    const linePath = validPts.map((p,j) => `${j===0?"M":"L"}${ix(p.i)},${iy(p.d)}`).join(" ");
+    const areaPath = `${linePath} L${ix(validPts[validPts.length-1].i)},${H+4} L${ix(validPts[0].i)},${H+4} Z`;
+    const fmtD = d => d >= 100 ? `${Math.round(d)}` : d.toFixed(1);
+
+    return (
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div>
+            <div style={{ ...S.label }}>TRAINING DENSITY</div>
+            <div style={{ fontSize:11, color:th.muted, marginTop:2 }}>Volume ÷ Duration</div>
+          </div>
+          {latest != null && (
+            <div style={{ textAlign:"right" }}>
+              <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
+                {arrow && <span style={{ fontSize:14, color:arrowCol, fontWeight:700 }}>{arrow}</span>}
+                <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtD(latest)}</span>
+              </div>
+              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG/MIN</div>
+            </div>
+          )}
+        </div>
+        <svg viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible" }}>
+          <path d={areaPath} fill={th.accentBg} opacity="0.08" />
+          <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2"
+            strokeLinecap="round" strokeLinejoin="round" />
+          {validPts.map((p,j) => (
+            <g key={p.i}>
+              <circle cx={ix(p.i)} cy={iy(p.d)} r={p.i===weeks.length-1?R+1:R}
+                fill={p.i===weeks.length-1?th.accentBg:th.card} stroke={th.accentBg} strokeWidth="1.5" />
+              {(j===0 || p.i===weeks.length-1) && (
+                <text x={ix(p.i)} y={H+14}
+                  textAnchor={j===0?"start":"end"}
+                  fontSize="9" fill={p.i===weeks.length-1?th.accentFg:th.dim}
+                  fontFamily="Outfit,sans-serif" fontWeight={p.i===weeks.length-1?"700":"400"}>
+                  {fmtD(p.d)}kg/min
+                </text>
+              )}
+            </g>
+          ))}
+        </svg>
       </div>
     );
   }
@@ -5261,7 +5555,7 @@ import "./styles.css";
             const start = end - 7 * 24 * 60 * 60 * 1000;
             const startD = new Date(start); const endD = new Date(end - 1);
             const fmt = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
-            const label = `${fmt(startD)}–${fmt(endD)}`;
+            const label = `${fmt(startD)}-${fmt(endD)}`;
             return { start, end, label };
           }).reverse();
           const weekVols = weeks.map(w => {
@@ -5318,6 +5612,21 @@ import "./styles.css";
         {/* ── ACWR ── */}
         <div style={{ order: enabledDashboards.indexOf("acwr") }}>
         {isDashEnabled("acwr") && sessions.length > 0 && <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />}
+        </div>
+
+        {/* ── Volume & Intensity Dual-Axis ── */}
+        <div style={{ order: enabledDashboards.indexOf("volumeintensity") }}>
+        {isDashEnabled("volumeintensity") && sessions.length > 0 && <VolumeIntensityChart sessions={sessions} sessionVol={sessionVol} />}
+        </div>
+
+        {/* ── Relative Strength ── */}
+        <div style={{ order: enabledDashboards.indexOf("relstrength") }}>
+        {isDashEnabled("relstrength") && sessions.length > 0 && <RelativeStrengthDashboard sessions={sessions} measurements={measurements} />}
+        </div>
+
+        {/* ── Training Density ── */}
+        <div style={{ order: enabledDashboards.indexOf("trainingdensity") }}>
+        {isDashEnabled("trainingdensity") && sessions.length > 0 && <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />}
         </div>
 
         </div>{/* end dashboards flex column */}
@@ -5597,7 +5906,7 @@ import "./styles.css";
       {
         icon: "⚡",
         title: "Rate Your Intensity",
-        body: "After finishing, rate how hard you pushed (1–10). This feeds your Intensity dashboard and helps you spot patterns over time.",
+        body: "After finishing, rate how hard you pushed (1-10). This feeds your Intensity dashboard and helps you spot patterns over time.",
       },
       {
         icon: "✦",
@@ -9117,7 +9426,7 @@ import "./styles.css";
                     Dark mode
                   </div>
                   <div style={{ fontSize: 11, color: th.muted, marginTop: 2, textAlign: "left", }}>
-                    Auto: dark 19:00–06:00
+                    Auto: dark 19:00-06:00
                   </div>
                 </div>
                 {/* Toggle pill */}
@@ -11485,7 +11794,7 @@ import "./styles.css";
                       >›</button>
                     </div>
                     <div key={calOffset} style={{ overflow: "hidden", animation: calDir < 0 ? "calSlideInRight 0.22s ease-out" : "calSlideInLeft 0.22s ease-out" }}>
-                    {/* Day-of-week headers Mon–Sun */}
+                    {/* Day-of-week headers Mon-Sun */}
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
                       {["M","T","W","T","F","S","S"].map((d, i) => (
                         <div key={i} style={{ textAlign: "center", fontSize: 13, color: th.dim, fontWeight: 700 }}>{d}</div>
