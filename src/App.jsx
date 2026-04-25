@@ -3599,7 +3599,7 @@ import "./styles.css";
           background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
           backdropFilter: "blur(10px)",
           WebkitBackdropFilter: "blur(10px)",
-          padding: "10px 16px",
+          padding: 16,
           marginBottom: 12,
           borderRadius: 13,
           cursor: "pointer",
@@ -3855,34 +3855,45 @@ import "./styles.css";
     const th = useTheme();
     const [open, setOpen] = useState(false);
     return (
-      <div style={{ position:"relative", display:"inline-flex" }}>
+      <>
         <button
           onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
           style={{
             background:"none", border:"none", cursor:"pointer",
             fontSize:13, lineHeight:1, padding:"0 2px",
             color: open ? th.accentFg : th.dim, opacity: open ? 1 : 0.55,
-            fontWeight:700,
+            fontWeight:700, flexShrink:0,
           }}>ⓘ</button>
-        {open && (
+        {open && createPortal(
           <div
-            onClick={e => e.stopPropagation()}
+            onClick={() => setOpen(false)}
             style={{
-              position:"absolute", top:"calc(100% + 6px)", left:0,
-              zIndex:100, width:220,
-              background: th.card, border:`1px solid ${th.border}`,
-              borderRadius:10, padding:"10px 12px",
-              boxShadow:"0 4px 20px rgba(0,0,0,0.18)",
-              fontSize:12, color:th.muted, lineHeight:1.5,
+              position:"fixed", inset:0, zIndex:9999,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              padding:"0 28px",
+              background:"rgba(0,0,0,0.35)",
             }}>
-            {text}
-            <button onClick={() => setOpen(false)} style={{
-              display:"block", marginTop:8, background:"none", border:"none",
-              cursor:"pointer", fontSize:11, color:th.accentFg, fontWeight:700, padding:0,
-            }}>Got it</button>
-          </div>
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background:th.card, border:`1px solid ${th.border}`,
+                borderRadius:14, padding:"18px 16px",
+                maxWidth:360, width:"100%",
+                boxShadow:"0 8px 32px rgba(0,0,0,0.35)",
+                fontSize:13, color:th.muted, lineHeight:1.6,
+                animation:"shortcutListIn 0.22s cubic-bezier(0,0,0.2,1)",
+              }}>
+              <div style={{ fontWeight:700, color:th.text, fontSize:13, marginBottom:8 }}>About this dashboard</div>
+              {text}
+              <button onClick={() => setOpen(false)} style={{
+                display:"block", marginTop:12, background:"none", border:"none",
+                cursor:"pointer", fontSize:12, color:th.accentFg, fontWeight:700, padding:0,
+              }}>Got it ✓</button>
+            </div>
+          </div>,
+          document.body
         )}
-      </div>
+      </>
     );
   }
 
@@ -4261,7 +4272,7 @@ import "./styles.css";
     const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
 
     return (
-      <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <div style={{ ...S.label }}>VOLUME & INTENSITY</div>
           <div style={{ textAlign:"right" }}>
@@ -4447,7 +4458,7 @@ import "./styles.css";
     const fmtD = d => d >= 100 ? Math.round(d) : d.toFixed(1);
 
     return (
-      <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>TRAINING DENSITY</div>
@@ -5034,7 +5045,7 @@ import "./styles.css";
           const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
 
           return (
-            <div style={{ ...S.card, padding: "12px 12px 10px", marginBottom: 10, textAlign: "left" }}>
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
               <style>{`
                 @keyframes streakSlideL { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
                 @keyframes streakSlideR { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
@@ -5106,7 +5117,7 @@ import "./styles.css";
         {sessions.length > 0 && (
           <>
             {isDashEnabled("intensity") && <div style={{ order: enabledDashboards.indexOf("intensity") }}><div
-              style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}
+              style={{ ...S.card, padding: 16, marginBottom: 16 }}
             >
               <div
                 style={{
@@ -5255,7 +5266,7 @@ import "./styles.css";
               </div>
             </div></div>}
 
-            {isDashEnabled("calories") && <div style={{ order: enabledDashboards.indexOf("calories") }}><div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 16 }}>
+            {isDashEnabled("calories") && <div style={{ order: enabledDashboards.indexOf("calories") }}><div style={{ ...S.card, padding: 16, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>CALORIES BURNED</div>
@@ -5644,7 +5655,7 @@ import "./styles.css";
           const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
           if (weekVols.every(v => v === 0)) return null;
           return (
-            <div style={{ ...S.card, padding: "14px 14px 10px", marginBottom: 10, textAlign:"left" }}>
+            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>WEEKLY VOLUME</div>
