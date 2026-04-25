@@ -12241,12 +12241,12 @@ import "./styles.css";
         <>
           <style>{`
             @keyframes profileSheetIn {
-              from { transform: translateY(100%); }
-              to   { transform: translateY(0); }
+              from { transform: translateY(100%); opacity: 0.6; }
+              to   { transform: translateY(0);    opacity: 1; }
             }
             @keyframes profileSheetOut {
-              from { transform: translateY(0); }
-              to   { transform: translateY(100%); }
+              from { transform: translateY(0);    opacity: 1; }
+              to   { transform: translateY(100%); opacity: 0; }
             }
             @keyframes profileBackdropIn {
               from { opacity: 0; }
@@ -12258,138 +12258,95 @@ import "./styles.css";
             }
           `}</style>
 
-          {/* Backdrop */}
+          {/* Outer — backdrop + centering shell, click outside to close */}
           <div
             onClick={closeProfile}
             style={{
               position: "fixed",
               inset: 0,
-              zIndex: 60,
               background: "rgba(0,0,0,0.52)",
-              backdropFilter: "blur(5px)",
-              WebkitBackdropFilter: "blur(5px)",
-              animation: profileClosing
-                ? "profileBackdropOut 0.36s ease forwards"
-                : "profileBackdropIn 0.3s ease forwards",
-            }}
-          />
-
-          {/* Centering wrapper — static, matches app shell bounds with side margins */}
-          <div style={{
-            position: "fixed",
-            top: "calc(72px + env(safe-area-inset-top, 0px))",
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: "calc(100% - 24px)",
-            maxWidth: 456,
-            bottom: 0,
-            zIndex: 61,
-            pointerEvents: "none",
-          }}>
-          {/* Animated sheet — only translateY, no centering conflict */}
-          <div
-            style={{
-              width: "100%",
-              height: "100%",
-              background: `color-mix(in srgb, ${th.bg} 88%, transparent)`,
-              backdropFilter: "blur(28px) saturate(1.5)",
-              WebkitBackdropFilter: "blur(28px) saturate(1.5)",
-              borderRadius: "28px 28px 0 0",
-              boxShadow: "0 -8px 40px rgba(0,0,0,0.35)",
+              backdropFilter: "blur(6px)",
+              WebkitBackdropFilter: "blur(6px)",
+              zIndex: 60,
               display: "flex",
               flexDirection: "column",
-              overflow: "hidden",
-              pointerEvents: "auto",
+              maxWidth: 480,
+              margin: "0 auto",
               animation: profileClosing
-                ? "profileSheetOut 0.36s cubic-bezier(0.4,0,1,1) forwards"
-                : "profileSheetIn 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
+                ? "profileBackdropOut 0.36s ease forwards"
+                : "profileBackdropIn 0.28s ease forwards",
             }}
           >
-            {/* Drag handle + title bar */}
-            <div style={{
-              flexShrink: 0,
-              borderBottom: `1px solid ${th.border}`,
-            }}>
-              {/* Pill handle — centred above the title row */}
-              <div style={{
+            {/* Sheet — stops click propagation so tapping inside doesn't close */}
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: `color-mix(in srgb, ${th.card} 88%, transparent)`,
+                backdropFilter: "blur(28px) saturate(1.5)",
+                WebkitBackdropFilter: "blur(28px) saturate(1.5)",
+                borderRadius: "24px 24px 0 0",
+                borderTop: `1px solid ${th.border}`,
+                marginTop: "calc(72px + env(safe-area-inset-top, 0px))",
                 display: "flex",
-                justifyContent: "center",
-                paddingTop: 10,
-                paddingBottom: 6,
-              }}>
-                <div style={{
-                  width: 36,
-                  height: 4,
-                  borderRadius: 2,
-                  background: th.inputB,
-                }} />
+                flexDirection: "column",
+                flex: 1,
+                overflow: "hidden",
+                animation: profileClosing
+                  ? "profileSheetOut 0.36s cubic-bezier(0.4,0,1,1) forwards"
+                  : "profileSheetIn 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
+              }}
+            >
+              {/* Header */}
+              <div style={{ padding: "14px 16px 6px", flexShrink: 0, borderBottom: `1px solid ${th.border}` }}>
+                {/* Pill handle */}
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                  <div style={{ width: 36, height: 4, borderRadius: 2, background: th.inputB }} />
+                </div>
+                {/* Title row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div className="bebas" style={{ fontSize: 40, letterSpacing: 2, color: th.text, lineHeight: 1 }}>
+                    PROFILE
+                  </div>
+                  <button
+                    onClick={closeProfile}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: th.muted,
+                      fontSize: 28,
+                      cursor: "pointer",
+                      lineHeight: 1,
+                      padding: "4px 6px",
+                      fontFamily: "system-ui, sans-serif",
+                    }}
+                  >✕</button>
+                </div>
               </div>
 
-              {/* Title row — matches universal header style */}
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                paddingLeft: 16,
-                paddingRight: 12,
-                paddingBottom: 4,
-                minHeight: 32,
-              }}>
-                <div className="bebas" style={{
-                  fontSize: 40,
-                  letterSpacing: 2,
-                  color: th.text,
-                  lineHeight: 1,
-                }}>PROFILE</div>
-
-                {/* X button — top right, large touch target */}
-                <button
-                  onClick={closeProfile}
-                  style={{
-                    background: `color-mix(in srgb, ${th.card} 70%, transparent)`,
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
-                    border: `1px solid ${th.border}`,
-                    borderRadius: "50%",
-                    width: 40,
-                    height: 40,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    color: th.muted,
-                    fontSize: 16,
-                    lineHeight: 1,
-                    flexShrink: 0,
+              {/* Scrollable content */}
+              <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8 }}>
+                <ProfileView
+                  user={user}
+                  sessions={sessions}
+                  measurements={measurements}
+                  onSaveMeasurement={saveMeasurements}
+                  theme={theme}
+                  themeAuto={themeAuto}
+                  active={active}
+                  elapsed={elapsed}
+                  onLogout={handleLogout}
+                  onUpdateUser={(u) => setUser(u)}
+                  onThemeChange={(t) => setTheme(t)}
+                  onThemeAutoToggle={(auto) => {
+                    setThemeAuto(auto);
+                    if (auto) setTheme(getAutoTheme());
                   }}
-                >✕</button>
+                  onGoWorkout={() => { closeProfile(); setTimeout(() => setView("workout"), 380); }}
+                  onClearUnread={() => setUnreadFeedback(0)}
+                  onClose={closeProfile}
+                />
               </div>
             </div>
-
-            {/* Scrollable profile content */}
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8 }}>
-              <ProfileView
-                user={user}
-                sessions={sessions}
-                measurements={measurements}
-                onSaveMeasurement={saveMeasurements}
-                theme={theme}
-                themeAuto={themeAuto}
-                active={active}
-                elapsed={elapsed}
-                onLogout={handleLogout}
-                onUpdateUser={(u) => setUser(u)}
-                onThemeChange={(t) => setTheme(t)}
-                onThemeAutoToggle={(auto) => {
-                  setThemeAuto(auto);
-                  if (auto) setTheme(getAutoTheme());
-                }}
-                onGoWorkout={() => { closeProfile(); setTimeout(() => setView("workout"), 380); }}
-                onClearUnread={() => setUnreadFeedback(0)}
-                onClose={closeProfile}
-              />
-            </div>
-          </div>
           </div>
         </>
       )}
