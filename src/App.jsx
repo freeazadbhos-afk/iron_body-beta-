@@ -11524,13 +11524,76 @@ import "./styles.css";
               <div style={{
                 background: `color-mix(in srgb, ${th.bg} 25%, transparent)`,
                 backdropFilter: "blur(12px)",
-                WebkitBackdropFilter: "blur(12px)", // Crucial for Safari compatibility
+                WebkitBackdropFilter: "blur(12px)",
                 paddingTop: "calc(14px + env(safe-area-inset-top, 0px))",
                 paddingRight: "16px",
                 paddingBottom: "1px",
                 paddingLeft: "16px",
                 pointerEvents: "auto",
+                position: "relative",
               }}>
+              {/* Profile icon — absolutely positioned into the top padding space, doesn't affect row height */}
+              {view === "home" && (
+                <button
+                  onClick={() => setView("profile")}
+                  style={{
+                    position: "absolute",
+                    top: "calc(env(safe-area-inset-top, 0px) + 6px)",
+                    right: 16,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2,
+                  }}
+                >
+                  {user?.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt="profile"
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        border: `2px solid ${th.border}`,
+                      }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "50%",
+                      background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
+                      border: `1.5px solid ${th.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}>
+                      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                        <circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2" />
+                        <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                  )}
+                  {unreadFeedback > 0 && (
+                    <div style={{
+                      position: "absolute",
+                      top: 1,
+                      right: 1,
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      background: "#CC1F42",
+                      border: `2px solid ${th.bg}`,
+                      animation: "pulse 1.5s ease-in-out infinite",
+                    }} />
+                  )}
+                </button>
+              )}
               <div style={{ pointerEvents: "auto" }}>
               <div
                 style={{
@@ -11610,66 +11673,6 @@ import "./styles.css";
                     ? selShortcut?.name || "SHORTCUT"
                     : ""}
                 </div>
-                {/* Profile icon — only shown on Home tab, top-right of header */}
-                {view === "home" && (
-                  <button
-                    onClick={() => setView("profile")}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: 0,
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      position: "relative",
-                    }}
-                  >
-                    {user?.photoURL ? (
-                      <img
-                        src={user.photoURL}
-                        alt="profile"
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: "50%",
-                          objectFit: "cover",
-                          border: `2px solid ${th.border}`,
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: "50%",
-                        background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
-                        border: `1.5px solid ${th.border}`,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}>
-                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                          <circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2" />
-                          <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round" />
-                        </svg>
-                      </div>
-                    )}
-                    {unreadFeedback > 0 && (
-                      <div style={{
-                        position: "absolute",
-                        top: 1,
-                        right: 1,
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        background: "#CC1F42",
-                        border: `2px solid ${th.bg}`,
-                        animation: "pulse 1.5s ease-in-out infinite",
-                      }} />
-                    )}
-                  </button>
-                )}
 
               </div>
               </div>
