@@ -12274,14 +12274,14 @@ import "./styles.css";
             }}
           />
 
-          {/* Centering wrapper — static, matches app shell bounds exactly */}
+          {/* Centering wrapper — static, matches app shell bounds with side margins */}
           <div style={{
             position: "fixed",
             top: "calc(72px + env(safe-area-inset-top, 0px))",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "100%",
-            maxWidth: 480,
+            width: "calc(100% - 24px)",
+            maxWidth: 456,
             bottom: 0,
             zIndex: 61,
             pointerEvents: "none",
@@ -12367,7 +12367,7 @@ import "./styles.css";
             </div>
 
             {/* Scrollable profile content */}
-            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8 }}>
               <ProfileView
                 user={user}
                 sessions={sessions}
