@@ -1470,12 +1470,12 @@ import "./styles.css";
   }
   /* ─── Drag-to-reorder (Todoist-style: card sticks to pointer) ───────────────── */
   function useDragSort(items, setItems) {
-    const [dragIdx, setDragIdx] = useState(null);
-    const [insertIdx, setInsertIdx] = useState(null);
+    const [dragIdx,    setDragIdx]    = useState(null);
+    const [insertIdx,  setInsertIdx]  = useState(null);
     const [droppedIdx, setDroppedIdx] = useState(null);
-    const [dropDir, setDropDir] = useState(null);
-    const itemRects = useRef([]);
-    const dragIdxRef = useRef(null);
+    const [dropDir,    setDropDir]    = useState(null);
+    const itemRects   = useRef([]);
+    const dragIdxRef  = useRef(null);
     const insertIdxRef = useRef(null);
 
     const start = (e, idx, containerRef) => {
@@ -1485,17 +1485,16 @@ import "./styles.css";
       const children = containerRef.current
         ? Array.from(containerRef.current.querySelectorAll("[data-drag-item]"))
         : [];
-      itemRects.current = children.map((c) => c.getBoundingClientRect());
-      dragIdxRef.current = idx;
+      itemRects.current = children.map((el) => el.getBoundingClientRect());
+      dragIdxRef.current  = idx;
       insertIdxRef.current = idx;
       setDragIdx(idx);
       setInsertIdx(idx);
 
       const onMove = (ev) => {
-        if (!hasMoved && Math.abs((ev.touches ? ev.touches[0].clientY : ev.clientY) - startY) > 4) {
-          hasMoved = true;
-        }
+        if (ev.cancelable) ev.preventDefault();
         const clientY = ev.touches ? ev.touches[0].clientY : ev.clientY;
+        if (!hasMoved && Math.abs(clientY - startY) > 4) hasMoved = true;
         const rects = itemRects.current;
         let insert = 0;
         for (let i = 0; i < rects.length; i++) {
@@ -1526,20 +1525,20 @@ import "./styles.css";
             setTimeout(() => { setDroppedIdx(null); setDropDir(null); }, 480);
           }
         }
-        dragIdxRef.current = null;
+        dragIdxRef.current  = null;
         insertIdxRef.current = null;
         setDragIdx(null);
         setInsertIdx(null);
         window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onEnd);
-        window.removeEventListener("touchmove", onMove);
-        window.removeEventListener("touchend", onEnd);
+        window.removeEventListener("pointerup",   onEnd);
+        window.removeEventListener("touchmove",   onMove);
+        window.removeEventListener("touchend",    onEnd);
       };
 
       window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onEnd);
-      window.addEventListener("touchmove", onMove, { passive: false });
-      window.addEventListener("touchend", onEnd);
+      window.addEventListener("pointerup",   onEnd);
+      window.addEventListener("touchmove",   onMove, { passive: false });
+      window.addEventListener("touchend",    onEnd);
     };
 
     return { dragIdx, insertIdx, droppedIdx, dropDir, start };
@@ -4762,7 +4761,7 @@ import "./styles.css";
         </div>
 
         <div style={{ fontSize:10, color:th.accentFg, letterSpacing:"1.2px", marginBottom:6, fontWeight:700, textAlign:"left" }}>ON HOME SCREEN</div>
-        <div ref={listRef} style={{ marginBottom: availableItems.length > 0 ? 12 : 0 }}>
+        <div ref={listRef}>
           {addedItems.length === 0 && (
             <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No dashboards added yet.</div>
           )}
