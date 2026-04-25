@@ -4866,8 +4866,6 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
-    const [editShortcuts, setEditShortcuts] = useState(false);
-    const [addingShortcut, setAddingShortcut] = useState(false);
     const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
     const [streakDir, setStreakDir] = useState(1);
     const [editingDashboards, setEditingDashboards] = useState(false);
@@ -4879,11 +4877,6 @@ import "./styles.css";
     const dashOrder = (id) => { const i = enabledDashboards.indexOf(id); return i >= 0 ? i : 999; };
     const isDashEnabled = (id) => enabledDashboards.includes(id);
     const cancelDashEdit = () => setEditingDashboards(false);
-    const [removingShortcut, setRemovingShortcut] = useState(null);
-    const animatedRemoveFromHome = (pid) => {
-      setRemovingShortcut(pid);
-      setTimeout(() => { removeFromHome(pid); setRemovingShortcut(null); }, 310);
-    };
     const today = new Date();
     const dow = today
       .toLocaleDateString("en-US", {
@@ -5705,247 +5698,253 @@ import "./styles.css";
 
         </div>{/* end dashboards flex column */}
 
-        {/* Shortcuts */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 12,
-          }}
-        >
-          <div style={S.label}>MY SHORTCUTS</div>
-          <button
-            onClick={() => {
-              setEditShortcuts((e) => !e);
-              setAddingShortcut(false);
-              setEditingShortcutProg(null);
-            }}
-            style={{
-              background: "none",
-              border: "none",
-              color: editShortcuts ? th.accentFg : th.dim,
-              fontSize: 12,
-              cursor: "pointer",
-              fontFamily: "'Outfit',sans-serif",
-              fontWeight: 700,
-            }}
-          >
-            {editShortcuts ? "DONE" : "EDIT ✎"}
-          </button>
-        </div>
 
-        {shownPrograms.length === 0 && !editShortcuts && (
-          <div
-            style={{
-              ...S.card,
-              padding: "22px 18px",
-              textAlign: "center",
-              marginBottom: 16,
-            }}
-          >
-            <div style={{ color: th.sub, fontSize: 14 }}>No shortcuts yet.</div>
-            <div style={{ color: th.muted, fontSize: 12, marginTop: 5 }}>
-              Tap EDIT to pin programs here.
+
+      </div>
+    );
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════════════
+    SHARING VIEW
+  ═══════════════════════════════════════════════════════════════════════════════ */
+  function SharingView({ user }) {
+    const th = useTheme();
+    const S = useS();
+    const [inviteEmail, setInviteEmail] = useState("");
+    const [inviteSent, setInviteSent] = useState(false);
+    const [showInvitePanel, setShowInvitePanel] = useState(false);
+
+    // Mock friends data — will be replaced with real Firebase data in a future update
+    const MOCK_FRIENDS = [];
+    const MOCK_PENDING = [];
+
+    const handleSendInvite = () => {
+      if (!inviteEmail.trim()) return;
+      setInviteSent(true);
+      setTimeout(() => {
+        setInviteSent(false);
+        setInviteEmail("");
+        setShowInvitePanel(false);
+      }, 2200);
+    };
+
+    return (
+      <div className="slide-up" style={{ paddingBottom: 90 }}>
+        <style>{`
+          @keyframes sharingFadeUp {
+            from { opacity: 0; transform: translateY(14px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes invitePop {
+            from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+            to   { opacity: 1; transform: scale(1) translateY(0); }
+          }
+          @keyframes sentBounce {
+            0%   { transform: scale(0.7); opacity: 0; }
+            60%  { transform: scale(1.12); opacity: 1; }
+            100% { transform: scale(1); }
+          }
+        `}</style>
+
+        {/* ── Hero empty state ── */}
+        {MOCK_FRIENDS.length === 0 && (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            textAlign: "center", paddingTop: 24, paddingBottom: 8,
+            animation: "sharingFadeUp 0.4s cubic-bezier(0,0,0.2,1) forwards",
+          }}>
+            {/* Illustration */}
+            <div style={{
+              width: 100, height: 100, borderRadius: "50%", marginBottom: 20,
+              background: `color-mix(in srgb, ${th.accentBg} 10%, ${th.card})`,
+              border: `1.5px solid ${th.border}`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                {/* Two people */}
+                <circle cx="18" cy="16" r="7" stroke={th.accentFg} strokeWidth="2.2" />
+                <path d="M4 44c0-7.732 6.268-14 14-14" stroke={th.accentFg} strokeWidth="2.2" strokeLinecap="round" />
+                <circle cx="34" cy="16" r="7" stroke={th.accentFg} strokeWidth="2.2" />
+                <path d="M48 44c0-7.732-6.268-14-14-14" stroke={th.accentFg} strokeWidth="2.2" strokeLinecap="round" />
+                {/* Trophy/star in the middle */}
+                <circle cx="26" cy="34" r="6" fill={`${th.accentBg}22`} stroke={th.accentFg} strokeWidth="1.8" />
+                <text x="26" y="38" textAnchor="middle" fontSize="8" fill={th.accentFg} fontFamily="Outfit,sans-serif" fontWeight="700">★</text>
+              </svg>
+            </div>
+            <div className="bebas" style={{ fontSize: 26, letterSpacing: 2, color: th.text, marginBottom: 8 }}>
+              TRAIN TOGETHER
+            </div>
+            <div style={{ fontSize: 14, color: th.muted, lineHeight: 1.6, maxWidth: 280, marginBottom: 28 }}>
+              Add friends to see their progress, celebrate their wins, and compete on workouts — just like Apple Fitness, but iron-clad.
             </div>
           </div>
         )}
-        {(shownPrograms.length > 0 || editShortcuts) && (
-          <div
+
+        {/* ── Invite a Friend button / panel ── */}
+        {!showInvitePanel ? (
+          <button
+            onClick={() => setShowInvitePanel(true)}
             style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 8,
-              marginBottom: editShortcuts ? 8 : 16,
+              width: "100%",
+              background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: "none",
+              borderRadius: 16,
+              padding: "16px 20px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              fontFamily: "'Outfit',sans-serif",
+              fontWeight: 700,
+              fontSize: 15,
+              color: th.accentT,
+              letterSpacing: "0.5px",
+              marginBottom: 20,
+              animation: "sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both",
             }}
           >
-            {shownPrograms.map((p) => (
-              <div key={p.id} style={{ position: "relative",
-                animation: removingShortcut === p.id ? "removeSlide 0.31s ease-in forwards" : undefined }}>
-                {/* Remove-from-home ✕ */}
-                {editShortcuts && (
-                  <button
-                    onClick={() => animatedRemoveFromHome(p.id)}
-                    style={{
-                      position: "absolute",
-                      top: 7,
-                      right: 7,
-                      zIndex: 5,
-                      background: "rgba(220,50,50,0.15)",
-                      border: "1px solid rgba(220,50,50,0.3)",
-                      borderRadius: 7,
-                      width: 22,
-                      height: 22,
-                      cursor: "pointer",
-                      color: th.delText,
-                      fontSize: 12,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      lineHeight: 1,
-                    }}
-                  >
-                    ✕
-                  </button>
-                )}
-                <div
-                  onClick={() => !editShortcuts && onOpenShortcut(p)}
+            <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+              <circle cx="9" cy="7.5" r="3.5" stroke={th.accentT} strokeWidth="2" />
+              <path d="M1 19.5c0-4.418 3.582-8 8-8" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
+              <line x1="17" y1="11" x2="17" y2="19" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
+              <line x1="13" y1="15" x2="21" y2="15" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            INVITE A FRIEND
+          </button>
+        ) : (
+          <div style={{
+            ...S.card, padding: 18, marginBottom: 20,
+            animation: "invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={S.label}>SEND INVITATION</div>
+              <button onClick={() => { setShowInvitePanel(false); setInviteEmail(""); setInviteSent(false); }}
+                style={{ background: "none", border: "none", color: th.muted, cursor: "pointer", fontSize: 16 }}>✕</button>
+            </div>
+            {inviteSent ? (
+              <div style={{
+                textAlign: "center", padding: "18px 0",
+                animation: "sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards",
+              }}>
+                <div style={{ fontSize: 32, marginBottom: 8 }}>✓</div>
+                <div style={{ color: th.accentFg, fontWeight: 700, fontSize: 15 }}>Invitation sent!</div>
+                <div style={{ color: th.muted, fontSize: 12, marginTop: 4 }}>They'll get a link to join Iron Body.</div>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 13, color: th.muted, marginBottom: 12, lineHeight: 1.5 }}>
+                  Enter your friend's email. Once they accept, you'll both be able to see each other's workout activity.
+                </div>
+                <input
+                  type="email"
+                  placeholder="friend@example.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
+                  style={{ ...S.input, marginBottom: 12 }}
+                  autoFocus
+                />
+                <button
+                  onClick={handleSendInvite}
+                  disabled={!inviteEmail.trim()}
                   style={{
                     width: "100%",
-                    background: `color-mix(in srgb, ${th.card} 35%, transparent)`,
-                    backdropFilter: "blur(12px)",
-                    WebkitBackdropFilter: "blur(12px)",
-                    border: `1px solid ${editShortcuts ? th.accentBg + "44" : th.border}`,
-                    borderRadius: 14,
-                    padding: "15px 13px",
-                    textAlign: "left",
-                    transition: "border-color .25s",
-                    cursor: editShortcuts ? "default" : "pointer",
-                    animation: editShortcuts ? "shortcutBtnIn 0.28s cubic-bezier(0,0,0.2,1) forwards" : undefined,
+                    background: inviteEmail.trim()
+                      ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)`
+                      : th.inputB,
+                    border: "none",
+                    borderRadius: 12,
+                    padding: "13px 0",
+                    cursor: inviteEmail.trim() ? "pointer" : "default",
+                    fontFamily: "'Outfit',sans-serif",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    color: inviteEmail.trim() ? th.accentT : th.dim,
+                    transition: "background .2s, color .2s",
+                    letterSpacing: "0.5px",
                   }}
                 >
-                  <div style={{ marginBottom: 8 }}>
-                    <ProgramIcon name={p.name} />
-                  </div>
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      fontSize: 14,
-                      color: th.text,
-                      marginBottom: 3,
-                    }}
-                  >
-                    {p.name}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      color: th.muted,
-                    }}
-                  >
-                    {p.exs.length} exercises
-                  </div>
+                  SEND INVITE →
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── Pending invitations ── */}
+        {MOCK_PENDING.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>PENDING INVITATIONS</div>
+            {MOCK_PENDING.map((p, i) => (
+              <div key={i} style={{ ...S.card, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: "50%", background: th.row, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⏳</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: th.text }}>{p.email}</div>
+                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>Invitation pending</div>
                 </div>
               </div>
             ))}
-            {editShortcuts && (
-              <button
-                onClick={() => setAddingShortcut((a) => !a)}
-                style={{
-                  background: "transparent",
-                  border: `1px dashed ${th.text}`,
-                  borderRadius: 14,
-                  padding: "15px 13px",
-                  cursor: "pointer",
-                  textAlign: "center",
-                  fontFamily: "'Outfit',sans-serif",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 6,
-                  minHeight: 90,
-                  animation: "shortcutBtnIn 0.3s cubic-bezier(0,0,0.2,1) forwards",
-                }}
-              >
-                <span
-                  style={{ fontSize: 26, color: th.accentFg, fontWeight: 700 }}
-                >
-                  +
-                </span>
-                <span style={{ fontSize: 12, color: th.muted }}>
-                  Add shortcut
-                </span>
-              </button>
-            )}
           </div>
         )}
-        {addingShortcut && (
-          <div style={{ ...S.card, padding: 14, marginBottom: 16, animation: "shortcutListIn 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 10,
-              }}
-            >
-              <div style={S.label}>ADD TO HOME</div>
-              <button
-                onClick={() => setAddingShortcut(false)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: th.muted,
-                  cursor: "pointer",
-                  fontSize: 16,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-            {programs.filter((p) => !pinnedIds || !pinnedIds.includes(p.id))
-              .length === 0 ? (
-              <div
-                style={{
-                  fontSize: 13,
-                  color: th.muted,
-                  textAlign: "center",
-                  padding: "12px 0",
-                }}
-              >
-                All programs are already pinned.
+
+        {/* ── Friends list ── */}
+        {MOCK_FRIENDS.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ ...S.label, marginBottom: 10 }}>FRIENDS</div>
+            {MOCK_FRIENDS.map((f, i) => (
+              <div key={i} style={{ ...S.card, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: th.row, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: th.accentFg }}>
+                  {f.name?.[0] || "?"}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: th.text }}>{f.name}</div>
+                  <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>{f.lastActivity || "No recent activity"}</div>
+                </div>
+                <div style={{ fontSize: 11, color: th.accentFg, fontWeight: 700 }}>VIEW →</div>
               </div>
-            ) : (
-              programs
-                .filter((p) => !pinnedIds || !pinnedIds.includes(p.id))
-                .map((p) => (
-                  <div
-                    key={p.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      padding: "10px 0",
-                      borderBottom: `1px solid ${th.border}`,
-                    }}
-                  >
-                    <ProgramIcon name={p.name} size={32} />
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: 15,
-                        textAlign: "left",
-                        color: th.text,
-                        fontWeight: 500,
-                      }}
-                    >
-                      {p.name}
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); addToHome(p.id); }}
-                      style={{
-                        background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                        backdropFilter: "blur(8px)",
-                        WebkitBackdropFilter: "blur(8px)",
-                        border: "none",
-                        borderRadius: 9,
-                        color: th.accentT,
-                        padding: "6px 14px",
-                        cursor: "pointer",
-                        fontSize: 12,
-                        fontFamily: "'Outfit',sans-serif",
-                        fontWeight: 700,
-                        flexShrink: 0,
-                      }}
-                    >+ Add</button>
-                  </div>
-                ))
-            )}
+            ))}
           </div>
         )}
 
-
+        {/* ── Coming soon feature cards ── */}
+        <div style={{ marginBottom: 12, animation: "sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
+          <div style={{ ...S.label, marginBottom: 10 }}>COMING SOON</div>
+          {[
+            { icon: "📊", title: "Friend Dashboards", desc: "See your friends' recent sessions, volume, and streak side-by-side with yours." },
+            { icon: "🏆", title: "Competitions", desc: "Challenge a friend to a weekly volume or sets race. Winner gets the trophy." },
+            { icon: "🔥", title: "Reactions", desc: "Drop a fire emoji or quick kudos on a friend's completed workout." },
+            { icon: "📅", title: "Shared History", desc: "Browse overlapping training days and compare intensity over time." },
+          ].map((item, i) => (
+            <div key={i} style={{
+              ...S.card,
+              padding: "14px 16px",
+              marginBottom: 8,
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 14,
+              opacity: 0.7,
+            }}>
+              <div style={{
+                width: 40, height: 40, flexShrink: 0, borderRadius: 12,
+                background: `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 18,
+              }}>{item.icon}</div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: th.text, marginBottom: 3 }}>{item.title}</div>
+                <div style={{ fontSize: 12, color: th.muted, lineHeight: 1.5 }}>{item.desc}</div>
+              </div>
+              <div style={{
+                flexShrink: 0, fontSize: 9, fontWeight: 700, letterSpacing: "1px",
+                color: th.dim, border: `1px solid ${th.inputB}`, borderRadius: 6,
+                padding: "3px 7px", alignSelf: "center",
+              }}>SOON</div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -11092,12 +11091,17 @@ import "./styles.css";
       },
       {
         id: "programs",
-        label: "PROGRAMS",
+        label: "WORKOUTS",
         icon: (c) => (
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="4"    width="18" height="2.5" rx="1.25" fill={c} />
-            <rect x="2" y="9.75" width="18" height="2.5" rx="1.25" fill={c} />
-            <rect x="2" y="15.5" width="18" height="2.5" rx="1.25" fill={c} />
+          <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Left weight plates */}
+            <rect x="0" y="7" width="3" height="8" rx="1.5" fill={c} />
+            <rect x="3" y="9" width="2" height="4" rx="1" fill={c} />
+            {/* Bar */}
+            <rect x="5" y="10.25" width="14" height="1.5" rx="0.75" fill={c} />
+            {/* Right weight plates */}
+            <rect x="19" y="9" width="2" height="4" rx="1" fill={c} />
+            <rect x="21" y="7" width="3" height="8" rx="1.5" fill={c} />
           </svg>
         ),
       },
@@ -11113,29 +11117,19 @@ import "./styles.css";
         ),
       },
       {
-        id: "profile",
-        label: "PROFILE",
-        icon: (c, isA) => (
-          <div style={{ position: "relative", display: "inline-flex" }}>
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="11" cy="7.5" r="3.5" stroke={c} strokeWidth="2" />
-              <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={c} strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            {isA && unreadFeedback > 0 && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: -2,
-                  right: -2,
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: "#CC1F42",
-                  animation: "pulse 1.5s ease-in-out infinite",
-                }}
-              />
-            )}
-          </div>
+        id: "sharing",
+        label: "SHARING",
+        icon: (c) => (
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Left person */}
+            <circle cx="7" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
+            <path d="M1 19c0-3.314 2.686-6 6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+            {/* Right person */}
+            <circle cx="15" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
+            <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+            {/* Connection link in center */}
+            <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
         ),
       },
     ];
@@ -11504,11 +11498,13 @@ import "./styles.css";
                   {view === "home"
                     ? "HOME"
                     : view === "programs"
-                    ? "MY PROGRAMS"
+                    ? "WORKOUTS"
                     : view === "history"
                     ? "SESSION HISTORY"
                     : view === "profile"
                     ? "PROFILE"
+                    : view === "sharing"
+                    ? "SHARING"
                     : view === "create"
                     ? "CONFIGURE SESSION"
                     : view === "editProgram"
@@ -11523,9 +11519,66 @@ import "./styles.css";
                     ? selShortcut?.name || "SHORTCUT"
                     : ""}
                 </div>
-                {/* Date — only shown on Home tab, top-right of header */}
-
-
+                {/* Profile icon — only shown on Home tab, top-right of header */}
+                {view === "home" && (
+                  <button
+                    onClick={() => setView("profile")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      flexShrink: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      position: "relative",
+                    }}
+                  >
+                    {user?.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt="profile"
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: "50%",
+                          objectFit: "cover",
+                          border: `2px solid ${th.border}`,
+                        }}
+                      />
+                    ) : (
+                      <div style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: "50%",
+                        background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
+                        border: `1.5px solid ${th.border}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}>
+                        <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+                          <circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2" />
+                          <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                      </div>
+                    )}
+                    {unreadFeedback > 0 && (
+                      <div style={{
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        width: 9,
+                        height: 9,
+                        borderRadius: "50%",
+                        background: "#CC1F42",
+                        border: `1.5px solid ${th.bg}`,
+                        animation: "pulse 1.5s ease-in-out infinite",
+                      }} />
+                    )}
+                  </button>
+                )}
 
               </div>
               </div>
@@ -11741,6 +11794,9 @@ import "./styles.css";
                 }}
                 onBack={() => setView("home")}
               />
+            )}
+            {view === "sharing" && (
+              <SharingView user={user} />
             )}
             {view === "profile" && (
               <ProfileView
