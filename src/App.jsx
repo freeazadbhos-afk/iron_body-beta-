@@ -3681,7 +3681,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>YOUR HIGHLIGHTS</div>
-              <DashInfoBtn text="A summary of your key training stats for the selected time period — sessions, volume, calories, and more." />
+              <DashInfoBtn title="Your Highlights" text="A summary of your key training stats for the selected time period — sessions, volume, calories, and more." />
             </div>
           <div style={{ display:"flex", gap:4 }}>
             {RANGES.map(r => (
@@ -3809,7 +3809,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>PERSONAL RECORDS</div>
-              <DashInfoBtn text="Your all-time personal records — the heaviest estimated 1RM achieved per exercise, ranked by weight." />
+              <DashInfoBtn title="Personal Records" text="Your all-time personal records — the heaviest estimated 1RM achieved per exercise, ranked by weight." />
             </div>
           {totalPages > 1 && (
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -3851,7 +3851,7 @@ import "./styles.css";
 
   /* ─── Sets by Muscle Group ─────────────────────────────────────────────────── */
   /* ─── Dashboard info button ────────────────────────────────────────────────── */
-  function DashInfoBtn({ text }) {
+  function DashInfoBtn({ text, title }) {
     const th = useTheme();
     const [open, setOpen] = useState(false);
     return (
@@ -3883,7 +3883,7 @@ import "./styles.css";
                 fontSize:13, color:th.muted, lineHeight:1.6,
                 animation:"shortcutListIn 0.22s cubic-bezier(0,0,0.2,1)",
               }}>
-              <div style={{ fontWeight:700, color:th.text, fontSize:13, marginBottom:8 }}>About this dashboard</div>
+              {title && <div style={{ fontWeight:700, color:th.text, fontSize:13, marginBottom:8 }}>{title}</div>}
               {text}
               <button onClick={() => setOpen(false)} style={{
                 display:"block", marginTop:12, background:"none", border:"none",
@@ -3958,7 +3958,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>SETS BY MUSCLE GROUP</div>
-              <DashInfoBtn text="Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand." />
+              <DashInfoBtn title="Sets By Muscle Group" text="Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand." />
             </div>
           <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
             <span style={{ fontSize: 10, color: th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</span>
@@ -4149,7 +4149,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>WORKLOAD RATIO</div>
-              <DashInfoBtn text="Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load." />
+              <DashInfoBtn title="Workload Ratio" text="Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load." />
             </div>
           <div style={{ textAlign:"right" }}>
             <span className="bebas" style={{ fontSize: 28, color: status.col, lineHeight: 1 }}>{fmtR(acwr)}</span>
@@ -4379,7 +4379,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
-              <DashInfoBtn text="Estimated 1RM relative to your body weight for key lifts. A squat of 1.5x BW means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
+              <DashInfoBtn title="Relative Strength" text="Estimated 1RM relative to your body weight for key lifts. A squat of 1.5x BW means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
             </div>
           <div style={{ fontSize:10, color:th.dim }}>BW: {bw}kg</div>
         </div>
@@ -4462,7 +4462,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>TRAINING DENSITY</div>
-              <DashInfoBtn text="Total tonnage lifted divided by total workout duration each week (kg/min). Higher density means you accomplished more work in less time." />
+              <DashInfoBtn title="Training Density" text="Total tonnage lifted divided by total workout duration each week (kg/min). Higher density means you accomplished more work in less time." />
             </div>
           {latest > 0 && (
             <div style={{ textAlign:"right" }}>
@@ -4545,7 +4545,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
-              <DashInfoBtn text="Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula." />
+              <DashInfoBtn title="Strength Progression" text="Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula." />
             </div>
           {lift && (() => {
             const allPts = lift.pts;
@@ -4993,7 +4993,7 @@ import "./styles.css";
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>MUSCLES TRAINED</div>
-              <DashInfoBtn text="Muscles you have trained in the last 7 days, based on exercises logged in your workouts." />
+              <DashInfoBtn title="Muscles Trained" text="Muscles you have trained in the last 7 days, based on exercises logged in your workouts." />
             </div>
             <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</div>
           </div>
@@ -5054,7 +5054,7 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>STREAK</div>
-              <DashInfoBtn text="Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout." />
+              <DashInfoBtn title="Streak" text="Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout." />
             </div>
                 <div style={{ textAlign: "right" }}>
                   <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
@@ -5129,7 +5129,7 @@ import "./styles.css";
               >
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>INTENSITY</div>
-              <DashInfoBtn text="Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period." />
+              <DashInfoBtn title="Intensity" text="Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period." />
             </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
@@ -5270,7 +5270,7 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>CALORIES BURNED</div>
-              <DashInfoBtn text="Average estimated calories burned per session over the last 7 days, compared to the prior week." />
+              <DashInfoBtn title="Calories Burned" text="Average estimated calories burned per session over the last 7 days, compared to the prior week." />
             </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
@@ -5363,7 +5363,7 @@ import "./styles.css";
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>BODY COMPOSITION</div>
-              <DashInfoBtn text="Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section." />
+              <DashInfoBtn title="Body Composition" text="Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section." />
             </div>
             
             {(() => {
@@ -5412,7 +5412,7 @@ import "./styles.css";
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>BODY TRENDS</div>
-              <DashInfoBtn text="Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend." />
+              <DashInfoBtn title="Body Trends" text="Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend." />
             </div>
             
             <BodyTrendChart measurements={measurements} />
@@ -5474,7 +5474,7 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
-              <DashInfoBtn text="Estimated recovery status per muscle group based on how long ago it was last trained. Higher score means more recovered." />
+              <DashInfoBtn title="Muscle Recovery" text="Estimated recovery status per muscle group based on how long ago it was last trained. Higher score means more recovered." />
             </div>
                 <div style={{ fontSize: 11, color: th.dim }}>72h window</div>
               </div>
@@ -5560,7 +5560,7 @@ import "./styles.css";
                 <div>
                   <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>TRAINING EFFICIENCY</div>
-              <DashInfoBtn text="A ratio of strength output relative to total training volume. Rising efficiency means you are getting stronger without needing more volume." />
+              <DashInfoBtn title="Training Efficiency" text="A ratio of strength output relative to total training volume. Rising efficiency means you are getting stronger without needing more volume." />
             </div>
 
                 </div>
@@ -5659,7 +5659,7 @@ import "./styles.css";
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>WEEKLY VOLUME</div>
-              <DashInfoBtn text="Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management." />
+              <DashInfoBtn title="Weekly Volume" text="Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management." />
             </div>
                 <div style={{ textAlign:"right" }}>
                   <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
