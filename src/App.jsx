@@ -8925,34 +8925,6 @@ import "./styles.css";
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
-        {/* ── Close (X) button — top right, returns to Home ── */}
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4, marginTop: 2 }}>
-          <button
-            onClick={onClose}
-            style={{
-              background: `color-mix(in srgb, ${th.card} 60%, transparent)`,
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border: `1px solid ${th.border}`,
-              borderRadius: "50%",
-              width: 36,
-              height: 36,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              cursor: "pointer",
-              color: th.muted,
-              fontSize: 16,
-              lineHeight: 1,
-              flexShrink: 0,
-              transition: "background .15s, color .15s",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = th.row; e.currentTarget.style.color = th.text; }}
-            onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${th.card} 60%, transparent)`; e.currentTarget.style.color = th.muted; }}
-          >
-            ✕
-          </button>
-        </div>
         <div style={{ marginBottom: 12, marginTop: 0 }} />
         {/* Guest upgrade banner */}
         {user.isGuest && (
@@ -10703,6 +10675,12 @@ import "./styles.css";
       return unsub;
     }, []);
     const [view, setView] = useState("home");
+    const [profileOpen, setProfileOpen] = useState(false);
+    const [profileClosing, setProfileClosing] = useState(false);
+    const closeProfile = () => {
+      setProfileClosing(true);
+      setTimeout(() => { setProfileOpen(false); setProfileClosing(false); }, 360);
+    };
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -11535,7 +11513,7 @@ import "./styles.css";
               {/* Profile icon — absolutely positioned into the top padding space, doesn't affect row height */}
               {view === "home" && (
                 <button
-                  onClick={() => setView("profile")}
+                  onClick={() => setProfileOpen(true)}
                   style={{
                     position: "absolute",
                     top: "calc(env(safe-area-inset-top, 0px) + 6px)",
@@ -11655,8 +11633,6 @@ import "./styles.css";
                     ? "WORKOUTS"
                     : view === "history"
                     ? "SESSION HISTORY"
-                    : view === "profile"
-                    ? "PROFILE"
                     : view === "sharing"
                     ? "SHARING"
                     : view === "create"
@@ -11748,7 +11724,6 @@ import "./styles.css";
                 workoutExiting      ? "pipExit 0.32s cubic-bezier(0.4,0,1,1) forwards" :
                 view === "workout"  ? "workoutFadeIn 0.45s cubic-bezier(0,0,0.2,1) forwards" :
                 view === "complete" ? "completeFadeIn 0.4s ease-out forwards" :
-                view === "profile"  ? "profileSlideUp 0.38s cubic-bezier(0,0,0.2,1) forwards" :
                 undefined,
             }}
           >
@@ -11899,30 +11874,6 @@ import "./styles.css";
             )}
             {view === "sharing" && (
               <SharingView user={user} />
-            )}
-            {view === "profile" && (
-              <ProfileView
-                user={user}
-                sessions={sessions}
-                measurements={measurements}
-                onSaveMeasurement={saveMeasurements}
-                theme={theme}
-                themeAuto={themeAuto}
-                active={active}
-                elapsed={elapsed}
-                onLogout={handleLogout}
-                onUpdateUser={(u) => setUser(u)}
-                onThemeChange={(t) => {
-                  setTheme(t);
-                }}
-                onThemeAutoToggle={(auto) => {
-                  setThemeAuto(auto);
-                  if (auto) setTheme(getAutoTheme());
-                }}
-                onGoWorkout={() => setView("workout")}
-                onClearUnread={() => setUnreadFeedback(0)}
-                onClose={() => setView("home")}
-              />
             )}
           </div>
 
@@ -12284,6 +12235,165 @@ import "./styles.css";
           </div>
         );
       })()}
+
+      {/* ── Profile bottom-sheet modal ── */}
+      {profileOpen && (
+        <>
+          <style>{`
+            @keyframes profileSheetIn {
+              from { transform: translateY(100%); }
+              to   { transform: translateY(0); }
+            }
+            @keyframes profileSheetOut {
+              from { transform: translateY(0); }
+              to   { transform: translateY(100%); }
+            }
+            @keyframes profileBackdropIn {
+              from { opacity: 0; }
+              to   { opacity: 1; }
+            }
+            @keyframes profileBackdropOut {
+              from { opacity: 1; }
+              to   { opacity: 0; }
+            }
+          `}</style>
+
+          {/* Backdrop */}
+          <div
+            onClick={closeProfile}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 60,
+              background: "rgba(0,0,0,0.52)",
+              backdropFilter: "blur(5px)",
+              WebkitBackdropFilter: "blur(5px)",
+              animation: profileClosing
+                ? "profileBackdropOut 0.36s ease forwards"
+                : "profileBackdropIn 0.3s ease forwards",
+            }}
+          />
+
+          {/* Centering wrapper — static, matches app shell bounds exactly */}
+          <div style={{
+            position: "fixed",
+            top: "calc(72px + env(safe-area-inset-top, 0px))",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "100%",
+            maxWidth: 480,
+            bottom: 0,
+            zIndex: 61,
+            pointerEvents: "none",
+          }}>
+          {/* Animated sheet — only translateY, no centering conflict */}
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              background: `color-mix(in srgb, ${th.bg} 88%, transparent)`,
+              backdropFilter: "blur(28px) saturate(1.5)",
+              WebkitBackdropFilter: "blur(28px) saturate(1.5)",
+              borderRadius: "28px 28px 0 0",
+              boxShadow: "0 -8px 40px rgba(0,0,0,0.35)",
+              display: "flex",
+              flexDirection: "column",
+              overflow: "hidden",
+              pointerEvents: "auto",
+              animation: profileClosing
+                ? "profileSheetOut 0.36s cubic-bezier(0.4,0,1,1) forwards"
+                : "profileSheetIn 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
+            }}
+          >
+            {/* Drag handle + title bar */}
+            <div style={{
+              flexShrink: 0,
+              borderBottom: `1px solid ${th.border}`,
+            }}>
+              {/* Pill handle — centred above the title row */}
+              <div style={{
+                display: "flex",
+                justifyContent: "center",
+                paddingTop: 10,
+                paddingBottom: 6,
+              }}>
+                <div style={{
+                  width: 36,
+                  height: 4,
+                  borderRadius: 2,
+                  background: th.inputB,
+                }} />
+              </div>
+
+              {/* Title row — matches universal header style */}
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                paddingLeft: 16,
+                paddingRight: 12,
+                paddingBottom: 4,
+                minHeight: 32,
+              }}>
+                <div className="bebas" style={{
+                  fontSize: 40,
+                  letterSpacing: 2,
+                  color: th.text,
+                  lineHeight: 1,
+                }}>PROFILE</div>
+
+                {/* X button — top right, large touch target */}
+                <button
+                  onClick={closeProfile}
+                  style={{
+                    background: `color-mix(in srgb, ${th.card} 70%, transparent)`,
+                    backdropFilter: "blur(10px)",
+                    WebkitBackdropFilter: "blur(10px)",
+                    border: `1px solid ${th.border}`,
+                    borderRadius: "50%",
+                    width: 40,
+                    height: 40,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: th.muted,
+                    fontSize: 16,
+                    lineHeight: 1,
+                    flexShrink: 0,
+                  }}
+                >✕</button>
+              </div>
+            </div>
+
+            {/* Scrollable profile content */}
+            <div style={{ flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+              <ProfileView
+                user={user}
+                sessions={sessions}
+                measurements={measurements}
+                onSaveMeasurement={saveMeasurements}
+                theme={theme}
+                themeAuto={themeAuto}
+                active={active}
+                elapsed={elapsed}
+                onLogout={handleLogout}
+                onUpdateUser={(u) => setUser(u)}
+                onThemeChange={(t) => setTheme(t)}
+                onThemeAutoToggle={(auto) => {
+                  setThemeAuto(auto);
+                  if (auto) setTheme(getAutoTheme());
+                }}
+                onGoWorkout={() => { closeProfile(); setTimeout(() => setView("workout"), 380); }}
+                onClearUnread={() => setUnreadFeedback(0)}
+                onClose={closeProfile}
+              />
+            </div>
+          </div>
+          </div>
+        </>
+      )}
+
       </ThemeCtx.Provider>
     );
   }
