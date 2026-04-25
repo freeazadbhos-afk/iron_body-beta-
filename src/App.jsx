@@ -3793,7 +3793,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>PERSONAL RECORDS</div>
-              <DashInfoBtn title="Personal Records" text="Your all-time personal records — the heaviest estimated 1RM achieved per exercise, ranked by weight." />
+              <DashInfoBtn title="Personal Records" text="Your all-time personal records — the heaviest estimated 1RM (One-Rep Max) achieved per exercise, ranked by weight." />
             </div>
           {totalPages > 1 && (
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -4377,9 +4377,9 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>RELATIVE STRENGTH</div>
-              <DashInfoBtn title="Relative Strength" text="Estimated 1RM relative to your body weight for key lifts. A squat of 1.5x BW means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
+              <DashInfoBtn title="Relative Strength" text="Estimated 1RM (One-Rep Max) relative to your body weight for key lifts. A squat of 1.5x Bodyweight means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
             </div>
-          <div style={{ fontSize:10, color:th.dim }}>BW: {bw}kg</div>
+          <div style={{ fontSize:10, color:th.dim }}>Bodyweight: {bw}kg</div>
         </div>
         {rows.map(({ label, mult, target, best }) => {
           const pct = Math.min((mult / (target * 1.5)) * 100, 100);
