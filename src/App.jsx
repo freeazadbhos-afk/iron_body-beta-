@@ -3807,27 +3807,41 @@ import "./styles.css";
           )}
         </div>
         <div key={page} style={{ animation: dir === 1 ? "prSlideL 0.22s ease-out" : "prSlideR 0.22s ease-out" }}>
-          {prs.map((pr, i) => (
-            <div key={pr.name} style={{
-              display:"flex", alignItems:"center", gap:10,
-              padding:"8px 0",
-              borderBottom: i < prs.length-1 ? `1px solid ${th.border}` : "none",
-            }}>
-              <div className="bebas" style={{ fontSize:14, color:th.dim, width:22, flexShrink:0, textAlign:"right" }}>
-                #{page*PAGE+i+1}
-              </div>
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
-                <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>
-                  {pr.muscle}{pr.reps ? ` · ${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+          {Array.from({ length: PAGE }).map((_, i) => {
+            const pr = prs[i];
+            return pr ? (
+              <div key={pr.name} style={{
+                display:"flex", alignItems:"center", gap:10,
+                padding:"8px 0",
+                borderBottom: i < PAGE-1 ? `1px solid ${th.border}` : "none",
+              }}>
+                <div className="bebas" style={{ fontSize:14, color:th.dim, width:22, flexShrink:0, textAlign:"right" }}>
+                  #{page*PAGE+i+1}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
+                  <div style={{ fontSize:10, color:th.muted, marginTop:1 }}>
+                    {pr.muscle}{pr.reps ? ` · ${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+                  </div>
+                </div>
+                <div style={{ textAlign:"right", flexShrink:0 }}>
+                  <span className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{pr.w}</span>
+                  <span style={{ fontSize:10, color:th.dim }}> kg</span>
                 </div>
               </div>
-              <div style={{ textAlign:"right", flexShrink:0 }}>
-                <span className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{pr.w}</span>
-                <span style={{ fontSize:10, color:th.dim }}> kg</span>
+            ) : (
+              /* Invisible placeholder row — keeps card height fixed across pages */
+              <div key={`ph-${i}`} style={{
+                display:"flex", alignItems:"center", gap:10,
+                padding:"8px 0",
+                borderBottom: i < PAGE-1 ? `1px solid ${th.border}` : "none",
+                visibility:"hidden",
+              }}>
+                <div style={{ fontSize:13, height:18, width:"100%" }} />
+                <div style={{ fontSize:10, height:14, width:"60%" }} />
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
