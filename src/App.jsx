@@ -6351,7 +6351,7 @@ import "./styles.css";
     );
   }
 
-  function CreateProgramView({ program, onSave, onBack }) {
+  function CreateProgramView({ program, onSave, onStart, onBack }) {
     const th = useTheme();
     const S = useS();
     const editing = !!program?.id;
@@ -6648,18 +6648,80 @@ import "./styles.css";
             </div>
           )}
         </div>
-        <div 
-        style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
-          <Btn
+        <div style={{
+          position: "sticky",
+          bottom: 0,
+          padding: "12px 0 20px",
+          display: "flex",
+          gap: 10,
+        }}>
+          {/* SAVE button — subtle secondary, frosted glass */}
+          <button
             onClick={() => {
               if (!name.trim() || exs.length === 0) return;
               onSave({ id: program?.id || uid(), name: name.trim(), exs });
             }}
             disabled={!name.trim() || exs.length === 0}
-            style={{ width: "100%", fontSize: 14, fontFamily: "'Outfit',sans-serif", letterSpacing: 0.5 }}
+            style={{
+              flex: 1,
+              background: (!name.trim() || exs.length === 0)
+                ? `color-mix(in srgb, ${th.card} 40%, transparent)`
+                : `color-mix(in srgb, ${th.card} 65%, transparent)`,
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: `1px solid ${(!name.trim() || exs.length === 0) ? th.inputB : th.border}`,
+              borderRadius: 14,
+              padding: "15px 0",
+              cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
+              fontFamily: "'Outfit',sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              letterSpacing: "0.5px",
+              color: (!name.trim() || exs.length === 0) ? th.dim : th.sub,
+              transition: "background .2s, color .2s, border-color .2s",
+            }}
           >
-            SAVE PROGRAM
-          </Btn>
+            SAVE
+          </button>
+          {/* START button — accent primary, frosted glass */}
+          <button
+            onClick={() => {
+              if (!name.trim() || exs.length === 0) return;
+              const p = { id: program?.id || uid(), name: name.trim(), exs };
+              onSave(p);
+              onStart(p);
+            }}
+            disabled={!name.trim() || exs.length === 0}
+            style={{
+              flex: 1,
+              background: (!name.trim() || exs.length === 0)
+                ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
+                : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
+              backdropFilter: "blur(16px)",
+              WebkitBackdropFilter: "blur(16px)",
+              border: `1px solid ${(!name.trim() || exs.length === 0)
+                ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)`
+                : `color-mix(in srgb, ${th.accentBg} 50%, transparent)`}`,
+              borderRadius: 14,
+              padding: "15px 0",
+              cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
+              fontFamily: "'Outfit',sans-serif",
+              fontWeight: 700,
+              fontSize: 14,
+              letterSpacing: "0.5px",
+              color: (!name.trim() || exs.length === 0) ? `${th.accentT}44` : th.accentT,
+              transition: "background .2s, color .2s, border-color .2s",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+              <polygon points="3,1 13,7 3,13" fill="currentColor" />
+            </svg>
+            START
+          </button>
         </div>
       </>
     );
@@ -8569,6 +8631,7 @@ import "./styles.css";
     onThemeAutoToggle,
     onGoWorkout,
     onClearUnread,
+    onClose,
   }) {
     const th = useTheme();
     const S = useS();
@@ -8862,7 +8925,35 @@ import "./styles.css";
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
-        <div style={{ marginBottom: 16, marginTop: 4 }} />
+        {/* ── Close (X) button — top right, returns to Home ── */}
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4, marginTop: 2 }}>
+          <button
+            onClick={onClose}
+            style={{
+              background: `color-mix(in srgb, ${th.card} 60%, transparent)`,
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: `1px solid ${th.border}`,
+              borderRadius: "50%",
+              width: 36,
+              height: 36,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              color: th.muted,
+              fontSize: 16,
+              lineHeight: 1,
+              flexShrink: 0,
+              transition: "background .15s, color .15s",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = th.row; e.currentTarget.style.color = th.text; }}
+            onMouseLeave={e => { e.currentTarget.style.background = `color-mix(in srgb, ${th.card} 60%, transparent)`; e.currentTarget.style.color = th.muted; }}
+          >
+            ✕
+          </button>
+        </div>
+        <div style={{ marginBottom: 12, marginTop: 0 }} />
         {/* Guest upgrade banner */}
         {user.isGuest && (
           <div
@@ -11540,8 +11631,8 @@ import "./styles.css";
                         src={user.photoURL}
                         alt="profile"
                         style={{
-                          width: 34,
-                          height: 34,
+                          width: 44,
+                          height: 44,
                           borderRadius: "50%",
                           objectFit: "cover",
                           border: `2px solid ${th.border}`,
@@ -11549,8 +11640,8 @@ import "./styles.css";
                       />
                     ) : (
                       <div style={{
-                        width: 34,
-                        height: 34,
+                        width: 44,
+                        height: 44,
                         borderRadius: "50%",
                         background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
                         border: `1.5px solid ${th.border}`,
@@ -11558,7 +11649,7 @@ import "./styles.css";
                         alignItems: "center",
                         justifyContent: "center",
                       }}>
-                        <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+                        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
                           <circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2" />
                           <path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round" />
                         </svg>
@@ -11567,13 +11658,13 @@ import "./styles.css";
                     {unreadFeedback > 0 && (
                       <div style={{
                         position: "absolute",
-                        top: 0,
-                        right: 0,
-                        width: 9,
-                        height: 9,
+                        top: 1,
+                        right: 1,
+                        width: 10,
+                        height: 10,
                         borderRadius: "50%",
                         background: "#CC1F42",
-                        border: `1.5px solid ${th.bg}`,
+                        border: `2px solid ${th.bg}`,
                         animation: "pulse 1.5s ease-in-out infinite",
                       }} />
                     )}
@@ -11633,6 +11724,10 @@ import "./styles.css";
               from { opacity: 0; transform: translateY(24px); }
               to   { opacity: 1; transform: translateY(0); }
             }
+            @keyframes profileSlideUp {
+              from { opacity: 0; transform: translateY(48px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
             @keyframes pipExit {
               from { opacity: 1; transform: translateY(0)   scale(1); }
               to   { opacity: 0; transform: translateY(10px) scale(0.97); }
@@ -11650,6 +11745,7 @@ import "./styles.css";
                 workoutExiting      ? "pipExit 0.32s cubic-bezier(0.4,0,1,1) forwards" :
                 view === "workout"  ? "workoutFadeIn 0.45s cubic-bezier(0,0,0.2,1) forwards" :
                 view === "complete" ? "completeFadeIn 0.4s ease-out forwards" :
+                view === "profile"  ? "profileSlideUp 0.38s cubic-bezier(0,0,0.2,1) forwards" :
                 undefined,
             }}
           >
@@ -11749,11 +11845,14 @@ import "./styles.css";
                     ? programs.map((x) => (x.id === p.id ? p : x))
                     : [...programs, p];
                   savePrograms(updated);
-                  // Don't auto-pin new programs to shortcuts
                   if (!editingProg && settings.homePrograms === null) {
                     saveSettings({ ...settings, homePrograms: programs.map((x) => x.id) });
                   }
                   setView("programs");
+                }}
+                onStart={(p) => {
+                  // onSave already called by the button before onStart fires
+                  handleTemplate(p);
                 }}
                 onBack={() => setView("programs")}
               />
@@ -11819,6 +11918,7 @@ import "./styles.css";
                 }}
                 onGoWorkout={() => setView("workout")}
                 onClearUnread={() => setUnreadFeedback(0)}
+                onClose={() => setView("home")}
               />
             )}
           </div>
