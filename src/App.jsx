@@ -1883,6 +1883,61 @@ import "./styles.css";
     }
   }
 
+  /* ─── Competition invitations ────────────────────────────────────────────────── */
+  // Stored at: competitions/{id}
+  // status: "pending" → "active" (24h after accepted) → "finished"
+  async function fsSendCompeteInvite(fromUid, fromName, toUid, toName) {
+    try {
+      const ref = await addDoc(collection(fbDb, "competitions"), {
+        fromUid, fromName, toUid, toName,
+        status: "pending",
+        createdAt: serverTimestamp(),
+        acceptedAt: null,
+        startAt: null,      // set when accepted
+        endAt: null,        // startAt + 7 days
+      });
+      return { ok: true, id: ref.id };
+    } catch (e) {
+      console.error("fsSendCompeteInvite:", e);
+      return { ok: false };
+    }
+  }
+  async function fsAcceptCompeteInvite(compId) {
+    try {
+      const now = Date.now();
+      const startAt = now + 24 * 60 * 60 * 1000; // starts 24h from now
+      const endAt   = startAt + 7 * 24 * 60 * 60 * 1000; // lasts 7 days
+      await updateDoc(doc(fbDb, "competitions", compId), {
+        status: "active",
+        acceptedAt: serverTimestamp(),
+        startAt,
+        endAt,
+      });
+      return true;
+    } catch (e) {
+      console.error("fsAcceptCompeteInvite:", e);
+      return false;
+    }
+  }
+  async function fsDeclineCompeteInvite(compId) {
+    try {
+      await updateDoc(doc(fbDb, "competitions", compId), { status: "declined" });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  function fsListenCompetitions(uid, cb) {
+    // Listen for competitions where user is either challenger or challenged
+    const q1 = query(collection(fbDb, "competitions"), where("fromUid", "==", uid));
+    const q2 = query(collection(fbDb, "competitions"), where("toUid",   "==", uid));
+    let data1 = [], data2 = [];
+    const merge = () => cb([...data1, ...data2]);
+    const unsub1 = onSnapshot(q1, s => { data1 = s.docs.map(d=>({id:d.id,...d.data()})); merge(); });
+    const unsub2 = onSnapshot(q2, s => { data2 = s.docs.map(d=>({id:d.id,...d.data()})); merge(); });
+    return () => { unsub1(); unsub2(); };
+  }
+
   /* ─── Session reactions (stars) ─────────────────────────────────────────────── */
   // Stored at: users/{ownerUid}/sessions/{sessionId}/reactions/{reactorUid}
   async function fsToggleStar(ownerUid, sessionId, reactorUid, reactorName, sessionName) {
@@ -6154,14 +6209,15 @@ import "./styles.css";
                   <button
                     onClick={onCompete}
                     style={{
-                      background:`color-mix(in srgb, #E8612C 18%, transparent)`,
-                      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                      border:`1px solid rgba(232,97,44,0.4)`,
+                      background:`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
+                      backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                      border:`1.5px solid color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
                       borderRadius:10, padding:"7px 12px", cursor:"pointer",
                       fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                      color:"#E8612C", letterSpacing:"0.5px",
+                      color: th.accentFg, letterSpacing:"0.5px",
+                      transition:"background .2s, color .2s",
                     }}
-                  > COMPETE</button>
+                  >⚔ COMPETE</button>
                   <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
                 </div>
               </div>
@@ -6269,50 +6325,60 @@ import "./styles.css";
   }
 
   /* ─── Competition Sheet ─────────────────────────────────────────────────────── */
-  function CompetitionSheet({ user, friend, mySessions, onGetFriendSessions, onClose }) {
+  function CompetitionSheet({ user, friend, competitions, mySessions, onGetFriendSessions, onClose, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite }) {
     const th = useTheme();
     const S = useS();
     const [closing, setClosing] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [sentOk,  setSentOk]  = useState(false);
     const [friendSessions, setFriendSessions] = useState(null);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
 
+    // Find relevant competition between this user and this friend
+    const comp = competitions.find(c =>
+      (c.fromUid === user.id && c.toUid === friend.uid) ||
+      (c.toUid === user.id   && c.fromUid === friend.uid)
+    ) || null;
+
+    const isPending  = comp?.status === "pending";
+    const isActive   = comp?.status === "active";
+    const isIncoming = isPending && comp?.toUid === user.id;
+    const isOutgoing = isPending && comp?.fromUid === user.id;
+
+    // For active comps: only sessions after startAt count
+    const startAt = comp?.startAt || 0;
+    const endAt   = comp?.endAt   || Infinity;
+    const now     = Date.now();
+    const hasStarted = isActive && now >= startAt;
+    const daysLeft   = isActive ? Math.max(0, Math.ceil((endAt - now) / 86400000)) : null;
+
+    const compFilter = (s) => (s.startTime || 0) >= startAt && (s.startTime || 0) <= endAt;
+
     useEffect(() => {
+      if (!isActive && !isIncoming) return;
       onGetFriendSessions(friend.uid).then(s => setFriendSessions(s || []));
-    }, [friend.uid]);
-
-    // Scoring: per session score = (intensity/10)*0.5 + (calories / maxCals)*0.5, scaled 0–10
-    // Over last 7 days, sum session scores then normalise to 0–10
-    const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-    const scoreSession = (s) => {
-      const intensity = (s.intensity || 0) / 10;          // 0–1
-      const calories  = s.calories || 0;                   // raw kcal
-      return { intensity, calories, ts: s.startTime || 0 };
-    };
+    }, [friend.uid, comp?.id]);
 
     const calcScore = (sessions) => {
       if (!sessions) return null;
-      const recent = sessions.filter(s => (s.startTime || 0) >= W7);
-      if (!recent.length) return 0;
-      const intensityAvg = recent.reduce((a, s) => a + (s.intensity || 0), 0) / recent.length;
-      const totalCals    = recent.reduce((a, s) => a + (s.calories || 0), 0);
-      const sessionCount = recent.length;
-      // Score formula (0–10):
-      // • Intensity component (40%) – avg intensity normalised to 10-point scale
-      // • Calories component  (40%) – total kcal this week, capped at 3000 kcal for full score
-      // • Consistency         (20%) – sessions this week, 5+ = full score
+      const relevant = sessions.filter(compFilter);
+      if (!relevant.length) return 0;
+      const intensityAvg  = relevant.reduce((a, s) => a + (s.intensity || 0), 0) / relevant.length;
+      const totalCals     = relevant.reduce((a, s) => a + (s.calories  || 0), 0);
+      const sessionCount  = relevant.length;
       const intensityScore  = (intensityAvg / 10) * 10 * 0.40;
       const calScore        = Math.min(totalCals / 3000, 1) * 10 * 0.40;
       const consistencyScore= Math.min(sessionCount / 5, 1) * 10 * 0.20;
       return Math.round((intensityScore + calScore + consistencyScore) * 10) / 10;
     };
 
-    const myScore     = calcScore(mySessions);
-    const friendScore = calcScore(friendSessions);
-    const myRecent    = mySessions.filter(s => (s.startTime || 0) >= W7);
-    const frRecent    = (friendSessions || []).filter(s => (s.startTime || 0) >= W7);
-
+    const myScore     = isActive ? calcScore(mySessions) : null;
+    const friendScore = isActive ? calcScore(friendSessions) : null;
+    const myRecent    = mySessions.filter(compFilter);
+    const frRecent    = (friendSessions || []).filter(compFilter);
+    const myColor = th.accentFg;
+    const frColor = "#E8612C";
     const leading = myScore !== null && friendScore !== null
       ? myScore > friendScore ? "you" : friendScore > myScore ? "friend" : "tied"
       : null;
@@ -6325,25 +6391,14 @@ import "./styles.css";
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
           <div style={{ position:"relative", width:size, height:size }}>
             <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-              <circle cx={size/2} cy={size/2} r={r}
-                fill="none" stroke={th.inputB} strokeWidth="8" />
-              <circle cx={size/2} cy={size/2} r={r}
-                fill="none" stroke={color} strokeWidth="8"
-                strokeDasharray={circ}
-                strokeDashoffset={circ * (1 - pct)}
-                strokeLinecap="round"
+              <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={th.inputB} strokeWidth="8" />
+              <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth="8"
+                strokeDasharray={circ} strokeDashoffset={circ*(1-pct)} strokeLinecap="round"
                 transform={`rotate(-90 ${size/2} ${size/2})`}
-                style={{ transition:"stroke-dashoffset 0.8s cubic-bezier(0.34,1.2,0.64,1)" }}
-              />
+                style={{ transition:"stroke-dashoffset 0.8s cubic-bezier(0.34,1.2,0.64,1)" }} />
             </svg>
-            <div style={{
-              position:"absolute", inset:0,
-              display:"flex", flexDirection:"column",
-              alignItems:"center", justifyContent:"center",
-            }}>
-              <div className="bebas" style={{ fontSize:22, color, lineHeight:1 }}>
-                {score !== null ? score.toFixed(1) : "—"}
-              </div>
+            <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+              <div className="bebas" style={{ fontSize:22, color, lineHeight:1 }}>{score !== null ? score.toFixed(1) : "—"}</div>
               <div style={{ fontSize:8, color:th.dim, letterSpacing:"1px" }}>/10</div>
             </div>
           </div>
@@ -6354,14 +6409,11 @@ import "./styles.css";
 
     const StatRow = ({ label, myVal, frVal }) => (
       <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:`1px solid ${th.border}` }}>
-        <div className="bebas" style={{ fontSize:15, color:th.accentFg, textAlign:"right", minWidth:40 }}>{myVal}</div>
+        <div className="bebas" style={{ fontSize:15, color:myColor, textAlign:"right", minWidth:40 }}>{myVal}</div>
         <div style={{ flex:1, fontSize:11, color:th.dim, textAlign:"center", letterSpacing:"0.5px" }}>{label}</div>
-        <div className="bebas" style={{ fontSize:15, color:"#E8612C", textAlign:"left", minWidth:40 }}>{frVal}</div>
+        <div className="bebas" style={{ fontSize:15, color:frColor, textAlign:"left", minWidth:40 }}>{frVal}</div>
       </div>
     );
-
-    const myColor = th.accentFg;
-    const frColor = "#E8612C";
 
     return (
       <>
@@ -6370,132 +6422,202 @@ import "./styles.css";
           @keyframes compSheetOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
           @keyframes compBdIn     { from{opacity:0} to{opacity:1} }
           @keyframes compBdOut    { from{opacity:1} to{opacity:0} }
-          @keyframes scoreIn      { from{stroke-dashoffset:var(--circ)} }
+          @keyframes compSentIn   { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.1);opacity:1} 100%{transform:scale(1)} }
         `}</style>
-        <div onClick={close} style={{
-          position:"fixed", inset:0, zIndex:72,
-          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
-          animation: closing ? "compBdOut .34s ease forwards" : "compBdIn .26s ease forwards",
-        }}/>
-        <div style={{
-          position:"fixed", inset:0, zIndex:73,
-          display:"flex", flexDirection:"column",
-          maxWidth:480, margin:"0 auto", pointerEvents:"none",
-        }}>
+        <div onClick={close} style={{ position:"fixed", inset:0, zIndex:72, background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", animation: closing ? "compBdOut .34s ease forwards" : "compBdIn .26s ease forwards" }}/>
+        <div style={{ position:"fixed", inset:0, zIndex:73, display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", pointerEvents:"none" }}>
           <div onClick={e=>e.stopPropagation()} style={{
             background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
             marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
-            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
-            pointerEvents:"auto",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden", pointerEvents:"auto",
             animation: closing ? "compSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "compSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
             {/* Header */}
-            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"14px 16px 10px" }}>
+            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"14px 16px 12px" }}>
               <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ flex:1 }}>
                   <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>COMPETE</div>
-                  <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>7-day challenge vs {friend.name.split(" ")[0]}</div>
+                  <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
+                    {isActive && hasStarted  ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
+                     isActive && !hasStarted ? `Starting soon · ${friend.name.split(" ")[0]} accepted!` :
+                     isOutgoing ? "Waiting for response…" :
+                     isIncoming ? `${friend.name.split(" ")[0]} challenged you!` :
+                     `Challenge ${friend.name.split(" ")[0]}`}
+                  </div>
                 </div>
                 <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
               </div>
             </div>
 
-            {/* Scrollable body */}
+            {/* Body */}
             <div style={{ flex:1, overflowY:"auto", padding:"20px 16px 32px" }}>
-              {/* Score rings */}
-              <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:20 }}>
-                <ScoreRing score={myScore} label="YOU" color={myColor} />
-                {/* VS badge */}
-                <div style={{
-                  display:"flex", flexDirection:"column", alignItems:"center", gap:4,
-                }}>
-                  {leading === "you"    && <div style={{ fontSize:9, fontWeight:700, color:myColor, letterSpacing:"1px" }}>LEADING ↑</div>}
-                  {leading === "friend" && <div style={{ fontSize:9, fontWeight:700, color:frColor, letterSpacing:"1px" }}>BEHIND ↓</div>}
-                  {leading === "tied"   && <div style={{ fontSize:9, fontWeight:700, color:th.dim, letterSpacing:"1px" }}>TIED</div>}
-                  <div className="bebas" style={{ fontSize:28, color:th.dim, letterSpacing:3 }}>VS</div>
-                  <div style={{ fontSize:10, color:th.dim }}>7-day score</div>
-                </div>
-                <ScoreRing score={friendScore} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} />
-              </div>
 
-              {/* Score breakdown */}
-              <div style={{ ...S.card, padding:"14px 16px", marginBottom:14 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"0.5px" }}>YOU</div>
-                  <div style={{ ...S.label }}>THIS WEEK</div>
-                  <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"0.5px" }}>{friend.name.split(" ")[0].toUpperCase()}</div>
+              {/* ── INCOMING invitation ── */}
+              {isIncoming && (
+                <div style={{ textAlign:"center" }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>⚔️</div>
+                  <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>
+                    {friend.name.split(" ")[0].toUpperCase()} CHALLENGED YOU
+                  </div>
+                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, marginBottom:24, maxWidth:280, margin:"0 auto 24px" }}>
+                    7-day competition starting 24 hours after you accept. Only sessions logged <em>after</em> the start time count.
+                  </div>
+                  {/* Rules */}
+                  <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
+                    <div style={{ ...S.label, marginBottom:10 }}>RULES</div>
+                    {[
+                      { pct:"40%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
+                      { pct:"40%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
+                      { pct:"20%", label:"Consistency",       desc:"5+ sessions = max score" },
+                    ].map(({ pct, label, desc }) => (
+                      <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
+                        <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
+                        <div><div style={{ fontSize:13, fontWeight:700, color:th.text }}>{label}</div>
+                        <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>{desc}</div></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={async () => { await onDeclineCompeteInvite(comp.id); close(); }}
+                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                    <button onClick={async () => { await onAcceptCompeteInvite(comp.id); }}
+                      style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
+                  </div>
                 </div>
-                <StatRow
-                  label="WORKOUTS"
-                  myVal={myRecent.length}
-                  frVal={friendSessions === null ? "…" : frRecent.length}
-                />
-                <StatRow
-                  label="AVG INTENSITY"
-                  myVal={myRecent.length ? (myRecent.reduce((a,s)=>a+(s.intensity||0),0)/myRecent.length).toFixed(1) : "—"}
-                  frVal={frRecent.length ? (frRecent.reduce((a,s)=>a+(s.intensity||0),0)/frRecent.length).toFixed(1) : (friendSessions===null?"…":"—")}
-                />
-                <StatRow
-                  label="TOTAL CALORIES"
-                  myVal={myRecent.reduce((a,s)=>a+(s.calories||0),0) || "—"}
-                  frVal={frRecent.reduce((a,s)=>a+(s.calories||0),0) || (friendSessions===null?"…":"—")}
-                />
-                <StatRow
-                  label="SESSIONS"
-                  myVal={myRecent.length}
-                  frVal={friendSessions === null ? "…" : frRecent.length}
-                />
-              </div>
+              )}
 
-              {/* Scoring explanation */}
-              <div style={{ ...S.card, padding:"14px 16px", marginBottom:14 }}>
-                <div style={{ ...S.label, marginBottom:10 }}>HOW SCORING WORKS</div>
-                {[
-                  { pct:"40%", label:"Average Intensity", desc:"Your avg self-reported intensity across sessions this week" },
-                  { pct:"40%", label:"Calories Burned", desc:"Total kcal burned this week (3,000 kcal = full score)" },
-                  { pct:"20%", label:"Consistency", desc:"Sessions this week (5+ sessions = full score)" },
-                ].map(({ pct, label, desc }) => (
-                  <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
-                    <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
-                    <div>
-                      <div style={{ fontSize:13, fontWeight:700, color:th.text }}>{label}</div>
-                      <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>{desc}</div>
+              {/* ── OUTGOING pending ── */}
+              {isOutgoing && (
+                <div style={{ textAlign:"center", padding:"32px 0" }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>⏳</div>
+                  <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:8 }}>INVITATION SENT</div>
+                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
+                    Waiting for {friend.name.split(" ")[0]} to accept.<br/>
+                    Competition starts 24 hours after they accept.
+                  </div>
+                </div>
+              )}
+
+              {/* ── ACTIVE but not started yet (within 24h window) ── */}
+              {isActive && !hasStarted && (
+                <div style={{ textAlign:"center", padding:"32px 0" }}>
+                  <div style={{ fontSize:40, marginBottom:12 }}>🚀</div>
+                  <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.accentFg, marginBottom:8 }}>GET READY!</div>
+                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
+                    Competition starts {new Date(startAt).toLocaleString("en-GB", { weekday:"short", hour:"2-digit", minute:"2-digit" })}.<br/>
+                    Any workout logged after that counts.
+                  </div>
+                </div>
+              )}
+
+              {/* ── ACTIVE and started — live scoreboard ── */}
+              {isActive && hasStarted && (
+                <>
+                  {/* Score rings */}
+                  <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:20 }}>
+                    <ScoreRing score={myScore} label="YOU" color={myColor} />
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
+                      {leading==="you"    && <div style={{ fontSize:9, fontWeight:700, color:myColor, letterSpacing:"1px" }}>LEADING ↑</div>}
+                      {leading==="friend" && <div style={{ fontSize:9, fontWeight:700, color:frColor, letterSpacing:"1px" }}>BEHIND ↓</div>}
+                      {leading==="tied"   && <div style={{ fontSize:9, fontWeight:700, color:th.dim,  letterSpacing:"1px" }}>TIED</div>}
+                      <div className="bebas" style={{ fontSize:28, color:th.dim, letterSpacing:3 }}>VS</div>
+                      <div style={{ fontSize:10, color:th.dim }}>{daysLeft}d left</div>
                     </div>
+                    <ScoreRing score={friendScore} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} />
                   </div>
-                ))}
-              </div>
+                  {/* Stats */}
+                  <div style={{ ...S.card, padding:"14px 16px", marginBottom:14 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
+                      <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"0.5px" }}>YOU</div>
+                      <div style={{ ...S.label }}>SINCE START</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"0.5px" }}>{friend.name.split(" ")[0].toUpperCase()}</div>
+                    </div>
+                    <StatRow label="WORKOUTS"      myVal={myRecent.length}  frVal={friendSessions===null?"…":frRecent.length} />
+                    <StatRow label="AVG INTENSITY" myVal={myRecent.length?(myRecent.reduce((a,s)=>a+(s.intensity||0),0)/myRecent.length).toFixed(1):"—"} frVal={frRecent.length?(frRecent.reduce((a,s)=>a+(s.intensity||0),0)/frRecent.length).toFixed(1):(friendSessions===null?"…":"—")} />
+                    <StatRow label="TOTAL CAL"     myVal={myRecent.reduce((a,s)=>a+(s.calories||0),0)||"—"} frVal={frRecent.reduce((a,s)=>a+(s.calories||0),0)||(friendSessions===null?"…":"—")} />
+                  </div>
+                  {/* Result banner */}
+                  {leading && (
+                    <div style={{ ...S.card, padding:"16px", textAlign:"center",
+                      background: leading==="you"?`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`:leading==="friend"?`color-mix(in srgb, #E8612C 10%, ${th.card})`:undefined,
+                      border: leading==="you"?`1px solid ${th.accentBg}44`:leading==="friend"?`1px solid rgba(232,97,44,0.3)`:undefined }}>
+                      <div style={{ fontSize:28, marginBottom:6 }}>{leading==="you"?"🏆":leading==="friend"?"💪":"🤝"}</div>
+                      <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:leading==="you"?th.accentFg:leading==="friend"?"#E8612C":th.sub }}>
+                        {leading==="you"?"YOU'RE WINNING!":leading==="friend"?`${friend.name.split(" ")[0].toUpperCase()} IS AHEAD`:"ALL TIED UP"}
+                      </div>
+                      <div style={{ fontSize:12, color:th.muted, marginTop:4 }}>
+                        {leading==="you"?"Keep the pressure on — train hard.":leading==="friend"?"Time to turn it up. You've got this.":"Anyone's game — go train!"}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
 
-              {/* Leaderboard / result */}
-              {leading && (
-                <div style={{
-                  ...S.card, padding:"16px",
-                  background: leading === "you"
-                    ? `color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`
-                    : leading === "friend"
-                    ? `color-mix(in srgb, #E8612C 10%, ${th.card})`
-                    : undefined,
-                  border: leading === "you"
-                    ? `1px solid ${th.accentBg}44`
-                    : leading === "friend"
-                    ? `1px solid rgba(232,97,44,0.3)`
-                    : undefined,
-                  textAlign:"center",
-                }}>
-                  <div style={{ fontSize:28, marginBottom:6 }}>
-                    {leading === "you" ? "🏆" : leading === "friend" ? "💪" : "🤝"}
-                  </div>
-                  <div className="bebas" style={{ fontSize:20, letterSpacing:2, color: leading === "you" ? th.accentFg : leading === "friend" ? "#E8612C" : th.sub }}>
-                    {leading === "you" ? "YOU'RE WINNING!" : leading === "friend" ? `${friend.name.split(" ")[0].toUpperCase()} IS AHEAD` : "ALL TIED UP"}
-                  </div>
-                  <div style={{ fontSize:12, color:th.muted, marginTop:4 }}>
-                    {leading === "you" ? "Keep the pressure on — train hard this week." : leading === "friend" ? "Time to turn it up. You've got this." : "Anyone's game — go train!"}
-                  </div>
-                </div>
+              {/* ── No competition yet — invite screen ── */}
+              {!comp && (
+                <>
+                  {sentOk ? (
+                    <div style={{ textAlign:"center", padding:"40px 0", animation:"compSentIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
+                      <div style={{ fontSize:40, marginBottom:12 }}>⚔️</div>
+                      <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.accentFg, marginBottom:8 }}>CHALLENGE SENT!</div>
+                      <div style={{ fontSize:13, color:th.muted }}>
+                        {friend.name.split(" ")[0]} will see your invitation in their Sharing tab.
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Rules preview */}
+                      <div style={{ textAlign:"center", marginBottom:20 }}>
+                        <div style={{ fontSize:36, marginBottom:8 }}>⚔️</div>
+                        <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>7-DAY CHALLENGE</div>
+                        <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, maxWidth:280, margin:"0 auto" }}>
+                          Score points over 7 days. Only sessions logged <em>after</em> both sides agree count.
+                        </div>
+                      </div>
+                      <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
+                        <div style={{ ...S.label, marginBottom:10 }}>SCORING RULES</div>
+                        {[
+                          { pct:"40%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
+                          { pct:"40%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
+                          { pct:"20%", label:"Consistency",       desc:"5+ sessions = max score" },
+                        ].map(({ pct, label, desc }) => (
+                          <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
+                            <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
+                            <div><div style={{ fontSize:13, fontWeight:700, color:th.text }}>{label}</div>
+                            <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>{desc}</div></div>
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        disabled={sending}
+                        onClick={async () => {
+                          setSending(true);
+                          const r = await onSendCompeteInvite(friend.uid, friend.name);
+                          setSending(false);
+                          if (r?.ok) setSentOk(true);
+                        }}
+                        style={{
+                          width:"100%",
+                          background:`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
+                          backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                          border:`1.5px solid color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
+                          borderRadius:14, padding:"15px 0", cursor: sending?"default":"pointer",
+                          fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
+                          letterSpacing:"0.5px", color: th.accentFg,
+                          transition:"background .2s, color .2s",
+                          opacity: sending ? 0.6 : 1,
+                        }}
+                      >
+                        {sending ? "SENDING…" : `⚔ CHALLENGE ${friend.name.split(" ")[0].toUpperCase()}`}
+                      </button>
+                    </>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -6503,8 +6625,7 @@ import "./styles.css";
       </>
     );
   }
-
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -6703,7 +6824,7 @@ import "./styles.css";
                 <div style={{
                   width:54, height:54, borderRadius:"50%",
                   background: "transparent",
-                  border: `2px dashed ${th.accentBg}`,
+                  border: `1.5px dashed ${th.accentBg}`,
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:22, color: th.accentFg, fontWeight:700,
                 }}>+</div>
@@ -6728,9 +6849,13 @@ import "./styles.css";
           <CompetitionSheet
             user={user}
             friend={competeFriend}
+            competitions={competitions}
             mySessions={mySessions}
             onGetFriendSessions={onGetFriendSessions}
             onClose={() => setCompeteFriend(null)}
+            onSendCompeteInvite={onSendCompeteInvite}
+            onAcceptCompeteInvite={onAcceptCompeteInvite}
+            onDeclineCompeteInvite={onDeclineCompeteInvite}
           />
         )}
 
@@ -11750,6 +11875,7 @@ import "./styles.css";
     const [unreadStars, setUnreadStars]               = useState(0);
     const [notifOpen, setNotifOpen]                   = useState(false);
     const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
+    const [competitions, setCompetitions]             = useState([]);
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -11931,6 +12057,7 @@ import "./styles.css";
       const unsubReceived = fsListenInvitationsReceived(user.email, setPendingInvitations);
       const unsubSent     = fsListenInvitationsSent(user.id, setSentInvitations);
       const unsubFriends  = fsListenFriends(user.id, setFriends);
+      const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
 
       // Listen for new stars on any of the user's sessions (subcollection group query)
       // We poll the top-level reactions across all sessions once per minute as a pragmatic approach
@@ -11945,7 +12072,7 @@ import "./styles.css";
           setUnreadStars(rxns.filter(r => (r.ts || 0) > lastRead).length);
         }
       );
-      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubReactions(); };
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); };
     }, [user?.id, user?.email]);
     const saveActive = (a) => {
       setActive(a);
@@ -13048,6 +13175,10 @@ import "./styles.css";
                 onAcceptInvite={(inviteId, invite) => fsAcceptInvitation(inviteId, invite, user)}
                 onDeclineInvite={(inviteId) => fsDeclineInvitation(inviteId)}
                 onGetFriendSessions={fsGetFriendSessions}
+                competitions={competitions}
+                onSendCompeteInvite={(toUid, toName) => fsSendCompeteInvite(user.id, user.name || "Friend", toUid, toName)}
+                onAcceptCompeteInvite={fsAcceptCompeteInvite}
+                onDeclineCompeteInvite={fsDeclineCompeteInvite}
                 starNotifications={starNotifications}
                 unreadStars={unreadStars}
                 notifPopOpen={notifOpen}
