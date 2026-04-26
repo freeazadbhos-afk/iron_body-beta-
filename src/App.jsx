@@ -1848,15 +1848,16 @@ import "./styles.css";
     try {
       await updateDoc(doc(fbDb, "invitations", inviteId), { status: "accepted" });
       const now = serverTimestamp();
-      // Add invite sender to current user's friends
+      // Fetch latest photos for both sides before writing
+      const fromPhoto = await fsGetFriendPhoto(invite.fromUid);
+      const toPhoto   = currentUser.photoURL || await fsGetFriendPhoto(currentUser.id) || null;
       await setDoc(doc(fbDb, "users", currentUser.id, "friends", invite.fromUid), {
         uid: invite.fromUid, name: invite.fromName,
-        email: invite.fromEmail, photoURL: null, since: now,
+        email: invite.fromEmail, photoURL: fromPhoto, since: now,
       });
-      // Add current user to invite sender's friends
       await setDoc(doc(fbDb, "users", invite.fromUid, "friends", currentUser.id), {
         uid: currentUser.id, name: currentUser.name,
-        email: currentUser.email, photoURL: currentUser.photoURL || null, since: now,
+        email: currentUser.email, photoURL: toPhoto, since: now,
       });
       return true;
     } catch (e) {
@@ -2002,9 +2003,27 @@ import "./styles.css";
     );
     return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }
+  async function fsGetFriendPhoto(uid) {
+    try {
+      const snap = await getDoc(doc(fbDb, "users", uid, "data", "settings"));
+      return snap.exists() ? (snap.data().photoURL || null) : null;
+    } catch (e) {
+      return null;
+    }
+  }
   function fsListenFriends(uid, cb) {
     return onSnapshot(collection(fbDb, "users", uid, "friends"),
-      snap => cb(snap.docs.map(d => ({ ...d.data() })))
+      async snap => {
+        const base = snap.docs.map(d => ({ ...d.data() }));
+        // Hydrate each friend's latest photoURL from their own settings doc
+        const hydrated = await Promise.all(
+          base.map(async f => {
+            const photo = await fsGetFriendPhoto(f.uid);
+            return { ...f, photoURL: photo };
+          })
+        );
+        cb(hydrated);
+      }
     );
   }
   async function fsGetSettings(uid) {
@@ -6225,7 +6244,7 @@ import "./styles.css";
                       color: th.accentFg, letterSpacing:"0.5px",
                       transition:"background .2s, color .2s",
                     }}
-                  >⚔ COMPETE</button>
+                  >COMPETE</button>
                   <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
                 </div>
               </div>
@@ -6321,7 +6340,7 @@ import "./styles.css";
                 fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
                 color:"#E8612C", letterSpacing:"0.5px",
               }}
-            >⚔ COMPETE</button>
+            >COMPETE</button>
             <button
               onClick={onViewDashboard}
               style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"8px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, letterSpacing:"0.5px" }}
@@ -6468,7 +6487,7 @@ import "./styles.css";
               {/* ── INCOMING invitation ── */}
               {isIncoming && (
                 <div style={{ textAlign:"center" }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>⚔️</div>
+                  <div style={{ fontSize:40, marginBottom:12 }}>🏆</div>
                   <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>
                     {friend.name.split(" ")[0].toUpperCase()} CHALLENGED YOU
                   </div>
@@ -6494,7 +6513,7 @@ import "./styles.css";
                     <button onClick={async () => { await onDeclineCompeteInvite(comp.id); close(); }}
                       style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                     <button onClick={async () => { await onAcceptCompeteInvite(comp.id); }}
-                      style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
+                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
                   </div>
                 </div>
               )}
@@ -6578,7 +6597,7 @@ import "./styles.css";
                 <>
                   {sentOk ? (
                     <div style={{ textAlign:"center", padding:"40px 0", animation:"compSentIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
-                      <div style={{ fontSize:40, marginBottom:12 }}>⚔️</div>
+                      <div style={{ fontSize:40, marginBottom:12 }}>🏆</div>
                       <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.accentFg, marginBottom:8 }}>CHALLENGE SENT!</div>
                       <div style={{ fontSize:13, color:th.muted }}>
                         {friend.name.split(" ")[0]} will see your invitation in their Sharing tab.
@@ -6588,7 +6607,7 @@ import "./styles.css";
                     <>
                       {/* Rules preview */}
                       <div style={{ textAlign:"center", marginBottom:20 }}>
-                        <div style={{ fontSize:36, marginBottom:8 }}>⚔️</div>
+                        <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
                         <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>7-DAY CHALLENGE</div>
                         <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, maxWidth:280, margin:"0 auto" }}>
                           Score points over 7 days. Only sessions logged <em>after</em> both sides agree count.
@@ -6628,7 +6647,7 @@ import "./styles.css";
                           opacity: sending ? 0.6 : 1,
                         }}
                       >
-                        {sending ? "SENDING…" : `⚔ CHALLENGE ${friend.name.split(" ")[0].toUpperCase()}`}
+                        {sending ? "SENDING…" : `CHALLENGE ${friend.name.split(" ")[0].toUpperCase()}`}
                       </button>
                     </>
                   )}
@@ -6791,7 +6810,7 @@ import "./styles.css";
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{c.fromName}</div>
-                  <div style={{ fontSize:12, color:"#E8612C", marginTop:1, fontWeight:600 }}>⚔ COMPETE INVITATION</div>
+                  <div style={{ fontSize:12, color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
                 </div>
               </div>
               <div style={{ fontSize:12, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
@@ -6801,7 +6820,7 @@ import "./styles.css";
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
                   style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:2, background:`color-mix(in srgb, #E8612C 22%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid rgba(232,97,44,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#E8612C" }}>ACCEPT ⚔</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
               </div>
             </div>
           );
