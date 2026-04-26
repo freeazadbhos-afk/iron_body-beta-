@@ -5789,6 +5789,258 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     SHARING VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
+  /* ─── Standalone dashboard components (reused in both HomeView & FriendDashboardSheet) ── */
+
+  function StreakDashboard({ sessions }) {
+    const th = useTheme(); const S = useS();
+    const [off, setOff] = useState(0); const [dir, setDir] = useState(1);
+    if (!sessions.length) return null;
+    const todayMs = new Date(); todayMs.setHours(0,0,0,0);
+    const sessionDays = new Set(sessions.map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+    let streak=0; for (let i=0;i<=365;i++) { const d=new Date(todayMs); d.setDate(d.getDate()-i); if (sessionDays.has(d.getTime())) streak++; else if (i>0) break; }
+    const base=new Date(); base.setDate(1); base.setMonth(base.getMonth()+off);
+    const year=base.getFullYear(); const month=base.getMonth();
+    const monthName=base.toLocaleDateString("en-US",{month:"long",year:"numeric"}).toUpperCase();
+    const rawDow=new Date(year,month,1).getDay(); const firstDow=rawDow===0?6:rawDow-1;
+    const daysInMonth=new Date(year,month+1,0).getDate();
+    const earliest=sessions.length?new Date(Math.min(...sessions.map(s=>s.startTime||Date.now()))):new Date();
+    const minOff=(earliest.getFullYear()-new Date().getFullYear())*12+earliest.getMonth()-new Date().getMonth();
+    const canBack=off>minOff; const canFwd=off<0;
+    const cells=[]; for(let i=0;i<firstDow;i++) cells.push(null); for(let d=1;d<=daysInMonth;d++) cells.push(d); while(cells.length<42)cells.push(null);
+    const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10,textAlign:"left"}}>
+        <style>{`@keyframes strSL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes strSR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <div style={{...S.label}}>STREAK</div>
+          <div style={{textAlign:"right"}}><span className="bebas" style={{fontSize:28,color:th.accentFg,lineHeight:1}}>{streak}</span><div style={{fontSize:9,color:th.dim,letterSpacing:"1px"}}>DAYS</div></div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+          <button onClick={()=>{if(!canBack)return;setDir(-1);setOff(o=>o-1);}} style={{background:"none",border:"none",color:canBack?th.accentFg:th.inputB,fontSize:30,cursor:canBack?"pointer":"default",padding:"0 2px",lineHeight:1}}>‹</button>
+          <div style={{fontSize:13,fontWeight:700,letterSpacing:"0.5px",color:th.sub}}>{monthName}</div>
+          <button onClick={()=>{if(!canFwd)return;setDir(1);setOff(o=>o+1);}} style={{background:"none",border:"none",color:canFwd?th.accentFg:th.inputB,fontSize:30,cursor:canFwd?"pointer":"default",padding:"0 2px",lineHeight:1}}>›</button>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gap:1,marginBottom:1}}>{DOW.map((d,i)=><div key={i} style={{textAlign:"center",fontSize:12,color:th.sub,fontWeight:700}}>{d}</div>)}</div>
+        <div key={off} style={{display:"grid",gridTemplateColumns:"repeat(7, 1fr)",gridTemplateRows:"repeat(6, 1fr)",gap:1,animation:dir<0?"strSR 0.22s ease-out":"strSL 0.22s ease-out"}}>
+          {cells.map((day,ci)=>{
+            if(!day) return <div key={ci} style={{aspectRatio:"1"}}/>;
+            const dt=new Date(year,month,day); dt.setHours(0,0,0,0);
+            const isToday=dt.getTime()===todayMs.getTime();
+            const ds=sessions.filter(s=>{const sd=new Date(s.startTime||0);sd.setHours(0,0,0,0);return sd.getTime()===dt.getTime();});
+            const active=ds.length>0;
+            const hasR=ds.some(s=>(s.exercises||[]).some(e=>e.type!=="cardio")); const hasC=ds.some(s=>(s.exercises||[]).some(e=>e.type==="cardio"));
+            const bg=!active?"transparent":hasR&&hasC?"#E8612C":hasC?"#5B9CF6":th.accentBg;
+            return <div key={ci} style={{aspectRatio:"1",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:"90%",height:"90%",borderRadius:"50%",background:bg,border:isToday&&!active?`1.5px solid ${th.inputB}`:"none",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,color:active?th.accentT:isToday?th.text:th.sub,fontWeight:active||isToday?700:400}}>{day}</div></div>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:8,justifyContent:"center"}}>
+          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function MusclesTrainedDashboard({ sessions }) {
+    const th = useTheme(); const S = useS();
+    const W7 = Date.now()-7*864e5;
+    const hit = new Set(sessions.filter(s=>(s.startTime||0)>=W7).flatMap(s=>(s.exercises||[]).map(e=>e.muscle).filter(Boolean)));
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10,textAlign:"left"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <div style={{...S.label}}>MUSCLES TRAINED</div>
+          <div style={{fontSize:10,color:th.dim,letterSpacing:"0.5px"}}>LAST 7 DAYS</div>
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4}}>
+          {ALL_MUSCLES.map(m=>(
+            <div key={m} style={{padding:"3px 8px",borderRadius:6,fontSize:10,fontWeight:700,background:hit.has(m)?th.accentBg:"transparent",color:hit.has(m)?th.accentT:th.dim,border:`1px solid ${hit.has(m)?th.accentBg:th.inputB}`,transition:"all .2s"}}>{m}</div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function IntensityDashboard({ sessions, sessionVol: sv }) {
+    const th = useTheme(); const S = useS();
+    const cut7=Date.now()-7*864e5, cut14=Date.now()-14*864e5;
+    const r7=sessions.filter(s=>(s.startTime||0)>=cut7&&(s.intensity||0)>0);
+    if (!r7.length) return null;
+    const avgI=(r7.reduce((a,s)=>a+(s.intensity||0),0)/r7.length).toFixed(1);
+    const prev7=sessions.filter(s=>(s.startTime||0)>=cut14&&(s.startTime||0)<cut7&&(s.intensity||0)>0);
+    const prevAvg=prev7.length?(prev7.reduce((a,s)=>a+(s.intensity||0),0)/prev7.length):null;
+    const arrow=prevAvg!=null?(parseFloat(avgI)>prevAvg?"↑":parseFloat(avgI)<prevAvg?"↓":null):null;
+    const arrowCol=arrow==="↑"?"#1db954":"#CC1F42";
+    const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));d.setHours(0,0,0,0);return d;});
+    const byDate={}; sessions.forEach(s=>{if(!s.startTime)return;const k=new Date(s.startTime).toDateString();if(!byDate[k])byDate[k]=[];byDate[k].push(s);});
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{...S.label}}>INTENSITY</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+              {arrow&&<span style={{fontSize:14,color:arrowCol,fontWeight:700}}>{arrow}</span>}
+              <span className="bebas" style={{fontSize:28,color:th.accentFg,lineHeight:1}}>{avgI}</span>
+            </div>
+            <div style={{fontSize:9,color:th.dim,letterSpacing:"1px"}}>AVG /10</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+          {days.map((d,i)=>{
+            const ds=byDate[d.toDateString()]||[];
+            const hasData=ds.length>0; let n=0;
+            if(hasData){const vols=ds.map(s=>sv(s));const tot=vols.reduce((a,v)=>a+v,0);const useEq=tot===0;n=Math.round(ds.reduce((a,s,si)=>{const w=useEq?1/ds.length:vols[si]>0?vols[si]/tot:0.5/ds.length;return a+(s.intensity||0)*w;},0)*10)/10;}
+            const hasR=ds.some(s=>(s.exercises||[]).some(e=>e.type!=="cardio")); const hasC=ds.some(s=>(s.exercises||[]).some(e=>e.type==="cardio"));
+            const h=hasData?Math.max(8,(n/10)*80):6;
+            const bg=hasData?(hasR&&hasC?"#E8612C":hasC?"#5B9CF6":th.accentBg):th.inputB;
+            const col=hasData?(hasC&&!hasR?"#5B9CF6":th.accentFg):th.inputB;
+            return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+              <span style={{fontSize:13,fontWeight:700,color:hasData?col:"transparent",marginBottom:3,lineHeight:1}}>{hasData?n:"·"}</span>
+              <div style={{width:"100%",height:h,background:bg,borderRadius:"3px 3px 0 0",opacity:hasData?1:0.25}}/>
+              <span style={{fontSize:11,color:th.dim,marginTop:4,lineHeight:1,textAlign:"center",whiteSpace:"nowrap"}}>{d.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</span>
+            </div>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:12,marginTop:8,justifyContent:"center",flexWrap:"wrap"}}>
+          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:22,height:8,borderRadius:2,background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function CaloriesDashboard({ sessions }) {
+    const th = useTheme(); const S = useS();
+    const cut7=Date.now()-7*864e5, cut14=Date.now()-14*864e5;
+    const r7=sessions.filter(s=>(s.startTime||0)>=cut7&&(s.calories||0)>0);
+    if (!r7.length) return null;
+    const avgC=Math.round(r7.reduce((a,s)=>a+(s.calories||0),0)/r7.length);
+    const prev7=sessions.filter(s=>(s.startTime||0)>=cut14&&(s.startTime||0)<cut7&&(s.calories||0)>0);
+    const prevAvg=prev7.length?Math.round(prev7.reduce((a,s)=>a+(s.calories||0),0)/prev7.length):null;
+    const arrow=prevAvg!=null?(avgC>prevAvg?"↑":avgC<prevAvg?"↓":null):null;
+    const arrowCol=arrow==="↑"?"#1db954":"#CC1F42";
+    const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));d.setHours(0,0,0,0);return d;});
+    const byDate={}; sessions.forEach(s=>{if(!s.startTime)return;const k=new Date(s.startTime).toDateString();if(!byDate[k])byDate[k]=[];byDate[k].push(s);});
+    const dayData=days.map(d=>{const ds=byDate[d.toDateString()]||[];const rCal=ds.filter(s=>(s.exercises||[]).some(e=>e.type!=="cardio")).reduce((a,s)=>a+(s.calories||0),0);const cCal=ds.filter(s=>(s.exercises||[]).every(e=>e.type==="cardio")&&s.exercises.length>0).reduce((a,s)=>a+(s.calories||0),0);const total=ds.reduce((a,s)=>a+(s.calories||0),0);return{total,hasR:rCal>0,hasC:cCal>0};});
+    const maxC=Math.max(...dayData.map(d=>d.total),1);
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{...S.label}}>CALORIES BURNED</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+              {arrow&&<span style={{fontSize:14,color:arrowCol,fontWeight:700}}>{arrow}</span>}
+              <span className="bebas" style={{fontSize:28,color:th.accentFg,lineHeight:1}}>{avgC.toLocaleString()}</span>
+            </div>
+            <div style={{fontSize:9,color:th.dim,letterSpacing:"1px"}}>AVG KCAL</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+          {days.map((d,i)=>{
+            const {total,hasR,hasC}=dayData[i]; const hasData=total>0;
+            const h=hasData?Math.max(8,(total/maxC)*80):6;
+            const bg=hasData?(hasR&&hasC?"#E8612C":hasC?"#5B9CF6":th.accentBg):th.inputB;
+            const col=hasData?(hasC&&!hasR?"#5B9CF6":th.accentFg):th.inputB;
+            return <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center"}}>
+              <span style={{fontSize:11,fontWeight:700,color:hasData?col:"transparent",marginBottom:3,lineHeight:1}}>{hasData?total:"·"}</span>
+              <div style={{width:"100%",height:h,background:bg,borderRadius:"3px 3px 0 0",opacity:hasData?1:0.25}}/>
+              <span style={{fontSize:11,color:th.dim,marginTop:4,lineHeight:1,textAlign:"center",whiteSpace:"nowrap"}}>{d.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</span>
+            </div>;
+          })}
+        </div>
+        <div style={{display:"flex",gap:12,marginTop:8,justifyContent:"center",flexWrap:"wrap"}}>
+          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:22,height:8,borderRadius:2,background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  function WeeklyVolumeDashboard({ sessions, sessionVol: sv }) {
+    const th = useTheme(); const S = useS();
+    if (!sessions.length) return null;
+    const now=Date.now();
+    const weeks=Array.from({length:5},(_,i)=>{const end=now-i*7*864e5;const start=end-7*864e5;const fmt=d=>d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});return{start,end,label:`${fmt(new Date(start))}-${fmt(new Date(end-1))}`};}).reverse();
+    const weekVols=weeks.map(w=>sessions.filter(s=>(s.startTime||0)>=w.start&&(s.startTime||0)<w.end).reduce((a,s)=>a+sv(s),0));
+    if (weekVols.every(v=>v===0)) return null;
+    const maxVol=Math.max(...weekVols,1);
+    const totalRecent=weekVols[weekVols.length-1]; const totalPrev=weekVols[weekVols.length-2]||0;
+    const delta=totalRecent-totalPrev; const trendCol=delta>0?"#1db954":"#CC1F42"; const trend=delta>0?"↑":delta<0?"↓":null;
+    const fmtV=v=>v>=1000?`${(v/1000).toFixed(1)}t`:`${Math.round(v)}kg`;
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10,textAlign:"left"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{...S.label}}>WEEKLY VOLUME</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+              {trend&&<span style={{fontSize:16,color:trendCol,fontWeight:700,lineHeight:1}}>{trend}</span>}
+              <span className="bebas" style={{fontSize:28,color:th.accentFg,lineHeight:1}}>{fmtV(totalRecent)}</span>
+            </div>
+            <div style={{fontSize:9,color:th.dim,letterSpacing:"1px"}}>THIS WEEK</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:5,alignItems:"flex-end"}}>
+          {weeks.map((w,i)=>{const v=weekVols[i];const h=v>0?Math.max(8,(v/maxVol)*72):4;const isCur=i===weeks.length-1;const col=isCur?th.accentBg:v>(weekVols[i-1]||0)*1.1?`${th.accentBg}99`:`${th.accentBg}55`;return(
+            <div key={i} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:0}}>
+              <div style={{fontSize:10,color:isCur?th.accentFg:th.dim,fontWeight:isCur?700:400,marginBottom:2,lineHeight:1}}>{v>0?fmtV(v):""}</div>
+              <div style={{width:"100%",height:h,background:col,borderRadius:"3px 3px 0 0"}}/>
+              <div style={{fontSize:8,color:th.dim,marginTop:3,textAlign:"center",lineHeight:1.2,whiteSpace:"nowrap"}}>{w.label}</div>
+            </div>
+          );})}
+        </div>
+      </div>
+    );
+  }
+
+  function SessionPaceDashboard({ sessions, sessionVol: sv }) {
+    const th = useTheme(); const S = useS();
+    const cutoff=Date.now()-30*864e5;
+    const withEff=sessions.filter(s=>(s.startTime||0)>=cutoff&&(s.duration||0)>0).map(s=>{const vol=sv(s);return{...s,vol,eff:s.duration>0?vol/s.duration:0};}).filter(s=>s.vol>0).reverse();
+    if (withEff.length<2) return null;
+    const effVals=withEff.map(s=>s.eff);
+    const avgEff=effVals.reduce((a,v)=>a+v,0)/effVals.length;
+    const maxEff=Math.max(...effVals,1); const minEff=Math.min(...effVals,0); const range=maxEff-minEff||1;
+    const latest=withEff[withEff.length-1];
+    const trend=withEff.length>=2?(latest.eff>withEff[withEff.length-2].eff?"↑":latest.eff<withEff[withEff.length-2].eff?"↓":null):null;
+    const trendCol=trend==="↑"?"#1db954":"#CC1F42";
+    const W=280,H=52,R=3;
+    const xs=withEff.map((_,i)=>(i/Math.max(withEff.length-1,1))*W);
+    const ys=withEff.map(s=>H-((s.eff-minEff)/range)*(H-R*2)-R);
+    const linePath=xs.map((x,i)=>(i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
+    const areaPath=`${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
+    const avgY=H-((avgEff-minEff)/range)*(H-R*2)-R;
+    const effColor=e=>e>=avgEff*1.2?th.accentBg:e>=avgEff*0.8?"#E8612C":"#CC1F42";
+    return (
+      <div style={{...S.card,padding:16,marginBottom:10,textAlign:"left"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{...S.label}}>SESSION PACE</div>
+          <div style={{textAlign:"right"}}>
+            <div style={{display:"flex",alignItems:"baseline",gap:3,justifyContent:"flex-end"}}>
+              {trend&&<span style={{fontSize:16,color:trendCol,fontWeight:700,lineHeight:1}}>{trend}</span>}
+              <span className="bebas" style={{fontSize:28,color:effColor(latest.eff),lineHeight:1}}>{latest.eff.toFixed(1)}</span>
+            </div>
+            <div style={{fontSize:9,color:th.dim,letterSpacing:"1px"}}>KG/MIN</div>
+          </div>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H+22}`} width="100%" style={{overflow:"visible",marginTop:8}}>
+          <path d={areaPath} fill={th.accentBg} opacity="0.06"/>
+          <line x1="0" y1={avgY} x2={W} y2={avgY} stroke={th.inputB} strokeWidth="1" strokeDasharray="4 3"/>
+          <path d={linePath} fill="none" stroke={th.accentBg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          {withEff.map((s,i)=><circle key={i} cx={xs[i]} cy={ys[i]} r={i===withEff.length-1?R+1:R} fill={i===withEff.length-1?effColor(s.eff):th.card} stroke={effColor(s.eff)} strokeWidth="1.5"/>)}
+          <text x={xs[0]} y={H+16} textAnchor="start" fontSize="10" fill="#666" fontFamily="Outfit,sans-serif">{withEff[0].eff.toFixed(1)}</text>
+          <text x={xs[xs.length-1]} y={H+16} textAnchor="end" fontSize="10" fill={th.accentFg} fontFamily="Outfit,sans-serif" fontWeight="700">{latest.eff.toFixed(1)}</text>
+        </svg>
+        <div style={{display:"flex",gap:14,marginTop:4,flexWrap:"wrap"}}>
+          {[{l:"High efficiency",c:th.accentBg},{l:"Average",c:"#E8612C"},{l:"Low efficiency",c:"#CC1F42"}].map(({l,c})=>(
+            <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:8,height:8,borderRadius:"50%",background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   /* ─── Friend Dashboard Sheet ─────────────────────────────────────────────────── */
   function FriendDashboardSheet({ friend, onClose, onGetFriendSessions }) {
     const th = useTheme();
@@ -5805,29 +6057,8 @@ import "./styles.css";
       return () => { cancelled = true; };
     }, [friend.uid]);
 
-    const close = () => {
-      setClosing(true);
-      setTimeout(onClose, 340);
-    };
-
+    const close = () => { setClosing(true); setTimeout(onClose, 340); };
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-
-    /* ── Stats computed from sessions ── */
-    const streak = sessions ? (() => {
-      const days = new Set(sessions.map(x => {
-        const d = new Date(x.startTime||0); d.setHours(0,0,0,0); return d.getTime();
-      }));
-      let n=0, d=new Date(); d.setHours(0,0,0,0);
-      while (days.has(d.getTime())) { n++; d.setDate(d.getDate()-1); }
-      if (n===0) { d=new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0);
-        while(days.has(d.getTime())){n++;d.setDate(d.getDate()-1);} }
-      return n;
-    })() : 0;
-
-    const W7 = Date.now() - 7*864e5;
-    const last7Sessions = sessions ? sessions.filter(s=>(s.startTime||0)>=W7) : [];
-    const totalVol = sessions ? sessions.reduce((a,s)=>a+sessionVol(s),0) : 0;
-    const weekMuscles = new Set(last7Sessions.flatMap(s=>(s.exercises||[]).map(e=>e.muscle).filter(Boolean)));
 
     return (
       <>
@@ -5894,73 +6125,20 @@ import "./styles.css";
                 </div>
               ) : (
                 <>
-                  {/* ── Top stats ── */}
-                  <div style={{ display:"flex", gap:8, marginBottom:18 }}>
-                    {[
-                      { label:"STREAK",    value: streak ? `${streak}d` : "—" },
-                      { label:"LAST 7 DAYS", value: last7Sessions.length },
-                      { label:"TOTAL",     value: sessions.length },
-                    ].map(({label,value}) => (
-                      <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 8px", textAlign:"center" }}>
-                        <div className="bebas" style={{ fontSize:26, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                        <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:4 }}>{label}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ── Total volume ── */}
-                  <div style={{ ...S.card, padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                    <div style={{ ...S.label }}>TOTAL VOLUME LIFTED</div>
-                    <div className="bebas" style={{ fontSize:22, color:th.accentFg }}>
-                      {totalVol >= 1000 ? `${(totalVol/1000).toFixed(1)}t` : `${Math.round(totalVol)}kg`}
-                    </div>
-                  </div>
-
-                  {/* ── Muscles trained last 7 days ── */}
-                  {weekMuscles.size > 0 && (
-                    <div style={{ marginBottom:18 }}>
-                      <div style={{ ...S.label, marginBottom:8 }}>MUSCLES THIS WEEK</div>
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
-                        {[...weekMuscles].map(m => (
-                          <div key={m} style={{ padding:"3px 10px", borderRadius:7, fontSize:11, fontWeight:700, background:`${th.accentBg}22`, color:th.accentFg, border:`1px solid ${th.accentBg}44` }}>
-                            {m}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* ── Session history ── */}
-                  <div style={{ ...S.label, marginBottom:10 }}>RECENT WORKOUTS</div>
-                  {sessions.map((s,i) => {
-                    const vol = sessionVol(s);
-                    return (
-                      <div key={i} style={{ ...S.card, padding:"12px 16px", marginBottom:8 }}>
-                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
-                          <div style={{ flex:1, minWidth:0 }}>
-                            <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{s.name || "Workout"}</div>
-                            <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
-                              {fmtDate(s.startTime||0)}
-                              {s.exercises?.length ? ` · ${s.exercises.length} exercises` : ""}
-                            </div>
-                          </div>
-                          {vol > 0 && (
-                            <div className="bebas" style={{ fontSize:18, color:th.accentFg, flexShrink:0 }}>
-                              {vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg`}
-                            </div>
-                          )}
-                        </div>
-                        {/* Muscle tags */}
-                        {s.exercises?.length > 0 && (
-                          <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:8 }}>
-                            {[...new Set(s.exercises.map(e=>e.group).filter(Boolean))].map(g => (
-                              <div key={g} style={{ padding:"2px 8px", borderRadius:5, fontSize:10, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  <StreakDashboard sessions={sessions} />
+                  <MusclesTrainedDashboard sessions={sessions} />
+                  <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
+                  <CaloriesDashboard sessions={sessions} />
+                  <WeeklyVolumeDashboard sessions={sessions} sessionVol={sessionVol} />
+                  {(() => {
+                    const prMap={};
+                    sessions.forEach(s=>(s.exercises||[]).forEach(ex=>{const id=ex.id||ex.exId;if(!id)return;(ex.sets||[]).filter(st=>st.done&&(st.weight||0)>0).forEach(st=>{if(!prMap[id]||st.weight>prMap[id].w){const dbEx=DB.find(d=>d.id===id);prMap[id]={w:st.weight,reps:st.reps,name:dbEx?.name||ex.name||id,t:s.startTime||0,muscle:dbEx?.muscle};}});} ));
+                    const allPrs=Object.values(prMap).sort((a,b)=>b.w-a.w);
+                    return allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null;
+                  })()}
+                  <SetsByMuscleGroup sessions={sessions} />
+                  <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />
+                  <SessionPaceDashboard sessions={sessions} sessionVol={sessionVol} />
                 </>
               )}
             </div>
