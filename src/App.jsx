@@ -6294,7 +6294,7 @@ import "./styles.css";
 
         {/* ── Friends list ── */}
         {friends.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 20, textAlign: "left" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
               <button
@@ -6371,7 +6371,7 @@ import "./styles.css";
               </div>
             ) : (
               <>
-                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5, textAlign: "left" }}>
                   Enter your friend's email. Once they accept, you'll both see each other's workouts.
                 </div>
                 <input
@@ -6401,9 +6401,9 @@ import "./styles.css";
         {/* ── Sent invitations (pending) ── */}
         {sentInvitations.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>AWAITING RESPONSE</div>
+            <div style={{ ...S.label, marginBottom: 10, textAlign: "left" }}>AWAITING RESPONSE</div>
             {sentInvitations.map(inv => (
-              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12 }}>
+              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign: "left",display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:th.dim }}>⏳</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
@@ -6415,7 +6415,7 @@ import "./styles.css";
         )}
 
         {/* ── Coming soon ── */}
-        <div style={{ marginBottom:12, animation:"sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
+        <div style={{ marginBottom:12,textAlign: "left", animation:"sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
           <div style={{ ...S.label, marginBottom:10 }}>COMING SOON</div>
           {[
             { icon:"🏆", title:"Competitions", desc:"Challenge a friend to a weekly volume or sets race." },
