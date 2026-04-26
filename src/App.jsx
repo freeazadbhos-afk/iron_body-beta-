@@ -1828,12 +1828,13 @@ import "./styles.css";
   }
 
   /* ─── Sharing / Invitations ─────────────────────────────────────────────────── */
-  async function fsSendInvitation(fromUid, fromName, fromEmail, toEmail) {
+  async function fsSendInvitation(fromUid, fromName, fromEmail, toEmail, fromPhotoURL) {
     try {
       await addDoc(collection(fbDb, "invitations"), {
         fromUid,
         fromName,
         fromEmail: fromEmail.toLowerCase().trim(),
+        fromPhotoURL: fromPhotoURL || null,
         toEmail: toEmail.toLowerCase().trim(),
         status: "pending",
         createdAt: serverTimestamp(),
@@ -1848,16 +1849,13 @@ import "./styles.css";
     try {
       await updateDoc(doc(fbDb, "invitations", inviteId), { status: "accepted" });
       const now = serverTimestamp();
-      // Fetch latest photos for both sides before writing
-      const fromPhoto = await fsGetFriendPhoto(invite.fromUid);
-      const toPhoto   = currentUser.photoURL || await fsGetFriendPhoto(currentUser.id) || null;
       await setDoc(doc(fbDb, "users", currentUser.id, "friends", invite.fromUid), {
         uid: invite.fromUid, name: invite.fromName,
-        email: invite.fromEmail, photoURL: fromPhoto, since: now,
+        email: invite.fromEmail, photoURL: invite.fromPhotoURL || null, since: now,
       });
       await setDoc(doc(fbDb, "users", invite.fromUid, "friends", currentUser.id), {
         uid: currentUser.id, name: currentUser.name,
-        email: currentUser.email, photoURL: toPhoto, since: now,
+        email: currentUser.email, photoURL: currentUser.photoURL || null, since: now,
       });
       return true;
     } catch (e) {
@@ -2003,27 +2001,19 @@ import "./styles.css";
     );
     return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }
-  async function fsGetFriendPhoto(uid) {
-    try {
-      const snap = await getDoc(doc(fbDb, "users", uid, "data", "settings"));
-      return snap.exists() ? (snap.data().photoURL || null) : null;
-    } catch (e) {
-      return null;
-    }
+  async function fsPushPhotoToFriends(uid, photoURL, friendUids) {
+    // When user updates their photo, push it to their entry in each friend's friend list
+    // User has write access to users/{friendUid}/friends/{uid} via friends rule
+    await Promise.all(
+      friendUids.map(friendUid =>
+        setDoc(doc(fbDb, "users", friendUid, "friends", uid), { photoURL: photoURL || null }, { merge: true })
+          .catch(() => {}) // silently skip if permissions change
+      )
+    );
   }
   function fsListenFriends(uid, cb) {
     return onSnapshot(collection(fbDb, "users", uid, "friends"),
-      async snap => {
-        const base = snap.docs.map(d => ({ ...d.data() }));
-        // Hydrate each friend's latest photoURL from their own settings doc
-        const hydrated = await Promise.all(
-          base.map(async f => {
-            const photo = await fsGetFriendPhoto(f.uid);
-            return { ...f, photoURL: photo };
-          })
-        );
-        cb(hydrated);
-      }
+      snap => cb(snap.docs.map(d => ({ ...d.data() })))
     );
   }
   async function fsGetSettings(uid) {
@@ -6231,6 +6221,7 @@ import "./styles.css";
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div className="bebas" style={{ fontSize:26, textAlign: "left",letterSpacing:2, color:th.text, lineHeight:1 }}>{friend.name}</div>
+                  <div style={{ fontSize:12, textAlign:"left", color:th.muted, marginTop:2 }}>{friend.email}</div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                   <button
@@ -9819,6 +9810,7 @@ import "./styles.css";
     onGoWorkout,
     onClearUnread,
     onClose,
+    onPhotoUpdate,
   }) {
     const th = useTheme();
     const S = useS();
@@ -10055,8 +10047,10 @@ import "./styles.css";
           age: eAge ? parseInt(eAge) : null,
           gender: eGender || null,
         });
-        // Push photo + age + gender to Firestore
+        // Push photo + age + gender to Firestore settings
         fsSaveSettings(fbUser.uid, { photoURL: photoData || null, age: eAge ? parseInt(eAge) : null, gender: eGender || null });
+        // Push updated photo to all friends' friend-list entries
+        if (onPhotoUpdate) onPhotoUpdate(photoData || null);
         onUpdateUser({
           ...user,
           name: eName.trim(),
@@ -13238,7 +13232,7 @@ import "./styles.css";
                 pendingInvitations={pendingInvitations}
                 sentInvitations={sentInvitations}
                 friends={friends}
-                onSendInvite={(toEmail) => fsSendInvitation(user.id, user.name, user.email, toEmail)}
+                onSendInvite={(toEmail) => fsSendInvitation(user.id, user.name, user.email, toEmail, user.photoURL)}
                 onAcceptInvite={(inviteId, invite) => fsAcceptInvitation(inviteId, invite, user)}
                 onDeclineInvite={(inviteId) => fsDeclineInvitation(inviteId)}
                 onGetFriendSessions={fsGetFriendSessions}
@@ -13799,6 +13793,7 @@ import "./styles.css";
                   onGoWorkout={() => { closeProfile(); setTimeout(() => setView("workout"), 380); }}
                   onClearUnread={() => setUnreadFeedback(0)}
                   onClose={closeProfile}
+                  onPhotoUpdate={(photoURL) => fsPushPhotoToFriends(user.id, photoURL, friends.map(f => f.uid))}
                 />
               </div>
             </div>
