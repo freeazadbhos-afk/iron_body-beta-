@@ -1873,6 +1873,15 @@ import "./styles.css";
       return false;
     }
   }
+  async function fsRemoveFriend(uid, friendUid) {
+    try {
+      await deleteDoc(doc(fbDb, "users", uid, "friends", friendUid));
+      return true;
+    } catch (e) {
+      console.error("fsRemoveFriend:", e);
+      return false;
+    }
+  }
   async function fsGetFriendSessions(friendUid) {
     try {
       const snap = await getDocs(collection(fbDb, "users", friendUid, "sessions"));
@@ -6125,6 +6134,29 @@ import "./styles.css";
                 </div>
               ) : (
                 <>
+                  {/* ── Quick summary tiles ── */}
+                  {(() => {
+                    const todayMs = new Date(); todayMs.setHours(0,0,0,0);
+                    const sessionDays = new Set(sessions.map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+                    let streak=0; for(let i=0;i<=365;i++){const d=new Date(todayMs);d.setDate(d.getDate()-i);if(sessionDays.has(d.getTime()))streak++;else if(i>0)break;}
+                    const last7 = sessions.filter(s=>(s.startTime||0)>=Date.now()-7*864e5).length;
+                    const now = new Date(); const monthStart = new Date(now.getFullYear(),now.getMonth(),1).getTime();
+                    const thisMonth = sessions.filter(s=>(s.startTime||0)>=monthStart).length;
+                    return (
+                      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+                        {[
+                          { label:"STREAK",       value: streak ? `${streak}d` : "—" },
+                          { label:"LAST 7 DAYS",  value: last7 },
+                          { label:"THIS MONTH",   value: thisMonth },
+                        ].map(({label,value}) => (
+                          <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
+                            <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                   <StreakDashboard sessions={sessions} />
                   <MusclesTrainedDashboard sessions={sessions} />
                   <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
@@ -6148,12 +6180,12 @@ import "./styles.css";
     );
   }
 
-  function FriendCard({ friend, onViewDashboard }) {
+  function FriendCard({ friend, onViewDashboard, editing, onRemove }) {
     const th = useTheme();
     const S = useS();
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
     return (
-      <div style={{ ...S.card, padding:"14px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:12 }}>
+      <div style={{ ...S.card, padding:"14px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:12, border: editing ? `1px solid ${th.delB}` : undefined, transition:"border-color .2s" }}>
         {friend.photoURL ? (
           <img src={friend.photoURL} alt={friend.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
         ) : (
@@ -6165,15 +6197,22 @@ import "./styles.css";
           <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{friend.name}</div>
           <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{friend.email}</div>
         </div>
-        <button
-          onClick={onViewDashboard}
-          style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"8px 14px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, letterSpacing:"0.5px" }}
-        >VIEW →</button>
+        {editing ? (
+          <button
+            onClick={onRemove}
+            style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0 }}
+          >✕</button>
+        ) : (
+          <button
+            onClick={onViewDashboard}
+            style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"8px 14px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, letterSpacing:"0.5px" }}
+          >VIEW →</button>
+        )}
       </div>
     );
   }
 
-  function SharingView({ user, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions }) {
+  function SharingView({ user, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -6181,7 +6220,8 @@ import "./styles.css";
     const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
     const [actioning, setActioning] = useState({});
-    const [dashFriend, setDashFriend] = useState(null); // friend whose dashboard is open
+    const [dashFriend, setDashFriend] = useState(null);
+    const [editFriends, setEditFriends] = useState(false);
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -6239,12 +6279,12 @@ import "./styles.css";
                   <button
                     onClick={() => handleAction(inv.id, inv, "decline")}
                     disabled={actioning[inv.id]}
-                    style={{ flex:1, background:`color-mix(in srgb, ${th.card} 70%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid ${th.border}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
+                    style={{ flex:1, background:th.del, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
                   >DECLINE</button>
                   <button
                     onClick={() => handleAction(inv.id, inv, "accept")}
                     disabled={actioning[inv.id]}
-                    style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
+                    style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
                   >{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
                 </div>
               </div>
@@ -6255,9 +6295,21 @@ import "./styles.css";
         {/* ── Friends list ── */}
         {friends.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>FRIENDS ({friends.length})</div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <div style={S.label}>FRIENDS ({friends.length})</div>
+              <button
+                onClick={() => setEditFriends(e => !e)}
+                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
+              >{editFriends ? "DONE" : "EDIT ✎"}</button>
+            </div>
             {friends.map(f => (
-              <FriendCard key={f.uid} friend={f} onViewDashboard={() => setDashFriend(f)} />
+              <FriendCard
+                key={f.uid}
+                friend={f}
+                editing={editFriends}
+                onViewDashboard={() => { if (!editFriends) setDashFriend(f); }}
+                onRemove={() => onRemoveFriend(f.uid)}
+              />
             ))}
           </div>
         )}
@@ -12343,6 +12395,7 @@ import "./styles.css";
                 onAcceptInvite={(inviteId, invite) => fsAcceptInvitation(inviteId, invite, user)}
                 onDeclineInvite={(inviteId) => fsDeclineInvitation(inviteId)}
                 onGetFriendSessions={fsGetFriendSessions}
+                onRemoveFriend={(friendUid) => fsRemoveFriend(user.id, friendUid)}
               />
             )}
           </div>
