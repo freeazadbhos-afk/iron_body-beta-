@@ -5789,102 +5789,208 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     SHARING VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
-  function FriendCard({ friend, onGetFriendSessions }) {
+  /* ─── Friend Dashboard Sheet ─────────────────────────────────────────────────── */
+  function FriendDashboardSheet({ friend, onClose, onGetFriendSessions }) {
     const th = useTheme();
     const S = useS();
-    const [expanded, setExpanded] = useState(false);
-    const [sessions, setSessions] = useState(null); // null = not loaded
-    const [loading, setLoading] = useState(false);
+    const [sessions, setSessions] = useState(null);
+    const [loading, setLoading]   = useState(true);
+    const [closing, setClosing]   = useState(false);
 
-    const handleExpand = async () => {
-      if (!expanded && sessions === null) {
-        setLoading(true);
-        const s = await onGetFriendSessions(friend.uid);
-        setSessions(s);
-        setLoading(false);
-      }
-      setExpanded(e => !e);
+    useEffect(() => {
+      let cancelled = false;
+      onGetFriendSessions(friend.uid).then(s => {
+        if (!cancelled) { setSessions(s); setLoading(false); }
+      });
+      return () => { cancelled = true; };
+    }, [friend.uid]);
+
+    const close = () => {
+      setClosing(true);
+      setTimeout(onClose, 340);
     };
 
-    // Compute friend stats from sessions
+    const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+    /* ── Stats computed from sessions ── */
     const streak = sessions ? (() => {
-      let s = 0, d = new Date(); d.setHours(0,0,0,0);
-      const days = new Set(sessions.map(x => { const dt = new Date(x.startTime||0); dt.setHours(0,0,0,0); return dt.getTime(); }));
-      while (days.has(d.getTime())) { s++; d.setDate(d.getDate()-1); }
-      // allow yesterday as starting point
-      if (s === 0) { d = new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0); while(days.has(d.getTime())){s++;d.setDate(d.getDate()-1);} }
-      return s;
-    })() : null;
+      const days = new Set(sessions.map(x => {
+        const d = new Date(x.startTime||0); d.setHours(0,0,0,0); return d.getTime();
+      }));
+      let n=0, d=new Date(); d.setHours(0,0,0,0);
+      while (days.has(d.getTime())) { n++; d.setDate(d.getDate()-1); }
+      if (n===0) { d=new Date(); d.setDate(d.getDate()-1); d.setHours(0,0,0,0);
+        while(days.has(d.getTime())){n++;d.setDate(d.getDate()-1);} }
+      return n;
+    })() : 0;
 
-    const last7 = sessions ? sessions.filter(s => (s.startTime||0) >= Date.now() - 7*864e5).length : null;
-    const lastSession = sessions?.[0];
-    const lastDate = lastSession ? new Date(lastSession.startTime||0).toLocaleDateString("en-US", { month:"short", day:"numeric" }) : null;
-
-    const initials = (friend.name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+    const W7 = Date.now() - 7*864e5;
+    const last7Sessions = sessions ? sessions.filter(s=>(s.startTime||0)>=W7) : [];
+    const totalVol = sessions ? sessions.reduce((a,s)=>a+sessionVol(s),0) : 0;
+    const weekMuscles = new Set(last7Sessions.flatMap(s=>(s.exercises||[]).map(e=>e.muscle).filter(Boolean)));
 
     return (
-      <div style={{ ...S.card, marginBottom: 10, overflow: "hidden" }}>
-        {/* Main row */}
-        <div
-          onClick={handleExpand}
-          style={{ padding: "14px 16px", display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
-        >
-          {/* Avatar */}
-          {friend.photoURL ? (
-            <img src={friend.photoURL} alt={friend.name} style={{ width:42, height:42, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-          ) : (
-            <div style={{ width:42, height:42, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
-              {initials}
-            </div>
-          )}
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{friend.name}</div>
-            <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{friend.email}</div>
-          </div>
-          {loading ? (
-            <div style={{ fontSize:12, color:th.dim }}>…</div>
-          ) : (
-            <div style={{ fontSize:18, color:th.dim, transition:"transform .2s", transform: expanded ? "rotate(180deg)" : "none" }}>⌄</div>
-          )}
-        </div>
+      <>
+        <style>{`
+          @keyframes fdSheetIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes fdSheetOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
+          @keyframes fdBdIn  { from{opacity:0} to{opacity:1} }
+          @keyframes fdBdOut { from{opacity:1} to{opacity:0} }
+        `}</style>
 
-        {/* Expanded dashboard */}
-        {expanded && sessions !== null && (
-          <div style={{ borderTop:`1px solid ${th.border}`, padding:"14px 16px" }}>
-            {sessions.length === 0 ? (
-              <div style={{ fontSize:13, color:th.muted, textAlign:"center", padding:"8px 0" }}>No workout history yet.</div>
-            ) : (
-              <>
-                {/* Stats row */}
-                <div style={{ display:"flex", gap:8, marginBottom:14 }}>
-                  {[
-                    { label:"STREAK", value: streak ? `${streak}d` : "—" },
-                    { label:"LAST 7 DAYS", value: last7 ?? "—" },
-                    { label:"LAST WORKOUT", value: lastDate || "—" },
-                  ].map(({ label, value }) => (
-                    <div key={label} style={{ flex:1, background:th.sect, borderRadius:10, padding:"10px 8px", textAlign:"center" }}>
-                      <div className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
-                    </div>
-                  ))}
+        {/* Backdrop */}
+        <div onClick={close} style={{
+          position:"fixed", inset:0, zIndex:70,
+          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: closing ? "fdBdOut .34s ease forwards" : "fdBdIn .26s ease forwards",
+        }} />
+
+        {/* Sheet */}
+        <div style={{
+          position:"fixed", inset:0, zIndex:71,
+          display:"flex", flexDirection:"column",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            pointerEvents:"auto",
+            animation: closing ? "fdSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "fdSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+
+            {/* Header */}
+            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"14px 16px 10px" }}>
+              {/* Pill */}
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+                {friend.photoURL ? (
+                  <img src={friend.photoURL} alt={friend.name} style={{ width:46, height:46, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:46, height:46, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                    {initials}
+                  </div>
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>{friend.name}</div>
+                  <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{friend.email}</div>
                 </div>
-                {/* Last 3 sessions */}
-                {sessions.slice(0,3).map((s,i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 0", borderTop:`1px solid ${th.border}` }}>
-                    <div style={{ width:6, height:6, borderRadius:"50%", background:th.accentBg, flexShrink:0 }} />
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:13, fontWeight:600, color:th.text }}>{s.name || "Workout"}</div>
-                      <div style={{ fontSize:11, color:th.muted }}>
-                        {new Date(s.startTime||0).toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"})}
-                        {s.exercises?.length ? ` · ${s.exercises.length} exercises` : ""}
+                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
+              </div>
+            </div>
+
+            {/* Scrollable body */}
+            <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px 32px" }}>
+              {loading ? (
+                <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
+              ) : !sessions || sessions.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"48px 0" }}>
+                  <div style={{ fontSize:32, marginBottom:12 }}>🏋️</div>
+                  <div style={{ color:th.muted, fontSize:14 }}>No workout history yet.</div>
+                </div>
+              ) : (
+                <>
+                  {/* ── Top stats ── */}
+                  <div style={{ display:"flex", gap:8, marginBottom:18 }}>
+                    {[
+                      { label:"STREAK",    value: streak ? `${streak}d` : "—" },
+                      { label:"LAST 7 DAYS", value: last7Sessions.length },
+                      { label:"TOTAL",     value: sessions.length },
+                    ].map(({label,value}) => (
+                      <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 8px", textAlign:"center" }}>
+                        <div className="bebas" style={{ fontSize:26, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                        <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:4 }}>{label}</div>
                       </div>
+                    ))}
+                  </div>
+
+                  {/* ── Total volume ── */}
+                  <div style={{ ...S.card, padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <div style={{ ...S.label }}>TOTAL VOLUME LIFTED</div>
+                    <div className="bebas" style={{ fontSize:22, color:th.accentFg }}>
+                      {totalVol >= 1000 ? `${(totalVol/1000).toFixed(1)}t` : `${Math.round(totalVol)}kg`}
                     </div>
                   </div>
-                ))}
-              </>
-            )}
+
+                  {/* ── Muscles trained last 7 days ── */}
+                  {weekMuscles.size > 0 && (
+                    <div style={{ marginBottom:18 }}>
+                      <div style={{ ...S.label, marginBottom:8 }}>MUSCLES THIS WEEK</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:5 }}>
+                        {[...weekMuscles].map(m => (
+                          <div key={m} style={{ padding:"3px 10px", borderRadius:7, fontSize:11, fontWeight:700, background:`${th.accentBg}22`, color:th.accentFg, border:`1px solid ${th.accentBg}44` }}>
+                            {m}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── Session history ── */}
+                  <div style={{ ...S.label, marginBottom:10 }}>RECENT WORKOUTS</div>
+                  {sessions.map((s,i) => {
+                    const vol = sessionVol(s);
+                    return (
+                      <div key={i} style={{ ...S.card, padding:"12px 16px", marginBottom:8 }}>
+                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{s.name || "Workout"}</div>
+                            <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
+                              {fmtDate(s.startTime||0)}
+                              {s.exercises?.length ? ` · ${s.exercises.length} exercises` : ""}
+                            </div>
+                          </div>
+                          {vol > 0 && (
+                            <div className="bebas" style={{ fontSize:18, color:th.accentFg, flexShrink:0 }}>
+                              {vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg`}
+                            </div>
+                          )}
+                        </div>
+                        {/* Muscle tags */}
+                        {s.exercises?.length > 0 && (
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:8 }}>
+                            {[...new Set(s.exercises.map(e=>e.group).filter(Boolean))].map(g => (
+                              <div key={g} style={{ padding:"2px 8px", borderRadius:5, fontSize:10, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  function FriendCard({ friend, onViewDashboard }) {
+    const th = useTheme();
+    const S = useS();
+    const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    return (
+      <div style={{ ...S.card, padding:"14px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:12 }}>
+        {friend.photoURL ? (
+          <img src={friend.photoURL} alt={friend.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+        ) : (
+          <div style={{ width:44, height:44, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+            {initials}
           </div>
         )}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{friend.name}</div>
+          <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{friend.email}</div>
+        </div>
+        <button
+          onClick={onViewDashboard}
+          style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"8px 14px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, letterSpacing:"0.5px" }}
+        >VIEW →</button>
       </div>
     );
   }
@@ -5893,10 +5999,11 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
-    const [inviteStatus, setInviteStatus] = useState("idle"); // idle | sending | sent | error | duplicate
+    const [inviteStatus, setInviteStatus] = useState("idle");
     const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
-    const [actioning, setActioning] = useState({}); // inviteId → true while accepting/declining
+    const [actioning, setActioning] = useState({});
+    const [dashFriend, setDashFriend] = useState(null); // friend whose dashboard is open
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -5972,9 +6079,18 @@ import "./styles.css";
           <div style={{ marginBottom: 20 }}>
             <div style={{ ...S.label, marginBottom: 10 }}>FRIENDS ({friends.length})</div>
             {friends.map(f => (
-              <FriendCard key={f.uid} friend={f} onGetFriendSessions={onGetFriendSessions} />
+              <FriendCard key={f.uid} friend={f} onViewDashboard={() => setDashFriend(f)} />
             ))}
           </div>
+        )}
+
+        {/* ── Friend dashboard sheet ── */}
+        {dashFriend && (
+          <FriendDashboardSheet
+            friend={dashFriend}
+            onClose={() => setDashFriend(null)}
+            onGetFriendSessions={onGetFriendSessions}
+          />
         )}
 
         {/* ── Empty state hero (only when no friends and no pending) ── */}
