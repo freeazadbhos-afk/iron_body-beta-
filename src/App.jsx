@@ -6775,6 +6775,38 @@ import "./styles.css";
           </div>
         )}
 
+        {/* ── Pending competition invitations received ── */}
+        {competitions.filter(c => c.toUid === user.id && c.status === "pending").map(c => {
+          const f = friends.find(fr => fr.uid === c.fromUid);
+          const initials = (c.fromName||"?")[0].toUpperCase();
+          return (
+            <div key={c.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                {f?.photoURL ? (
+                  <img src={f.photoURL} alt={c.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, #E8612C 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#E8612C", flexShrink:0 }}>
+                    {initials}
+                  </div>
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{c.fromName}</div>
+                  <div style={{ fontSize:12, color:"#E8612C", marginTop:1, fontWeight:600 }}>⚔ COMPETE INVITATION</div>
+                </div>
+              </div>
+              <div style={{ fontSize:12, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+                Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
+                  style={{ flex:2, background:`color-mix(in srgb, #E8612C 22%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid rgba(232,97,44,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#E8612C" }}>ACCEPT ⚔</button>
+              </div>
+            </div>
+          );
+        })}
+
         {/* ── Horizontal friends bubble row ── */}
         {friends.length > 0 && (
           <div style={{ marginBottom: 20 }}>
@@ -12446,7 +12478,7 @@ import "./styles.css";
               <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
               <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            {(pendingInvitations.length > 0 || unreadStars > 0) && (
+            {(pendingInvitations.length > 0 || unreadStars > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
               <div style={{
                 position: "absolute", top: -3, right: -3,
                 width: 9, height: 9, borderRadius: "50%",
