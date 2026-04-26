@@ -1882,6 +1882,37 @@ import "./styles.css";
       return false;
     }
   }
+
+  /* ─── Session reactions (stars) ─────────────────────────────────────────────── */
+  // Stored at: users/{ownerUid}/sessions/{sessionId}/reactions/{reactorUid}
+  async function fsToggleStar(ownerUid, sessionId, reactorUid, reactorName, sessionName) {
+    const subRef = doc(fbDb, "users", ownerUid, "sessions", String(sessionId), "reactions", reactorUid);
+    const topRef = doc(fbDb, "reactions", `${ownerUid}_${sessionId}_${reactorUid}`);
+    try {
+      const snap = await getDoc(subRef);
+      if (snap.exists()) {
+        await deleteDoc(subRef);
+        await deleteDoc(topRef);
+        return false;
+      } else {
+        const payload = { uid: reactorUid, name: reactorName, ownerUid, sessionId: String(sessionId), sessionName: sessionName || "Workout", type: "star", ts: Date.now() };
+        await setDoc(subRef, payload);
+        await setDoc(topRef, payload);
+        return true;
+      }
+    } catch (e) {
+      console.error("fsToggleStar:", e);
+      return null;
+    }
+  }
+  async function fsGetReactions(ownerUid, sessionId) {
+    try {
+      const snap = await getDocs(collection(fbDb, "users", ownerUid, "sessions", String(sessionId), "reactions"));
+      return snap.docs.map(d => d.data());
+    } catch (e) {
+      return [];
+    }
+  }
   async function fsGetFriendSessions(friendUid) {
     try {
       const snap = await getDocs(collection(fbDb, "users", friendUid, "sessions"));
@@ -6212,7 +6243,7 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend }) {
+  function SharingView({ user, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -6225,6 +6256,8 @@ import "./styles.css";
     // Feed: map of friendUid → their recent sessions
     const [feedData, setFeedData] = useState({});
     const [feedLoading, setFeedLoading] = useState(false);
+    // Stars: key = `${ownerUid}-${sessionId}`, value = { starred: bool, count: number }
+    const [starState, setStarState] = useState({});
 
     // Load feed when friends list changes
     useEffect(() => {
@@ -6237,6 +6270,21 @@ import "./styles.css";
         results.forEach(({ uid, sessions }) => { map[uid] = sessions || []; });
         setFeedData(map);
         setFeedLoading(false);
+        // Load reaction counts for all sessions in view
+        const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        results.forEach(({ uid, sessions }) => {
+          (sessions || []).filter(s => (s.startTime||0) >= W7).forEach(s => {
+            const sid = s.id || s.startTime;
+            if (!sid) return;
+            fsGetReactions(uid, sid).then(rxns => {
+              const key = `${uid}-${sid}`;
+              setStarState(prev => ({
+                ...prev,
+                [key]: { starred: rxns.some(r => r.uid === user.id), count: rxns.length }
+              }));
+            });
+          });
+        });
       });
     }, [friends.map(f => f.uid).join(",")]);
 
@@ -6273,14 +6321,15 @@ import "./styles.css";
     };
 
     const fmtTimeAgo = (ts) => {
-      const diff = Date.now() - (ts || 0);
+      if (!ts) return "";
+      const diff = Date.now() - ts;
       const m = Math.floor(diff / 60000);
       if (m < 60) return `${m}m ago`;
       const h = Math.floor(diff / 3600000);
       if (h < 24) return `${h}h ago`;
-      const d = Math.floor(diff / 86400000);
-      if (d < 7) return `${d}d ago`;
-      return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      // For anything older than 24h show the actual day name + date so two different
+      // days never show the same string (e.g. "Mon 21 Apr" vs "Tue 22 Apr")
+      return new Date(ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
     };
 
     return (
@@ -6291,6 +6340,12 @@ import "./styles.css";
           @keyframes sentBounce    { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1)} }
           @keyframes inviteShake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
           @keyframes feedFadeIn    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+          @keyframes starTick {
+            0%   { transform: scale(0) rotate(-20deg); opacity: 0; }
+            60%  { transform: scale(1.25) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+          }
+          @keyframes notifPop { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
         `}</style>
 
         {/* ── Pending invitations received ── */}
@@ -6380,11 +6435,17 @@ import "./styles.css";
                   </div>
                 );
               })}
-              {/* Add friend bubble */}
+              {/* Add friend bubble — dashed style with accent color */}
               <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, cursor:"pointer" }}
                 onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}>
-                <div style={{ width:54, height:54, borderRadius:"50%", background:"transparent", border:`2px dashed ${th.inputB}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, color:th.dim }}>+</div>
-                <div style={{ fontSize:11, fontWeight:700, color:th.dim }}>Invite</div>
+                <div style={{
+                  width:54, height:54, borderRadius:"50%",
+                  background: "transparent",
+                  border: `2px dashed ${th.accentBg}`,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  fontSize:22, color: th.accentFg, fontWeight:700,
+                }}>+</div>
+                <div style={{ fontSize:11, fontWeight:700, color:th.accentFg }}>Invite</div>
               </div>
             </div>
           </div>
@@ -6415,8 +6476,8 @@ import "./styles.css";
           </div>
         )}
 
-        {/* ── Invite button / panel ── */}
-        {!showInvitePanel ? (
+        {/* ── Invite button / panel — only shown when no friends yet ── */}
+        {!showInvitePanel && friends.length === 0 ? (
           <button onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
             style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}>
             <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
@@ -6427,7 +6488,7 @@ import "./styles.css";
             </svg>
             INVITE A FRIEND
           </button>
-        ) : (
+        ) : showInvitePanel ? (
           <div style={{ ...S.card, padding:18, marginBottom:20, animation:"invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <div style={S.label}>SEND INVITATION</div>
@@ -6457,7 +6518,7 @@ import "./styles.css";
               </>
             )}
           </div>
-        )}
+        ) : null}
 
         {/* ── Sent invitations awaiting response ── */}
         {sentInvitations.length > 0 && (
@@ -6498,8 +6559,27 @@ import "./styles.css";
                 s.calories    ? { label:"CALORIES",   value: `${s.calories}kcal` } : null,
                 s.intensity   ? { label:"INTENSITY",  value: `${s.intensity}/10` } : null,
               ].filter(Boolean);
+              const sid = s.id || s.startTime;
+              const starKey = `${f.uid}-${sid}`;
+              const starInfo = starState[starKey] || { starred: false, count: 0 };
+
+              const handleStar = async () => {
+                if (!sid) return;
+                // Optimistic update
+                const wasStarred = starInfo.starred;
+                setStarState(prev => ({
+                  ...prev,
+                  [starKey]: { starred: !wasStarred, count: Math.max(0, starInfo.count + (wasStarred ? -1 : 1)) }
+                }));
+                const result = await onToggleStar(f.uid, sid, s.name || "Workout");
+                // If something went wrong, revert
+                if (result === null) {
+                  setStarState(prev => ({ ...prev, [starKey]: starInfo }));
+                }
+              };
+
               return (
-                <div key={`${f.uid}-${s.id||i}`} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                <div key={`${f.uid}-${sid || i}`} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                   {/* Friend row */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                     {f.photoURL ? (
@@ -6538,6 +6618,44 @@ import "./styles.css";
                         ))}
                       </div>
                     )}
+                    {/* Star reaction row */}
+                    <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", marginTop:10, gap:6 }}>
+                      {starInfo.count > 0 && (
+                        <span style={{ fontSize:12, color: starInfo.starred ? th.accentFg : th.dim, fontWeight:700, transition:"color .2s" }}>
+                          {starInfo.count}
+                        </span>
+                      )}
+                      <div style={{ position:"relative", display:"inline-flex" }}>
+                        <button
+                          onClick={handleStar}
+                          style={{
+                            background: starInfo.starred
+                              ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)`
+                              : "transparent",
+                            border: `1.5px solid ${starInfo.starred ? th.accentBg : th.inputB}`,
+                            borderRadius: 10,
+                            padding: "6px 10px",
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 5,
+                            transition: "background .18s, border-color .18s",
+                            WebkitTapHighlightColor: "transparent",
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 22 22"
+                            fill={starInfo.starred ? th.accentFg : "none"}
+                            style={{ animation: starInfo.starred ? "starTick 0.38s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none" }}>
+                            <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"
+                              stroke={starInfo.starred ? th.accentFg : th.dim} strokeWidth="1.8" strokeLinejoin="round"/>
+                          </svg>
+                          <span style={{ fontSize:11, fontWeight:700, fontFamily:"'Outfit',sans-serif",
+                            color: starInfo.starred ? th.accentFg : th.dim, letterSpacing:"0.5px" }}>
+                            {starInfo.starred ? "STARRED" : "STAR"}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -11350,6 +11468,10 @@ import "./styles.css";
     const [pendingInvitations, setPendingInvitations] = useState([]); // invites received
     const [sentInvitations, setSentInvitations]       = useState([]); // invites sent
     const [friends, setFriends]                       = useState([]);
+    const [starNotifications, setStarNotifications]   = useState([]); // reactions on own sessions
+    const [unreadStars, setUnreadStars]               = useState(0);
+    const [notifOpen, setNotifOpen]                   = useState(false);
+    const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -11525,13 +11647,27 @@ import "./styles.css";
       return () => unsub();
     }, [user?.id]);
 
-    // Real-time sharing listeners — invitations received, sent, and friends list
+    // Real-time sharing listeners — invitations received, sent, friends, and own-session reactions
     useEffect(() => {
       if (!user?.id || !user?.email || user?.isGuest) return;
       const unsubReceived = fsListenInvitationsReceived(user.email, setPendingInvitations);
       const unsubSent     = fsListenInvitationsSent(user.id, setSentInvitations);
       const unsubFriends  = fsListenFriends(user.id, setFriends);
-      return () => { unsubReceived(); unsubSent(); unsubFriends(); };
+
+      // Listen for new stars on any of the user's sessions (subcollection group query)
+      // We poll the top-level reactions across all sessions once per minute as a pragmatic approach
+      // (Firestore collection group queries need an index — using a top-level "reactions" collection instead)
+      const unsubReactions = onSnapshot(
+        query(collection(fbDb, "reactions"), where("ownerUid", "==", user.id)),
+        snap => {
+          const rxns = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+          setStarNotifications(rxns);
+          const lastRead = parseInt(localStorage.getItem("ib3-lastReadNotif") || "0");
+          setUnreadStars(rxns.filter(r => (r.ts || 0) > lastRead).length);
+        }
+      );
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubReactions(); };
     }, [user?.id, user?.email]);
     const saveActive = (a) => {
       setActive(a);
@@ -11889,11 +12025,11 @@ import "./styles.css";
               <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
               <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
             </svg>
-            {pendingInvitations.length > 0 && (
+            {(pendingInvitations.length > 0 || unreadStars > 0) && (
               <div style={{
                 position: "absolute", top: -3, right: -3,
                 width: 9, height: 9, borderRadius: "50%",
-                background: "#CC1F42",
+                background: unreadStars > 0 ? th.accentFg : "#CC1F42",
                 border: `1.5px solid ${th.nav}`,
                 animation: "pulse 1.5s ease-in-out infinite",
               }} />
@@ -12210,6 +12346,57 @@ import "./styles.css";
                 pointerEvents: "auto",
                 position: "relative",
               }}>
+              {/* Notification bell — shown on sharing tab, top-right same as profile icon */}
+              {view === "sharing" && (
+                <button
+                  onClick={() => {
+                    setNotifOpen(o => !o);
+                    if (unreadStars > 0) {
+                      const now = Date.now();
+                      localStorage.setItem("ib3-lastReadNotif", String(now));
+                      setLastReadNotif(now);
+                      setUnreadStars(0);
+                    }
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: "calc(env(safe-area-inset-top, 0px) + 6px)",
+                    right: 16,
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2,
+                  }}
+                >
+                  <div style={{
+                    width: 44, height: 44, borderRadius: "50%",
+                    background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
+                    border: `1.5px solid ${th.border}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    position: "relative",
+                  }}>
+                    <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+                      <path d="M11 2C7.686 2 5 4.686 5 8v5l-2 2v1h16v-1l-2-2V8c0-3.314-2.686-6-6-6z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
+                      <path d="M9 18a2 2 0 004 0" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+                    </svg>
+                    {unreadStars > 0 && (
+                      <div style={{
+                        position: "absolute", top: 2, right: 2,
+                        minWidth: 16, height: 16, borderRadius: 8,
+                        background: th.accentFg, border: `2px solid ${th.bg}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 9, fontWeight: 700, color: th.accentT,
+                        fontFamily: "'Outfit',sans-serif", padding: "0 3px",
+                        animation: "pulse 1.5s ease-in-out infinite",
+                      }}>{unreadStars > 9 ? "9+" : unreadStars}</div>
+                    )}
+                  </div>
+                </button>
+              )}
               {/* Profile icon — absolutely positioned into the top padding space, doesn't affect row height */}
               {view === "home" && (
                 <button
@@ -12582,7 +12769,26 @@ import "./styles.css";
                 onAcceptInvite={(inviteId, invite) => fsAcceptInvitation(inviteId, invite, user)}
                 onDeclineInvite={(inviteId) => fsDeclineInvitation(inviteId)}
                 onGetFriendSessions={fsGetFriendSessions}
+                starNotifications={starNotifications}
+                unreadStars={unreadStars}
+                notifPopOpen={notifOpen}
+                onToggleNotifPop={() => {
+                  setNotifOpen(o => !o);
+                  if (unreadStars > 0) {
+                    const now = Date.now();
+                    localStorage.setItem("ib3-lastReadNotif", String(now));
+                    setLastReadNotif(now);
+                    setUnreadStars(0);
+                  }
+                }}
+                onMarkNotifsRead={() => {
+                  const now = Date.now();
+                  localStorage.setItem("ib3-lastReadNotif", String(now));
+                  setLastReadNotif(now);
+                  setUnreadStars(0);
+                }}
                 onRemoveFriend={(friendUid) => fsRemoveFriend(user.id, friendUid)}
+                onToggleStar={(ownerUid, sessionId, sName) => fsToggleStar(ownerUid, sessionId, user.id, user.name || "Friend", sName)}
               />
             )}
           </div>
@@ -12949,6 +13155,63 @@ import "./styles.css";
           </div>
         );
       })()}
+
+      {/* ── Notification popup (sharing tab bell) ── */}
+      {notifOpen && (
+        <>
+          <style>{`@keyframes notifPop { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }`}</style>
+          <div onClick={() => setNotifOpen(false)} style={{ position:"fixed", inset:0, zIndex:55 }} />
+          <div style={{
+            position:"fixed",
+            top:"calc(env(safe-area-inset-top, 0px) + 68px)",
+            right:12, left:12,
+            maxWidth:360, margin:"0 auto",
+            zIndex:56,
+            background:`color-mix(in srgb, ${th.card} 94%, transparent)`,
+            backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)",
+            border:`1px solid ${th.border}`,
+            borderRadius:18,
+            boxShadow:"0 8px 32px rgba(0,0,0,0.28)",
+            animation:"notifPop 0.22s cubic-bezier(0,0,0.2,1) forwards",
+            overflow:"hidden",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px 10px" }}>
+              <div style={{ fontSize:11, fontWeight:700, letterSpacing:"1.5px", color:th.sub }}>NOTIFICATIONS</div>
+              <button onClick={() => setNotifOpen(false)} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
+            </div>
+            {starNotifications.length === 0 ? (
+              <div style={{ padding:"12px 16px 20px", textAlign:"center", color:th.muted, fontSize:13 }}>No notifications yet.</div>
+            ) : (
+              <div style={{ maxHeight:300, overflowY:"auto" }}>
+                {starNotifications.map((n, i) => {
+                  const diff = Date.now() - (n.ts || 0);
+                  const m = Math.floor(diff / 60000);
+                  const timeStr = m < 60 ? `${m}m ago`
+                    : diff < 86400000 ? `${Math.floor(diff/3600000)}h ago`
+                    : new Date(n.ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+                  return (
+                    <div key={n.id || i} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderTop:`1px solid ${th.border}` }}>
+                      <div style={{ width:32, height:32, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        <svg width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}>
+                          <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.4" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, color:th.text, lineHeight:1.4 }}>
+                          <span style={{ fontWeight:700 }}>{n.name || "Someone"}</span>
+                          <span style={{ color:th.muted }}> starred your </span>
+                          <span style={{ fontWeight:600, color:th.text }}>{n.sessionName || "workout"}</span>
+                        </div>
+                        <div style={{ fontSize:11, color:th.dim, marginTop:2 }}>{timeStr}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {/* ── Profile bottom-sheet modal ── */}
       {profileOpen && (
