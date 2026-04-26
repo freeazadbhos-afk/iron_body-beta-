@@ -1927,6 +1927,15 @@ import "./styles.css";
       return false;
     }
   }
+  async function fsWithdrawCompeteInvite(compId) {
+    try {
+      await deleteDoc(doc(fbDb, "competitions", compId));
+      return true;
+    } catch (e) {
+      console.error("fsWithdrawCompeteInvite:", e);
+      return false;
+    }
+  }
   function fsListenCompetitions(uid, cb) {
     // Listen for competitions where user is either challenger or challenged
     const q1 = query(collection(fbDb, "competitions"), where("fromUid", "==", uid));
@@ -6203,7 +6212,6 @@ import "./styles.css";
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div className="bebas" style={{ fontSize:26, textAlign: "left",letterSpacing:2, color:th.text, lineHeight:1 }}>{friend.name}</div>
-                  <div style={{ fontSize:12, textAlign: "left", color:th.muted, marginTop:2 }}>{friend.email}</div>
                 </div>
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
                   <button
@@ -6325,7 +6333,7 @@ import "./styles.css";
   }
 
   /* ─── Competition Sheet ─────────────────────────────────────────────────────── */
-  function CompetitionSheet({ user, friend, competitions, mySessions, onGetFriendSessions, onClose, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite }) {
+  function CompetitionSheet({ user, friend, competitions, mySessions, onGetFriendSessions, onClose, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite }) {
     const th = useTheme();
     const S = useS();
     const [closing, setClosing] = useState(false);
@@ -6496,10 +6504,14 @@ import "./styles.css";
                 <div style={{ textAlign:"center", padding:"32px 0" }}>
                   <div style={{ fontSize:40, marginBottom:12 }}>⏳</div>
                   <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:8 }}>INVITATION SENT</div>
-                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
+                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, marginBottom:24 }}>
                     Waiting for {friend.name.split(" ")[0]} to accept.<br/>
                     Competition starts 24 hours after they accept.
                   </div>
+                  <button
+                    onClick={async () => { await onWithdrawCompeteInvite(comp.id); close(); }}
+                    style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"11px 24px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}
+                  >WITHDRAW INVITATION</button>
                 </div>
               )}
 
@@ -6555,10 +6567,13 @@ import "./styles.css";
                       </div>
                     </div>
                   )}
+                  {/* End competition */}
+                  <button
+                    onClick={async () => { if (window.confirm("End this competition?")) { await onWithdrawCompeteInvite(comp.id); close(); } }}
+                    style={{ width:"100%", marginTop:12, background:"transparent", border:`1px solid ${th.delB}`, borderRadius:12, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.delText }}
+                  >END COMPETITION</button>
                 </>
               )}
-
-              {/* ── No competition yet — invite screen ── */}
               {!comp && (
                 <>
                   {sentOk ? (
@@ -6625,7 +6640,7 @@ import "./styles.css";
       </>
     );
   }
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -6856,6 +6871,7 @@ import "./styles.css";
             onSendCompeteInvite={onSendCompeteInvite}
             onAcceptCompeteInvite={onAcceptCompeteInvite}
             onDeclineCompeteInvite={onDeclineCompeteInvite}
+            onWithdrawCompeteInvite={onWithdrawCompeteInvite}
           />
         )}
 
@@ -13179,6 +13195,7 @@ import "./styles.css";
                 onSendCompeteInvite={(toUid, toName) => fsSendCompeteInvite(user.id, user.name || "Friend", toUid, toName)}
                 onAcceptCompeteInvite={fsAcceptCompeteInvite}
                 onDeclineCompeteInvite={fsDeclineCompeteInvite}
+                onWithdrawCompeteInvite={fsWithdrawCompeteInvite}
                 starNotifications={starNotifications}
                 unreadStars={unreadStars}
                 notifPopOpen={notifOpen}
