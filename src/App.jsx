@@ -6222,6 +6222,29 @@ import "./styles.css";
     const [actioning, setActioning] = useState({});
     const [dashFriend, setDashFriend] = useState(null);
     const [editFriends, setEditFriends] = useState(false);
+    // Feed: map of friendUid → their recent sessions
+    const [feedData, setFeedData] = useState({});
+    const [feedLoading, setFeedLoading] = useState(false);
+
+    // Load feed when friends list changes
+    useEffect(() => {
+      if (!friends.length) return;
+      setFeedLoading(true);
+      Promise.all(
+        friends.map(f => onGetFriendSessions(f.uid).then(sessions => ({ uid: f.uid, sessions })))
+      ).then(results => {
+        const map = {};
+        results.forEach(({ uid, sessions }) => { map[uid] = sessions || []; });
+        setFeedData(map);
+        setFeedLoading(false);
+      });
+    }, [friends.map(f => f.uid).join(",")]);
+
+    // Build feed items: take each friend's last 3 sessions, flatten, sort newest first
+    const feedItems = friends.flatMap(f => {
+      const sessions = feedData[f.uid] || [];
+      return sessions.slice(0, 3).map(s => ({ friend: f, session: s }));
+    }).sort((a, b) => (b.session.startTime || 0) - (a.session.startTime || 0));
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -6246,6 +6269,17 @@ import "./styles.css";
       setActioning(a => ({ ...a, [id]: false }));
     };
 
+    const fmtTimeAgo = (ts) => {
+      const diff = Date.now() - (ts || 0);
+      const m = Math.floor(diff / 60000);
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(diff / 3600000);
+      if (h < 24) return `${h}h ago`;
+      const d = Math.floor(diff / 86400000);
+      if (d < 7) return `${d}d ago`;
+      return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    };
+
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
         <style>{`
@@ -6253,14 +6287,13 @@ import "./styles.css";
           @keyframes invitePop     { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
           @keyframes sentBounce    { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1)} }
           @keyframes inviteShake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+          @keyframes feedFadeIn    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         `}</style>
 
         {/* ── Pending invitations received ── */}
         {pendingInvitations.length > 0 && (
           <div style={{ marginBottom: 20, animation: "sharingFadeUp 0.3s ease both" }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>
-              PENDING FOR YOU ({pendingInvitations.length})
-            </div>
+            <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
             {pendingInvitations.map(inv => (
               <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
@@ -6276,54 +6309,70 @@ import "./styles.css";
                   Wants to share workout progress with you.
                 </div>
                 <div style={{ display:"flex", gap:8 }}>
-                  <button
-                    onClick={() => handleAction(inv.id, inv, "decline")}
-                    disabled={actioning[inv.id]}
-                    style={{ flex:1, background:th.del, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
-                  >DECLINE</button>
-                  <button
-                    onClick={() => handleAction(inv.id, inv, "accept")}
-                    disabled={actioning[inv.id]}
-                    style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, transition:"opacity .15s", opacity: actioning[inv.id]?0.5:1 }}
-                  >{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
+                  <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
+                    style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText, opacity: actioning[inv.id]?0.5:1 }}>DECLINE</button>
+                  <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
+                    style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity: actioning[inv.id]?0.5:1 }}>{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* ── Friends list ── */}
+        {/* ── Horizontal friends bubble row ── */}
         {friends.length > 0 && (
-          <div style={{ marginBottom: 20, textAlign: "left" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
-              <button
-                onClick={() => setEditFriends(e => !e)}
-                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
-              >{editFriends ? "DONE" : "EDIT ✎"}</button>
+              <button onClick={() => setEditFriends(e => !e)}
+                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                {editFriends ? "DONE" : "EDIT ✎"}
+              </button>
             </div>
-            {friends.map(f => (
-              <FriendCard
-                key={f.uid}
-                friend={f}
-                editing={editFriends}
-                onViewDashboard={() => { if (!editFriends) setDashFriend(f); }}
-                onRemove={() => onRemoveFriend(f.uid)}
-              />
-            ))}
+            {/* Horizontal scroll row */}
+            <div style={{ display:"flex", gap:16, overflowX:"auto", paddingBottom:6, scrollbarWidth:"none", msOverflowStyle:"none" }}>
+              <style>{`.ib-friends-scroll::-webkit-scrollbar{display:none}`}</style>
+              {friends.map(f => {
+                const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                return (
+                  <div key={f.uid} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, position:"relative", cursor: editFriends ? "default" : "pointer" }}
+                    onClick={() => { if (!editFriends) setDashFriend(f); }}>
+                    {/* Avatar */}
+                    {f.photoURL ? (
+                      <img src={f.photoURL} alt={f.name} style={{ width:54, height:54, borderRadius:"50%", objectFit:"cover", border:`2.5px solid ${th.accentBg}` }} />
+                    ) : (
+                      <div style={{ width:54, height:54, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, border:`2.5px solid ${th.border}` }}>
+                        {initials}
+                      </div>
+                    )}
+                    {/* Remove X badge in edit mode */}
+                    {editFriends && (
+                      <button onClick={e => { e.stopPropagation(); onRemoveFriend(f.uid); }}
+                        style={{ position:"absolute", top:-3, right:-3, background:th.del, border:`1px solid ${th.delB}`, borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11, lineHeight:1 }}>✕</button>
+                    )}
+                    {/* Name */}
+                    <div style={{ fontSize:11, fontWeight:700, color:th.sub, maxWidth:60, textAlign:"center", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                      {f.name.split(" ")[0]}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Add friend bubble */}
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, cursor:"pointer" }}
+                onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}>
+                <div style={{ width:54, height:54, borderRadius:"50%", background:"transparent", border:`2px dashed ${th.inputB}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, color:th.dim }}>+</div>
+                <div style={{ fontSize:11, fontWeight:700, color:th.dim }}>Invite</div>
+              </div>
+            </div>
           </div>
         )}
 
         {/* ── Friend dashboard sheet ── */}
         {dashFriend && (
-          <FriendDashboardSheet
-            friend={dashFriend}
-            onClose={() => setDashFriend(null)}
-            onGetFriendSessions={onGetFriendSessions}
-          />
+          <FriendDashboardSheet friend={dashFriend} onClose={() => setDashFriend(null)} onGetFriendSessions={onGetFriendSessions} />
         )}
 
-        {/* ── Empty state hero (only when no friends and no pending) ── */}
+        {/* ── Empty state (no friends yet) ── */}
         {friends.length === 0 && pendingInvitations.length === 0 && (
           <div style={{ display:"flex", flexDirection:"column", alignItems:"center", textAlign:"center", paddingTop:24, paddingBottom:8, animation:"sharingFadeUp 0.4s cubic-bezier(0,0,0.2,1) forwards" }}>
             <div style={{ width:100, height:100, borderRadius:"50%", marginBottom:20, background:`color-mix(in srgb, ${th.accentBg} 10%, ${th.card})`, border:`1.5px solid ${th.border}`, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -6345,10 +6394,8 @@ import "./styles.css";
 
         {/* ── Invite button / panel ── */}
         {!showInvitePanel ? (
-          <button
-            onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
-            style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}
-          >
+          <button onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
+            style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}>
             <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
               <circle cx="9" cy="7.5" r="3.5" stroke={th.accentT} strokeWidth="2" />
               <path d="M1 19.5c0-4.418 3.582-8 8-8" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
@@ -6371,26 +6418,17 @@ import "./styles.css";
               </div>
             ) : (
               <>
-                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5, textAlign: "left" }}>
+                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5, textAlign:"left" }}>
                   Enter your friend's email. Once they accept, you'll both see each other's workouts.
                 </div>
-                <input
-                  type="email"
-                  placeholder="friend@example.com"
-                  value={inviteEmail}
+                <input type="email" placeholder="friend@example.com" value={inviteEmail}
                   onChange={(e) => { setInviteEmail(e.target.value); if (inviteStatus === "error") setInviteStatus("idle"); }}
                   onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
                   style={{ ...S.input, marginBottom: inviteStatus === "error" ? 6 : 12, animation: inviteStatus === "error" ? "inviteShake 0.3s ease" : "none" }}
-                  autoFocus
-                />
-                {inviteStatus === "error" && (
-                  <div style={{ fontSize:12, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>
-                )}
-                <button
-                  onClick={handleSendInvite}
-                  disabled={!inviteEmail.trim() || inviteStatus === "sending"}
-                  style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}
-                >
+                  autoFocus />
+                {inviteStatus === "error" && <div style={{ fontSize:12, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
+                <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
+                  style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}>
                   {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
                 </button>
               </>
@@ -6398,12 +6436,12 @@ import "./styles.css";
           </div>
         )}
 
-        {/* ── Sent invitations (pending) ── */}
+        {/* ── Sent invitations awaiting response ── */}
         {sentInvitations.length > 0 && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 10, textAlign: "left" }}>AWAITING RESPONSE</div>
+            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>AWAITING RESPONSE</div>
             {sentInvitations.map(inv => (
-              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign: "left",display:"flex", alignItems:"center", gap:12 }}>
+              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:th.dim }}>⏳</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
@@ -6414,23 +6452,65 @@ import "./styles.css";
           </div>
         )}
 
-        {/* ── Coming soon ── */}
-        <div style={{ marginBottom:12,textAlign: "left", animation:"sharingFadeUp 0.5s cubic-bezier(0,0,0.2,1) 0.1s both" }}>
-          <div style={{ ...S.label, marginBottom:10 }}>COMING SOON</div>
-          {[
-            { icon:"🏆", title:"Competitions", desc:"Challenge a friend to a weekly volume or sets race." },
-            { icon:"🔥", title:"Reactions", desc:"Drop a fire emoji on a friend's completed workout." },
-          ].map((item, i) => (
-            <div key={i} style={{ ...S.card, padding:"14px 16px", marginBottom:8, display:"flex", alignItems:"flex-start", gap:14, opacity:0.7 }}>
-              <div style={{ width:40, height:40, flexShrink:0, borderRadius:12, background:`color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>{item.icon}</div>
-              <div>
-                <div style={{ fontSize:13, fontWeight:700, color:th.text, marginBottom:3 }}>{item.title}</div>
-                <div style={{ fontSize:12, color:th.muted, lineHeight:1.5 }}>{item.desc}</div>
+        {/* ── Activity Feed ── */}
+        {friends.length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ ...S.label, marginBottom: 12 }}>FEED</div>
+            {feedLoading ? (
+              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:13 }}>Loading activity…</div>
+            ) : feedItems.length === 0 ? (
+              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:24, marginBottom:8 }}>🏋️</div>
+                <div style={{ color:th.muted, fontSize:13 }}>No recent workouts from friends yet.</div>
               </div>
-              <div style={{ flexShrink:0, fontSize:9, fontWeight:700, letterSpacing:"1px", color:th.dim, border:`1px solid ${th.inputB}`, borderRadius:6, padding:"3px 7px", alignSelf:"center" }}>SOON</div>
-            </div>
-          ))}
-        </div>
+            ) : feedItems.map(({ friend: f, session: s }, i) => {
+              const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+              const vol = sessionVol(s);
+              const muscles = [...new Set((s.exercises||[]).map(e=>e.group).filter(Boolean))];
+              const exCount = s.exercises?.length || 0;
+              return (
+                <div key={`${f.uid}-${s.id||i}`} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                  {/* Friend row */}
+                  <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    {f.photoURL ? (
+                      <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                        {initials}
+                      </div>
+                    )}
+                    <div style={{ flex:1 }}>
+                      <span style={{ fontWeight:700, fontSize:13, color:th.text }}>{f.name.split(" ")[0]}</span>
+                      <span style={{ fontSize:12, color:th.muted }}> completed a workout</span>
+                    </div>
+                    <div style={{ fontSize:11, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
+                  </div>
+                  {/* Session card */}
+                  <div style={{ background:th.sect, borderRadius:10, padding:"10px 12px" }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                      <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{s.name || "Workout"}</div>
+                      {vol > 0 && (
+                        <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0 }}>
+                          {vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg`}
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ fontSize:11, color:th.muted, marginTop:3 }}>
+                      {[exCount ? `${exCount} exercises` : null, s.duration ? `${Math.round(s.duration)}min` : null].filter(Boolean).join(" · ")}
+                    </div>
+                    {muscles.length > 0 && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:8 }}>
+                        {muscles.map(g => (
+                          <div key={g} style={{ padding:"2px 7px", borderRadius:5, fontSize:10, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   }
@@ -7141,7 +7221,7 @@ import "./styles.css";
           display: "flex",
           gap: 10,
         }}>
-          {/* SAVE button — subtle secondary, frosted glass */}
+          {/* SAVE button — subtle secondary, frosted glass with accent border */}
           <button
             onClick={() => {
               if (!name.trim() || exs.length === 0) return;
@@ -7152,10 +7232,10 @@ import "./styles.css";
               flex: 1,
               background: (!name.trim() || exs.length === 0)
                 ? `color-mix(in srgb, ${th.card} 40%, transparent)`
-                : `color-mix(in srgb, ${th.card} 65%, transparent)`,
+                : `color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
-              border: `1px solid ${(!name.trim() || exs.length === 0) ? th.inputB : th.border}`,
+              border: `1.5px solid ${(!name.trim() || exs.length === 0) ? th.inputB : `color-mix(in srgb, ${th.accentBg} 60%, transparent)`}`,
               borderRadius: 14,
               padding: "15px 0",
               cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
@@ -9125,6 +9205,8 @@ import "./styles.css";
     const [eName, setEName] = useState(user.name);
     const [eEmail, setEEmail] = useState(user.email);
     const [ePhoto, setEPhoto] = useState(user.photoURL || "");
+    const [eAge, setEAge] = useState(user.age || "");
+    const [eGender, setEGender] = useState(user.gender || "");
     const [ePw, setEPw] = useState("");
     const [eConfirm, setEConfirm] = useState("");
     const [eCurrent, setECurrent] = useState("");
@@ -9349,14 +9431,18 @@ import "./styles.css";
           name: eName.trim(),
           email: eEmail.trim().toLowerCase(),
           photoURL: photoData,
+          age: eAge ? parseInt(eAge) : null,
+          gender: eGender || null,
         });
-        // Push photo to Firestore so other devices can fetch it
-        fsSaveSettings(fbUser.uid, { photoURL: photoData || null });
+        // Push photo + age + gender to Firestore
+        fsSaveSettings(fbUser.uid, { photoURL: photoData || null, age: eAge ? parseInt(eAge) : null, gender: eGender || null });
         onUpdateUser({
           ...user,
           name: eName.trim(),
           email: eEmail.trim().toLowerCase(),
           photoURL: photoData,
+          age: eAge ? parseInt(eAge) : null,
+          gender: eGender || null,
         });
         setEPw("");
         setEConfirm("");
@@ -9546,7 +9632,7 @@ import "./styles.css";
                   className="bebas"
                   style={{ fontSize: 24, color: th.accentT }}
                 >
-                  {user.name[0].toUpperCase()}
+                  {user.name?.[0]?.toUpperCase() || "?"}
                 </span>
               )}
             </div>
@@ -9555,6 +9641,11 @@ import "./styles.css";
                 {user.name}
               </div>
               <div style={{ fontSize: 12, color: th.muted, textAlign: "left" }}>{user.email}</div>
+              {(user.age || user.gender) && (
+                <div style={{ fontSize: 11, color: th.dim, textAlign: "left", marginTop: 3 }}>
+                  {[user.gender, user.age ? `${user.age} yrs` : null].filter(Boolean).join(" · ")}
+                </div>
+              )}
             </div>
             <button
               onClick={() => {
@@ -9564,6 +9655,8 @@ import "./styles.css";
                 setEName(user.name);
                 setEEmail(user.email);
                 setEPhoto(user.photoURL || "");
+                setEAge(user.age ? String(user.age) : "");
+                setEGender(user.gender || "");
               }}
               style={{
                 backdropFilter: "blur(10px)",
@@ -9598,6 +9691,49 @@ import "./styles.css";
                 onChange={(e) => setEEmail(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
               />
+              {/* Age & Gender side by side */}
+              <div style={{ display:"flex", gap:10, marginBottom:12 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>AGE</div>
+                  <input
+                    type="number"
+                    min="1"
+                    max="120"
+                    placeholder="e.g. 28"
+                    value={eAge}
+                    onChange={(e) => setEAge(e.target.value)}
+                    style={{ ...S.input }}
+                  />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>GENDER</div>
+                  <div style={{ display:"flex", gap:6 }}>
+                    {["Male","Female","Other"].map(g => (
+                      <button
+                        key={g}
+                        onClick={() => setEGender(eGender === g ? "" : g)}
+                        style={{
+                          flex:1,
+                          background: eGender === g
+                            ? `color-mix(in srgb, ${th.accentBg} 80%, transparent)`
+                            : th.inputB,
+                          backdropFilter: "blur(8px)",
+                          WebkitBackdropFilter: "blur(8px)",
+                          border: `1px solid ${eGender === g ? th.accentBg : th.border}`,
+                          borderRadius: 9,
+                          color: eGender === g ? th.accentT : th.muted,
+                          fontSize: 11,
+                          fontWeight: 700,
+                          fontFamily: "'Outfit',sans-serif",
+                          padding: "8px 4px",
+                          cursor: "pointer",
+                          transition: "all .15s",
+                        }}
+                      >{g}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
               <div style={{ ...S.label, marginBottom: 8, textAlign: "left", }}>
                 PROFILE PHOTO{" "}
                 <span
@@ -11167,6 +11303,16 @@ import "./styles.css";
       setProfileClosing(true);
       setTimeout(() => { setProfileOpen(false); setProfileClosing(false); }, 360);
     };
+    // Reset to home whenever a new user session starts (prevents stale view on re-login)
+    const prevUserIdRef = useRef(null);
+    useEffect(() => {
+      if (user?.id && user.id !== prevUserIdRef.current) {
+        prevUserIdRef.current = user.id;
+        setView("home");
+        setProfileOpen(false);
+      }
+      if (!user) prevUserIdRef.current = null;
+    }, [user?.id]);
     // Sharing / friends state
     const [pendingInvitations, setPendingInvitations] = useState([]); // invites received
     const [sentInvitations, setSentInvitations]       = useState([]); // invites sent
@@ -11249,6 +11395,14 @@ import "./styles.css";
               });
               setUser((u) => (u ? { ...u, photoURL: fsSet.photoURL } : u));
             }
+          }
+          // Restore age & gender from Firestore
+          if (fsSet?.age != null || fsSet?.gender != null) {
+            const localProf = getLocalProfile(user.id) || {};
+            if (!localProf.age && !localProf.gender) {
+              saveLocalProfile(user.id, { ...localProf, age: fsSet.age || null, gender: fsSet.gender || null });
+            }
+            setUser(u => u ? { ...u, age: u.age || fsSet.age || null, gender: u.gender || fsSet.gender || null } : u);
           }
           // Measurements
           const fsMeas = await fsGetMeasurements(user.id);
@@ -12481,6 +12635,9 @@ import "./styles.css";
                         setView("home");
                       else setView(tab.id);
                     }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.82)"; e.currentTarget.style.opacity = "0.75"; }}
+                    onPointerUp={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.opacity = ""; }}
+                    onPointerLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.opacity = ""; }}
                     style={{
                       flex: 1,
                       background: "none",
@@ -12496,8 +12653,9 @@ import "./styles.css";
                       fontWeight: 700,
                       letterSpacing: "1.5px",
                       color: col,
-                      transition: "color .2s",
+                      transition: "color .2s, transform .12s cubic-bezier(0.34,1.56,0.64,1), opacity .12s",
                       position: "relative",
+                      WebkitTapHighlightColor: "transparent",
                     }}
                   >
                     <div
