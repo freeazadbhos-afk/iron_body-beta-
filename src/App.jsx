@@ -6240,10 +6240,13 @@ import "./styles.css";
       });
     }, [friends.map(f => f.uid).join(",")]);
 
-    // Build feed items: take each friend's last 3 sessions, flatten, sort newest first
+    // Build feed items: last 7 days only, sort newest first
+    const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const feedItems = friends.flatMap(f => {
       const sessions = feedData[f.uid] || [];
-      return sessions.slice(0, 3).map(s => ({ friend: f, session: s }));
+      return sessions
+        .filter(s => (s.startTime || 0) >= W7)
+        .map(s => ({ friend: f, session: s }));
     }).sort((a, b) => (b.session.startTime || 0) - (a.session.startTime || 0));
 
     const handleSendInvite = async () => {
@@ -6330,7 +6333,7 @@ import "./styles.css";
               </button>
             </div>
             {/* Horizontal scroll row */}
-            <div style={{ display:"flex", gap:16, overflowX:"auto", paddingBottom:6, scrollbarWidth:"none", msOverflowStyle:"none" }}>
+            <div style={{ display:"flex", gap:16, overflowX:"auto", overflowY:"visible", paddingBottom:6, paddingTop:6, scrollbarWidth:"none", msOverflowStyle:"none" }}>
               <style>{`.ib-friends-scroll::-webkit-scrollbar{display:none}`}</style>
               {friends.map(f => {
                 const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -6345,10 +6348,30 @@ import "./styles.css";
                         {initials}
                       </div>
                     )}
-                    {/* Remove X badge in edit mode */}
+                    {/* Remove X badge in edit mode — floats above avatar, delete-account style */}
                     {editFriends && (
                       <button onClick={e => { e.stopPropagation(); onRemoveFriend(f.uid); }}
-                        style={{ position:"absolute", top:-3, right:-3, background:th.del, border:`1px solid ${th.delB}`, borderRadius:"50%", width:20, height:20, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11, lineHeight:1 }}>✕</button>
+                        style={{
+                          position: "absolute",
+                          top: -4,
+                          right: -4,
+                          zIndex: 50,
+                          background: "rgba(220, 50, 50, 0.45)",
+                          backdropFilter: "blur(10px)",
+                          WebkitBackdropFilter: "blur(10px)",
+                          border: "1px solid rgba(220, 50, 50, 0.3)",
+                          borderRadius: "50%",
+                          width: 22,
+                          height: 22,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          cursor: "pointer",
+                          color: "#fff",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          lineHeight: 1,
+                        }}>✕</button>
                     )}
                     {/* Name */}
                     <div style={{ fontSize:11, fontWeight:700, color:th.sub, maxWidth:60, textAlign:"center", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
@@ -6467,7 +6490,14 @@ import "./styles.css";
               const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
               const vol = sessionVol(s);
               const muscles = [...new Set((s.exercises||[]).map(e=>e.group).filter(Boolean))];
-              const exCount = s.exercises?.length || 0;
+              const totalSets = (s.exercises||[]).reduce((a,e) => a + (e.sets||[]).filter(st=>st.done).length, 0);
+              const stats = [
+                vol > 0       ? { label:"VOLUME",    value: vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg` } : null,
+                totalSets > 0 ? { label:"SETS",       value: totalSets } : null,
+                s.duration    ? { label:"DURATION",   value: `${Math.round(s.duration)}min` } : null,
+                s.calories    ? { label:"CALORIES",   value: `${s.calories}kcal` } : null,
+                s.intensity   ? { label:"INTENSITY",  value: `${s.intensity}/10` } : null,
+              ].filter(Boolean);
               return (
                 <div key={`${f.uid}-${s.id||i}`} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                   {/* Friend row */}
@@ -6486,20 +6516,23 @@ import "./styles.css";
                     <div style={{ fontSize:11, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
                   </div>
                   {/* Session card */}
-                  <div style={{ background:th.sect, borderRadius:10, padding:"10px 12px" }}>
-                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
-                      <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{s.name || "Workout"}</div>
-                      {vol > 0 && (
-                        <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0 }}>
-                          {vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg`}
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ fontSize:11, color:th.muted, marginTop:3 }}>
-                      {[exCount ? `${exCount} exercises` : null, s.duration ? `${Math.round(s.duration)}min` : null].filter(Boolean).join(" · ")}
-                    </div>
+                  <div style={{ background:th.sect, borderRadius:10, padding:"12px 14px" }}>
+                    {/* Session name */}
+                    <div style={{ fontWeight:700, fontSize:14, color:th.text, marginBottom:10 }}>{s.name || "Workout"}</div>
+                    {/* Stats grid */}
+                    {stats.length > 0 && (
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: muscles.length > 0 ? 10 : 0 }}>
+                        {stats.map(({ label, value }) => (
+                          <div key={label} style={{ background:`color-mix(in srgb, ${th.card} 60%, transparent)`, backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", borderRadius:8, padding:"6px 10px", minWidth:0 }}>
+                            <div className="bebas" style={{ fontSize:16, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:2 }}>{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {/* Muscle group tags */}
                     {muscles.length > 0 && (
-                      <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:8 }}>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                         {muscles.map(g => (
                           <div key={g} style={{ padding:"2px 7px", borderRadius:5, fontSize:10, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
                         ))}
@@ -12635,9 +12668,9 @@ import "./styles.css";
                         setView("home");
                       else setView(tab.id);
                     }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.82)"; e.currentTarget.style.opacity = "0.75"; }}
-                    onPointerUp={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.opacity = ""; }}
-                    onPointerLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.opacity = ""; }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.9)"; e.currentTarget.style.opacity = "0.65"; }}
+                    onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     style={{
                       flex: 1,
                       background: "none",
@@ -12653,7 +12686,7 @@ import "./styles.css";
                       fontWeight: 700,
                       letterSpacing: "1.5px",
                       color: col,
-                      transition: "color .2s, transform .12s cubic-bezier(0.34,1.56,0.64,1), opacity .12s",
+                      transition: "color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                       position: "relative",
                       WebkitTapHighlightColor: "transparent",
                     }}
