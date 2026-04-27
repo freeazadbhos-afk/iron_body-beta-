@@ -6401,51 +6401,39 @@ import "./styles.css";
       const relevant = sessions.filter(compFilter);
       if (!relevant.length) return 0;
 
-      // Intensity: avg across sessions that have it (0–10)
-      const withIntensity = relevant.filter(s => (s.intensity || 0) > 0);
-      const intensityAvg  = withIntensity.length
-        ? withIntensity.reduce((a, s) => a + s.intensity, 0) / withIntensity.length
+      // ── Intensity (30%) — avg of sessions that have it ──
+      const withInt   = relevant.filter(s => (s.intensity || 0) > 0);
+      const intensAvg = withInt.length
+        ? withInt.reduce((a, s) => a + s.intensity, 0) / withInt.length
         : 0;
+      const intensScore = (intensAvg / 10) * 10 * 0.30;
 
-      // Calories: total across all sessions
+      // ── Calories (30%) — cap at 500 kcal/session avg × sessions ──
       const totalCals = relevant.reduce((a, s) => a + (s.calories || 0), 0);
+      const avgCals   = totalCals / relevant.length;
+      const calScore  = Math.min(avgCals / 500, 1) * 10 * 0.30;
 
-      // Duration: total minutes (from session duration field or cardio set durations)
+      // ── Consistency (20%) — rewarded per day trained, cap at 7 days ──
+      const trainedDays = new Set(
+        relevant.map(s => { const d = new Date(toMs(s.startTime)); d.setHours(0,0,0,0); return d.getTime(); })
+      ).size;
+      const consistScore = Math.min(trainedDays / 7, 1) * 10 * 0.20;
+
+      // ── Activity (20%) — duration OR volume, whichever contributes ──
       const totalMins = relevant.reduce((a, s) => {
         if (s.duration) return a + s.duration;
-        // Sum cardio set durations
-        const cardioMins = (s.exercises || []).reduce((b, ex) =>
+        return a + (s.exercises || []).reduce((b, ex) =>
           b + (ex.sets || []).reduce((c, st) => c + (st.duration || 0), 0), 0);
-        return a + cardioMins;
       }, 0);
-
-      // Volume: total kg lifted (resistance)
       const totalVol = relevant.reduce((a, s) => a + sessionVol(s), 0);
+      // avg per session for fair daily comparison
+      const avgMins = totalMins / relevant.length;
+      const avgVol  = totalVol / relevant.length;
+      const actScore = totalMins > 0
+        ? Math.min(avgMins / 90, 1) * 10 * 0.20    // 90 min/session avg = max
+        : Math.min(avgVol / 5000, 1) * 10 * 0.20;  // 5,000 kg/session avg = max
 
-      // Consistency: sessions completed (5+ = full score)
-      const consistency = relevant.length;
-
-      // Scoring (0–10):
-      // 25% intensity, 25% calories (cap 3000), 25% consistency (cap 5 sessions), 25% activity (duration or volume)
-      const intensityScore  = (intensityAvg / 10) * 10 * 0.25;
-      const calScore        = Math.min(totalCals / 3000, 1) * 10 * 0.25;
-      const consistScore    = Math.min(consistency / 5, 1) * 10 * 0.25;
-      // Activity: prefer calories > duration > volume, whichever is most meaningful
-      const activityScore   = totalCals > 0
-        ? 0 // already counted in calScore
-        : totalMins > 0
-        ? Math.min(totalMins / 300, 1) * 10 * 0.25   // 300 min = max
-        : Math.min(totalVol / 10000, 1) * 10 * 0.25; // 10,000 kg = max
-
-      // If no calories, give the 25% cal slot to activity instead
-      const effectiveCal   = totalCals > 0 ? calScore : 0;
-      const effectiveAct   = totalCals > 0
-        ? (totalMins > 0 ? Math.min(totalMins / 300, 1) * 10 * 0.10 : 0)
-        : (totalMins > 0
-            ? Math.min(totalMins / 300, 1) * 10 * 0.25
-            : Math.min(totalVol / 10000, 1) * 10 * 0.25);
-
-      return Math.round((intensityScore + effectiveCal + consistScore + effectiveAct) * 10) / 10;
+      return Math.round((intensScore + calScore + consistScore + actScore) * 10) / 10;
     };
 
     const myScore     = isActive ? calcScore(mySessions) : null;
@@ -6547,10 +6535,10 @@ import "./styles.css";
                   <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
                     <div style={{ ...S.label, marginBottom:10 }}>RULES</div>
                     {[
-                      { pct:"25%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
-                      { pct:"25%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
-                      { pct:"25%", label:"Consistency",       desc:"5+ sessions = max score" },
-                      { pct:"25%", label:"Activity",          desc:"Duration or volume if calories not logged" },
+                      { pct:"30%", label:"Intensity", desc:"Avg self-reported intensity rating per session (0–10)" },
+                      { pct:"30%", label:"Calories", desc:"Total calories burned across all sessions" },
+                      { pct:"20%", label:"Consistency", desc:"Every session logged earns points. 7 sessions = max" },
+                      { pct:"20%", label:"Activity", desc:"Total duration or volume when calories not logged" },
                     ].map(({ pct, label, desc }) => (
                       <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                         <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
@@ -6587,47 +6575,71 @@ import "./styles.css";
               {/* ── ACTIVE — live scoreboard ── */}
               {isActive && (
                 <>
+                  {/* Status bar */}
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:24, padding:"10px 16px", background:`color-mix(in srgb, ${th.accentBg} 8%, ${th.sect})`, borderRadius:14, border:`1px solid ${th.border}` }}>
+                    <div style={{ width:8, height:8, borderRadius:"50%", background:th.accentFg, animation:"pulse 1.5s ease-in-out infinite" }} />
+                    <div style={{ fontSize:13, fontWeight:700, color:th.accentFg, letterSpacing:"0.5px" }}>LIVE</div>
+                    <div style={{ fontSize:13, color:th.muted }}>{daysLeft} day{daysLeft!==1?"s":""} remaining</div>
+                  </div>
+
                   {/* Score rings */}
-                  <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:20 }}>
-                    <ScoreRing score={myScore} label="YOU" color={myColor} />
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:4 }}>
-                      {leading==="you"    && <div style={{ fontSize:9, fontWeight:700, color:myColor, letterSpacing:"1px" }}>LEADING ↑</div>}
-                      {leading==="friend" && <div style={{ fontSize:9, fontWeight:700, color:frColor, letterSpacing:"1px" }}>BEHIND ↓</div>}
-                      {leading==="tied"   && <div style={{ fontSize:9, fontWeight:700, color:th.dim,  letterSpacing:"1px" }}>TIED</div>}
-                      <div className="bebas" style={{ fontSize:28, color:th.dim, letterSpacing:3 }}>VS</div>
-                      <div style={{ fontSize:10, color:th.dim }}>{daysLeft}d left</div>
+                  <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:24 }}>
+                    <ScoreRing score={myScore} label="YOU" color={myColor} size={110} />
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                      {leading==="you"    && <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"1.5px" }}>LEADING ↑</div>}
+                      {leading==="friend" && <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"1.5px" }}>BEHIND ↓</div>}
+                      {leading==="tied"   && <div style={{ fontSize:11, fontWeight:700, color:th.dim,  letterSpacing:"1.5px" }}>TIED</div>}
+                      <div className="bebas" style={{ fontSize:34, color:th.dim, letterSpacing:4 }}>VS</div>
                     </div>
-                    <ScoreRing score={friendScore} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} />
+                    <ScoreRing score={friendScore} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} size={110} />
                   </div>
-                  {/* Stats */}
-                  <div style={{ ...S.card, padding:"14px 16px", marginBottom:14 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:10 }}>
-                      <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"0.5px" }}>YOU</div>
-                      <div style={{ ...S.label }}>SINCE START</div>
-                      <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"0.5px" }}>{friend.name.split(" ")[0].toUpperCase()}</div>
+
+                  {/* Stats breakdown */}
+                  <div style={{ ...S.card, padding:"16px 18px", marginBottom:16 }}>
+                    <div style={{ display:"flex", alignItems:"center", marginBottom:12 }}>
+                      <div style={{ flex:1, fontSize:13, fontWeight:800, color:myColor }}>YOU</div>
+                      <div style={{ flex:1, textAlign:"center" }}><div style={{ ...S.label, fontSize:10 }}>SINCE START</div></div>
+                      <div style={{ flex:1, fontSize:13, fontWeight:800, color:frColor, textAlign:"right" }}>{friend.name.split(" ")[0].toUpperCase()}</div>
                     </div>
-                    <StatRow label="WORKOUTS"      myVal={myRecent.length}  frVal={friendSessions===null?"…":frRecent.length} />
-                    <StatRow label="AVG INTENSITY" myVal={myRecent.length?(myRecent.reduce((a,s)=>a+(s.intensity||0),0)/myRecent.length).toFixed(1):"—"} frVal={frRecent.length?(frRecent.reduce((a,s)=>a+(s.intensity||0),0)/frRecent.length).toFixed(1):(friendSessions===null?"…":"—")} />
-                    <StatRow label="TOTAL CAL"     myVal={myRecent.reduce((a,s)=>a+(s.calories||0),0)||"—"} frVal={frRecent.reduce((a,s)=>a+(s.calories||0),0)||(friendSessions===null?"…":"—")} />
+                    {[
+                      { label:"WORKOUTS", my: myRecent.length||"—", fr: friendSessions===null?"…":(frRecent.length||"—") },
+                      { label:"AVG INTENSITY", my: myRecent.filter(s=>(s.intensity||0)>0).length?(myRecent.reduce((a,s)=>a+(s.intensity||0),0)/myRecent.filter(s=>(s.intensity||0)>0).length).toFixed(1):"—", fr: frRecent.filter(s=>(s.intensity||0)>0).length?(frRecent.reduce((a,s)=>a+(s.intensity||0),0)/frRecent.filter(s=>(s.intensity||0)>0).length).toFixed(1):(friendSessions===null?"…":"—") },
+                      { label:"CALORIES", my: myRecent.reduce((a,s)=>a+(s.calories||0),0)||"—", fr: frRecent.reduce((a,s)=>a+(s.calories||0),0)||(friendSessions===null?"…":"—") },
+                      { label:"DURATION", my: (()=>{ const m=myRecent.reduce((a,s)=>a+(s.duration||0),0); return m?`${Math.round(m)}min`:"—"; })(), fr: (()=>{ const m=frRecent.reduce((a,s)=>a+(s.duration||0),0); return friendSessions===null?"…":m?`${Math.round(m)}min`:"—"; })() },
+                    ].map(row => (
+                      <div key={row.label} style={{ display:"flex", alignItems:"center", padding:"10px 0", borderTop:`1px solid ${th.border}` }}>
+                        <div className="bebas" style={{ flex:1, fontSize:20, color:myColor, lineHeight:1 }}>{row.my}</div>
+                        <div style={{ flex:1, textAlign:"center", fontSize:10, color:th.dim, letterSpacing:"1px", fontWeight:700 }}>{row.label}</div>
+                        <div className="bebas" style={{ flex:1, fontSize:20, color:frColor, lineHeight:1, textAlign:"right" }}>{row.fr}</div>
+                      </div>
+                    ))}
                   </div>
+
                   {/* Result banner */}
                   {leading && (
-                    <div style={{ ...S.card, padding:"16px", textAlign:"center",
-                      background: leading==="you"?`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`:leading==="friend"?`color-mix(in srgb, #E8612C 10%, ${th.card})`:undefined,
-                      border: leading==="you"?`1px solid ${th.accentBg}44`:leading==="friend"?`1px solid rgba(232,97,44,0.3)`:undefined }}>
-                      <div style={{ fontSize:28, marginBottom:6 }}>{leading==="you"?"🏆":leading==="friend"?"💪":"🤝"}</div>
-                      <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:leading==="you"?th.accentFg:leading==="friend"?"#E8612C":th.sub }}>
+                    <div style={{ borderRadius:16, padding:"20px 18px", textAlign:"center", marginBottom:4,
+                      background: leading==="you"?`color-mix(in srgb, ${th.accentBg} 14%, ${th.card})`:leading==="friend"?"color-mix(in srgb, rgba(232,97,44,0.18) 100%, transparent)":th.sect,
+                      border: leading==="you"?`1px solid ${th.accentBg}55`:leading==="friend"?"1px solid rgba(232,97,44,0.35)":`1px solid ${th.border}` }}>
+                      <div style={{ fontSize:38, marginBottom:8, lineHeight:1 }}>{leading==="you"?"🏆":leading==="friend"?"💪":"🤝"}</div>
+                      <div className="bebas" style={{ fontSize:26, letterSpacing:2, marginBottom:6, color:leading==="you"?th.accentFg:leading==="friend"?"#E8612C":th.sub }}>
                         {leading==="you"?"YOU'RE WINNING!":leading==="friend"?`${friend.name.split(" ")[0].toUpperCase()} IS AHEAD`:"ALL TIED UP"}
                       </div>
-                      <div style={{ fontSize:12, color:th.muted, marginTop:4 }}>
-                        {leading==="you"?"Keep the pressure on — train hard.":leading==="friend"?"Time to turn it up. You've got this.":"Anyone's game — go train!"}
+                      <div style={{ fontSize:14, color:th.muted, lineHeight:1.5 }}>
+                        {leading==="you"?"Keep the pressure on — train hard every day.":leading==="friend"?"Time to turn it up. You've got this.":"Anyone's game — every session counts!"}
                       </div>
                     </div>
                   )}
+
+                  {/* Scoring note */}
+                  <div style={{ marginTop:14, marginBottom:4, padding:"10px 14px", borderRadius:12, background:th.sect, border:`1px solid ${th.border}` }}>
+                    <div style={{ ...S.label, marginBottom:4, fontSize:9 }}>SCORING</div>
+                    <div style={{ fontSize:12, color:th.muted, lineHeight:1.6 }}>Intensity (30%) + Calories (30%) + Consistency (20%) + Activity (20%). Every completed session earns points.</div>
+                  </div>
+
                   {/* End competition */}
                   <button
                     onClick={async () => { if (window.confirm("End this competition?")) { await onWithdrawCompeteInvite(comp.id); close(); } }}
-                    style={{ width:"100%", marginTop:12, background:"transparent", border:`1px solid ${th.delB}`, borderRadius:12, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.delText }}
+                    style={{ width:"100%", marginTop:16, background:"rgba(220, 50, 50, 0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:13, padding:14, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.text }}
                   >END COMPETITION</button>
                 </>
               )}
@@ -6654,8 +6666,8 @@ import "./styles.css";
                       <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
                         <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>SCORING RULES</div>
                         {[
-                          { pct:"25%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
-                          { pct:"25%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
+                          { pct:"30%", label:"Intensity", desc:"Avg self-reported intensity rating per session (0–10)" },
+                          { pct:"30%", label:"Calories", desc:"Total calories burned across all sessions" },
                           { pct:"25%", label:"Consistency",       desc:"5+ sessions = max score" },
                           { pct:"25%", label:"Activity",          desc:"Duration or volume if calories not logged" },
                         ].map(({ pct, label, desc }) => (
@@ -7040,6 +7052,11 @@ import "./styles.css";
                   <div style={{ fontSize:14, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
                   <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>Invitation pending</div>
                 </div>
+                <button
+                  onClick={() => handleAction(inv.id, inv, "decline")}
+                  disabled={actioning[inv.id]}
+                  style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
+                >✕</button>
               </div>
             ))}
           </div>
