@@ -6155,7 +6155,7 @@ import "./styles.css";
   }
 
   /* ─── Friend Dashboard Sheet ─────────────────────────────────────────────────── */
-  function FriendDashboardSheet({ friend, onClose, onGetFriendSessions, onCompete }) {
+  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete }) {
     const th = useTheme();
     const S = useS();
     const [sessions, setSessions] = useState(null);
@@ -6235,7 +6235,15 @@ import "./styles.css";
                       color: th.accentFg, letterSpacing:"0.5px",
                       transition:"background .2s, color .2s",
                     }}
-                  >COMPETE</button>
+                  >{(() => {
+                    const comp = competitions && competitions.find(c =>
+                      (c.fromUid === user?.id && c.toUid === friend.uid) ||
+                      (c.toUid   === user?.id && c.fromUid === friend.uid)
+                    );
+                    if (comp?.status === "active") return "IN PROGRESS";
+                    if (comp?.status === "pending") return "PENDING";
+                    return "COMPETE";
+                  })()}</button>
                   <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
                 </div>
               </div>
@@ -6364,31 +6372,80 @@ import "./styles.css";
     const isIncoming = isPending && comp?.toUid === user.id;
     const isOutgoing = isPending && comp?.fromUid === user.id;
 
-    // For active comps: only sessions after startAt count
-    const startAt = comp?.startAt || 0;
-    const endAt   = comp?.endAt   || Infinity;
-    const now     = Date.now();
-    const hasStarted = isActive && now >= startAt;
-    const daysLeft   = isActive ? Math.max(0, Math.ceil((endAt - now) / 86400000)) : null;
+    // Normalize Firestore Timestamps or plain numbers to ms
+    const toMs = (v) => {
+      if (!v) return 0;
+      if (typeof v === "number") return v;
+      if (v?.toMillis) return v.toMillis(); // Firestore Timestamp
+      if (v?.seconds) return v.seconds * 1000; // Firestore Timestamp (other shape)
+      return Number(v) || 0;
+    };
 
-    const compFilter = (s) => (s.startTime || 0) >= startAt && (s.startTime || 0) <= endAt;
+    const startAt = toMs(comp?.startAt);
+    const endAt   = toMs(comp?.endAt) || Infinity;
+    const now     = Date.now();
+    const daysLeft = isActive ? Math.max(0, Math.floor((endAt - now) / 86400000)) : null;
+
+    const compFilter = (s) => {
+      const t = toMs(s.startTime);
+      return t >= startAt && t <= endAt;
+    };
 
     useEffect(() => {
       if (!isActive && !isIncoming) return;
       onGetFriendSessions(friend.uid).then(s => setFriendSessions(s || []));
-    }, [friend.uid, comp?.id]);
+    }, [friend.uid, comp?.id, comp?.status]);
 
     const calcScore = (sessions) => {
       if (!sessions) return null;
       const relevant = sessions.filter(compFilter);
       if (!relevant.length) return 0;
-      const intensityAvg  = relevant.reduce((a, s) => a + (s.intensity || 0), 0) / relevant.length;
-      const totalCals     = relevant.reduce((a, s) => a + (s.calories  || 0), 0);
-      const sessionCount  = relevant.length;
-      const intensityScore  = (intensityAvg / 10) * 10 * 0.40;
-      const calScore        = Math.min(totalCals / 3000, 1) * 10 * 0.40;
-      const consistencyScore= Math.min(sessionCount / 5, 1) * 10 * 0.20;
-      return Math.round((intensityScore + calScore + consistencyScore) * 10) / 10;
+
+      // Intensity: avg across sessions that have it (0–10)
+      const withIntensity = relevant.filter(s => (s.intensity || 0) > 0);
+      const intensityAvg  = withIntensity.length
+        ? withIntensity.reduce((a, s) => a + s.intensity, 0) / withIntensity.length
+        : 0;
+
+      // Calories: total across all sessions
+      const totalCals = relevant.reduce((a, s) => a + (s.calories || 0), 0);
+
+      // Duration: total minutes (from session duration field or cardio set durations)
+      const totalMins = relevant.reduce((a, s) => {
+        if (s.duration) return a + s.duration;
+        // Sum cardio set durations
+        const cardioMins = (s.exercises || []).reduce((b, ex) =>
+          b + (ex.sets || []).reduce((c, st) => c + (st.duration || 0), 0), 0);
+        return a + cardioMins;
+      }, 0);
+
+      // Volume: total kg lifted (resistance)
+      const totalVol = relevant.reduce((a, s) => a + sessionVol(s), 0);
+
+      // Consistency: sessions completed (5+ = full score)
+      const consistency = relevant.length;
+
+      // Scoring (0–10):
+      // 25% intensity, 25% calories (cap 3000), 25% consistency (cap 5 sessions), 25% activity (duration or volume)
+      const intensityScore  = (intensityAvg / 10) * 10 * 0.25;
+      const calScore        = Math.min(totalCals / 3000, 1) * 10 * 0.25;
+      const consistScore    = Math.min(consistency / 5, 1) * 10 * 0.25;
+      // Activity: prefer calories > duration > volume, whichever is most meaningful
+      const activityScore   = totalCals > 0
+        ? 0 // already counted in calScore
+        : totalMins > 0
+        ? Math.min(totalMins / 300, 1) * 10 * 0.25   // 300 min = max
+        : Math.min(totalVol / 10000, 1) * 10 * 0.25; // 10,000 kg = max
+
+      // If no calories, give the 25% cal slot to activity instead
+      const effectiveCal   = totalCals > 0 ? calScore : 0;
+      const effectiveAct   = totalCals > 0
+        ? (totalMins > 0 ? Math.min(totalMins / 300, 1) * 10 * 0.10 : 0)
+        : (totalMins > 0
+            ? Math.min(totalMins / 300, 1) * 10 * 0.25
+            : Math.min(totalVol / 10000, 1) * 10 * 0.25);
+
+      return Math.round((intensityScore + effectiveCal + consistScore + effectiveAct) * 10) / 10;
     };
 
     const myScore     = isActive ? calcScore(mySessions) : null;
@@ -6459,7 +6516,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ flex:1 }}>
-                  <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>COMPETE</div>
+                  <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>
+                    {isActive ? "IN PROGRESS" : "COMPETE"}
+                  </div>
                   <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
                     {isActive ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
                      isOutgoing ? "Waiting for response…" :
@@ -6488,9 +6547,10 @@ import "./styles.css";
                   <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
                     <div style={{ ...S.label, marginBottom:10 }}>RULES</div>
                     {[
-                      { pct:"40%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
-                      { pct:"40%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
-                      { pct:"20%", label:"Consistency",       desc:"5+ sessions = max score" },
+                      { pct:"25%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
+                      { pct:"25%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
+                      { pct:"25%", label:"Consistency",       desc:"5+ sessions = max score" },
+                      { pct:"25%", label:"Activity",          desc:"Duration or volume if calories not logged" },
                     ].map(({ pct, label, desc }) => (
                       <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                         <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
@@ -6594,9 +6654,10 @@ import "./styles.css";
                       <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
                         <div style={{ ...S.label, marginBottom:10 }}>SCORING RULES</div>
                         {[
-                          { pct:"40%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
-                          { pct:"40%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
-                          { pct:"20%", label:"Consistency",       desc:"5+ sessions = max score" },
+                          { pct:"25%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
+                          { pct:"25%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
+                          { pct:"25%", label:"Consistency",       desc:"5+ sessions = max score" },
+                          { pct:"25%", label:"Activity",          desc:"Duration or volume if calories not logged" },
                         ].map(({ pct, label, desc }) => (
                           <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                             <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
@@ -6749,23 +6810,21 @@ import "./styles.css";
             <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
             {pendingInvitations.map(inv => (
               <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                   <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
                     {(inv.fromName||"?")[0].toUpperCase()}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{inv.fromName}</div>
                     <div style={{ fontSize:12, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
+                    <div style={{ fontSize:11, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
                   </div>
-                </div>
-                <div style={{ fontSize:12, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
-                  Wants to share workout progress with you.
-                </div>
-                <div style={{ display:"flex", gap:8 }}>
+                  {/* X decline */}
                   <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                    style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText, opacity: actioning[inv.id]?0.5:1 }}>DECLINE</button>
+                    style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
+                  {/* Accept */}
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity: actioning[inv.id]?0.5:1 }}>{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
+                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
                 </div>
               </div>
             ))}
@@ -6882,6 +6941,8 @@ import "./styles.css";
         {dashFriend && (
           <FriendDashboardSheet
             friend={dashFriend}
+            user={user}
+            competitions={competitions}
             onClose={() => setDashFriend(null)}
             onGetFriendSessions={onGetFriendSessions}
             onCompete={() => { setDashFriend(null); setTimeout(() => setCompeteFriend(dashFriend), 360); }}
@@ -7097,10 +7158,6 @@ import "./styles.css";
                             <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"
                               stroke={starInfo.starred ? th.accentFg : th.dim} strokeWidth="1.8" strokeLinejoin="round"/>
                           </svg>
-                          <span style={{ fontSize:11, fontWeight:700, fontFamily:"'Outfit',sans-serif",
-                            color: starInfo.starred ? th.accentFg : th.dim, letterSpacing:"0.5px" }}>
-                            {starInfo.starred ? "STARRED" : "STAR"}
-                          </span>
                         </button>
                       </div>
                     </div>
@@ -13333,7 +13390,7 @@ import "./styles.css";
                         setView("home");
                       else setView(tab.id);
                     }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.9)"; e.currentTarget.style.opacity = "0.65"; }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.78)"; e.currentTarget.style.opacity = "0.55"; }}
                     onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     style={{
