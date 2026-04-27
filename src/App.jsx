@@ -6516,10 +6516,10 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <div style={{ flex:1 }}>
-                  <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>
-                    {isActive ? "IN PROGRESS" : "COMPETE"}
+                  <div className="bebas" style={{ fontSize:26, textAlign:"center", letterSpacing:2, color:th.text, lineHeight:1 }}>
+                    {isActive ? "COMPETITION IN PROGRESS" : "COMPETE"}
                   </div>
-                  <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
+                  <div style={{ fontSize:15, color:th.muted, marginTop:2 }}>
                     {isActive ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
                      isOutgoing ? "Waiting for response…" :
                      isIncoming ? `${friend.name.split(" ")[0]} challenged you!` :
@@ -6652,7 +6652,7 @@ import "./styles.css";
                         </div>
                       </div>
                       <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
-                        <div style={{ ...S.label, marginBottom:10 }}>SCORING RULES</div>
+                        <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>SCORING RULES</div>
                         {[
                           { pct:"25%", label:"Average Intensity", desc:"Avg self-reported intensity per session" },
                           { pct:"25%", label:"Calories Burned",   desc:"Total kcal (3,000 = max score)" },
@@ -7053,8 +7053,7 @@ import "./styles.css";
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:13 }}>Loading activity…</div>
             ) : feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
-                <div style={{ fontSize:24, marginBottom:8 }}>🏋️</div>
-                <div style={{ color:th.muted, fontSize:13, textAlign: "left" }}>No recent workouts from friends yet.</div>
+                <div style={{ color:th.muted, fontSize:13, textAlign: "center" }}>No recent workouts from friends yet.</div>
               </div>
             ) : feedItems.map(({ friend: f, session: s }, i) => {
               const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -13713,12 +13712,12 @@ import "./styles.css";
                         </svg>
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:13, color:th.text, lineHeight:1.4 }}>
+                        <div style={{ fontSize:13, textAlign:"left", color:th.text, lineHeight:1.4 }}>
                           <span style={{ fontWeight:700 }}>{n.name || "Someone"}</span>
                           <span style={{ color:th.muted }}> starred your </span>
                           <span style={{ fontWeight:600, color:th.text }}>{n.sessionName || "workout"}</span>
                         </div>
-                        <div style={{ fontSize:11, color:th.dim, marginTop:2 }}>{timeStr}</div>
+                        <div style={{ fontSize:11, textAlign:"left", color:th.dim, marginTop:2 }}>{timeStr}</div>
                       </div>
                     </div>
                   );
