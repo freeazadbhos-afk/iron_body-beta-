@@ -6240,7 +6240,12 @@ import "./styles.css";
                       (c.fromUid === user?.id && c.toUid === friend.uid) ||
                       (c.toUid   === user?.id && c.fromUid === friend.uid)
                     );
-                    if (comp?.status === "active") return "IN PROGRESS";
+                    if (comp?.status === "active") return (
+                      <span style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        <span style={{ width:7, height:7, borderRadius:"50%", background:th.accentFg, display:"inline-block", animation:"pulse 1.5s ease-in-out infinite", flexShrink:0 }} />
+                        COMPETING
+                      </span>
+                    );
                     if (comp?.status === "pending") return "PENDING";
                     return "COMPETE";
                   })()}</button>
@@ -6387,7 +6392,9 @@ import "./styles.css";
     const daysLeft = isActive ? Math.max(0, Math.floor((endAt - now) / 86400000)) : null;
 
     const compFilter = (s) => {
-      const t = toMs(s.startTime);
+      // Use endTime (when the workout was saved/completed) — this is what matters.
+      // Fall back to startTime for legacy sessions that may not have endTime.
+      const t = toMs(s.endTime) || toMs(s.startTime);
       return t >= startAt && t <= endAt;
     };
 
@@ -6401,37 +6408,44 @@ import "./styles.css";
       const relevant = sessions.filter(compFilter);
       if (!relevant.length) return 0;
 
-      // ── Intensity (30%) — avg of sessions that have it ──
+      // ── Intensity (30%) — avg of sessions that logged it ──
       const withInt   = relevant.filter(s => (s.intensity || 0) > 0);
       const intensAvg = withInt.length
         ? withInt.reduce((a, s) => a + s.intensity, 0) / withInt.length
         : 0;
       const intensScore = (intensAvg / 10) * 10 * 0.30;
 
-      // ── Calories (30%) — cap at 500 kcal/session avg × sessions ──
+      // ── Calories (30%) — avg kcal per session, cap at 500/session ──
       const totalCals = relevant.reduce((a, s) => a + (s.calories || 0), 0);
       const avgCals   = totalCals / relevant.length;
       const calScore  = Math.min(avgCals / 500, 1) * 10 * 0.30;
 
-      // ── Consistency (20%) — rewarded per day trained, cap at 7 days ──
+      // ── Consistency (20%) — unique training days, cap at 7 ──
       const trainedDays = new Set(
-        relevant.map(s => { const d = new Date(toMs(s.startTime)); d.setHours(0,0,0,0); return d.getTime(); })
+        relevant.map(s => {
+          const d = new Date(toMs(s.endTime) || toMs(s.startTime));
+          d.setHours(0,0,0,0);
+          return d.getTime();
+        })
       ).size;
       const consistScore = Math.min(trainedDays / 7, 1) * 10 * 0.20;
 
-      // ── Activity (20%) — duration OR volume, whichever contributes ──
+      // ── Activity (20%) — session duration first (covers cardio), then volume ──
+      // Duration from session.duration field, OR sum of individual cardio set durations
       const totalMins = relevant.reduce((a, s) => {
-        if (s.duration) return a + s.duration;
-        return a + (s.exercises || []).reduce((b, ex) =>
-          b + (ex.sets || []).reduce((c, st) => c + (st.duration || 0), 0), 0);
+        if (s.duration && s.duration > 0) return a + s.duration;
+        // Sum cardio set durations (stored in minutes)
+        const cardioMins = (s.exercises || []).reduce((b, ex) =>
+          b + (ex.sets || []).filter(st => st.done !== false).reduce((c, st) => c + (st.duration || 0), 0), 0);
+        return a + cardioMins;
       }, 0);
-      const totalVol = relevant.reduce((a, s) => a + sessionVol(s), 0);
-      // avg per session for fair daily comparison
-      const avgMins = totalMins / relevant.length;
-      const avgVol  = totalVol / relevant.length;
-      const actScore = totalMins > 0
-        ? Math.min(avgMins / 90, 1) * 10 * 0.20    // 90 min/session avg = max
-        : Math.min(avgVol / 5000, 1) * 10 * 0.20;  // 5,000 kg/session avg = max
+      const totalVol  = relevant.reduce((a, s) => a + sessionVol(s), 0);
+      const avgMins   = totalMins / relevant.length;
+      const avgVol    = totalVol  / relevant.length;
+      // Prefer duration (benefits cardio), fallback to volume (benefits resistance)
+      const actScore  = avgMins > 0
+        ? Math.min(avgMins / 90, 1) * 10 * 0.20    // 90 min/session = full score
+        : Math.min(avgVol  / 5000, 1) * 10 * 0.20; // 5,000 kg/session = full score
 
       return Math.round((intensScore + calScore + consistScore + actScore) * 10) / 10;
     };
@@ -6629,12 +6643,6 @@ import "./styles.css";
                       </div>
                     </div>
                   )}
-
-                  {/* Scoring note */}
-                  <div style={{ marginTop:14, marginBottom:4, padding:"10px 14px", borderRadius:12, background:th.sect, border:`1px solid ${th.border}` }}>
-                    <div style={{ ...S.label, marginBottom:4, fontSize:9 }}>SCORING</div>
-                    <div style={{ fontSize:12, color:th.muted, lineHeight:1.6 }}>Intensity (30%) + Calories (30%) + Consistency (20%) + Activity (20%). Every completed session earns points.</div>
-                  </div>
 
                   {/* End competition */}
                   <button
