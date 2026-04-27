@@ -1904,7 +1904,7 @@ import "./styles.css";
   async function fsAcceptCompeteInvite(compId) {
     try {
       const now = Date.now();
-      const startAt = now + 24 * 60 * 60 * 1000; // starts 24h from now
+      const startAt = now; // starts immediately on acceptance
       const endAt   = startAt + 7 * 24 * 60 * 60 * 1000; // lasts 7 days
       await updateDoc(doc(fbDb, "competitions", compId), {
         status: "active",
@@ -6461,8 +6461,7 @@ import "./styles.css";
                 <div style={{ flex:1 }}>
                   <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>COMPETE</div>
                   <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>
-                    {isActive && hasStarted  ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
-                     isActive && !hasStarted ? `Starting soon · ${friend.name.split(" ")[0]} accepted!` :
+                    {isActive ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
                      isOutgoing ? "Waiting for response…" :
                      isIncoming ? `${friend.name.split(" ")[0]} challenged you!` :
                      `Challenge ${friend.name.split(" ")[0]}`}
@@ -6525,20 +6524,8 @@ import "./styles.css";
                 </div>
               )}
 
-              {/* ── ACTIVE but not started yet (within 24h window) ── */}
-              {isActive && !hasStarted && (
-                <div style={{ textAlign:"center", padding:"32px 0" }}>
-                  <div style={{ fontSize:40, marginBottom:12 }}>🚀</div>
-                  <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.accentFg, marginBottom:8 }}>GET READY!</div>
-                  <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
-                    Competition starts {new Date(startAt).toLocaleString("en-GB", { weekday:"short", hour:"2-digit", minute:"2-digit" })}.<br/>
-                    Any workout logged after that counts.
-                  </div>
-                </div>
-              )}
-
-              {/* ── ACTIVE and started — live scoreboard ── */}
-              {isActive && hasStarted && (
+              {/* ── ACTIVE — live scoreboard ── */}
+              {isActive && (
                 <>
                   {/* Score rings */}
                   <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:20 }}>
