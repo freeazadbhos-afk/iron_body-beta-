@@ -2038,13 +2038,17 @@ import "./styles.css";
     );
     return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }
-  async function fsPushPhotoToFriends(uid, photoURL, friendUids) {
-    // When user updates their photo, push it to their entry in each friend's friend list
-    // User has write access to users/{friendUid}/friends/{uid} via friends rule
+  async function fsPushProfileToFriends(uid, updates, friendUids) {
+    // Push name, photoURL (and any other public fields) to the user's entry
+    // in each friend's friend list. User has write access via the friends Firestore rule.
+    const payload = {};
+    if (updates.photoURL !== undefined) payload.photoURL = updates.photoURL || null;
+    if (updates.name)     payload.name     = updates.name;
+    if (!Object.keys(payload).length) return;
     await Promise.all(
       friendUids.map(friendUid =>
-        setDoc(doc(fbDb, "users", friendUid, "friends", uid), { photoURL: photoURL || null }, { merge: true })
-          .catch(() => {}) // silently skip if permissions change
+        setDoc(doc(fbDb, "users", friendUid, "friends", uid), payload, { merge: true })
+          .catch(() => {})
       )
     );
   }
@@ -10316,10 +10320,15 @@ import "./styles.css";
           age: eAge ? parseInt(eAge) : null,
           gender: eGender || null,
         });
-        // Push photo + age + gender to Firestore settings
-        fsSaveSettings(fbUser.uid, { photoURL: photoData || null, age: eAge ? parseInt(eAge) : null, gender: eGender || null });
-        // Push updated photo to all friends' friend-list entries
-        if (onPhotoUpdate) onPhotoUpdate(photoData || null);
+        // Push ALL profile fields to Firestore settings (name, photo, age, gender)
+        fsSaveSettings(fbUser.uid, {
+          name: eName.trim(),
+          photoURL: photoData || null,
+          age: eAge ? parseInt(eAge) : null,
+          gender: eGender || null,
+        });
+        // Push updated name + photo to every friend's friend-list entry
+        if (onPhotoUpdate) onPhotoUpdate({ name: eName.trim(), photoURL: photoData || null });
         onUpdateUser({
           ...user,
           name: eName.trim(),
@@ -12287,13 +12296,23 @@ import "./styles.css";
               setUser((u) => (u ? { ...u, photoURL: fsSet.photoURL } : u));
             }
           }
-          // Restore age & gender from Firestore
-          if (fsSet?.age != null || fsSet?.gender != null) {
+          // Restore name, age & gender from Firestore settings
+          if (fsSet?.age != null || fsSet?.gender != null || fsSet?.name) {
             const localProf = getLocalProfile(user.id) || {};
             if (!localProf.age && !localProf.gender) {
-              saveLocalProfile(user.id, { ...localProf, age: fsSet.age || null, gender: fsSet.gender || null });
+              saveLocalProfile(user.id, {
+                ...localProf,
+                name: fsSet.name || localProf.name,
+                age: fsSet.age || null,
+                gender: fsSet.gender || null,
+              });
             }
-            setUser(u => u ? { ...u, age: u.age || fsSet.age || null, gender: u.gender || fsSet.gender || null } : u);
+            setUser(u => u ? {
+              ...u,
+              name: u.name || fsSet.name || u.name,
+              age: u.age || fsSet.age || null,
+              gender: u.gender || fsSet.gender || null,
+            } : u);
           }
           // Measurements
           const fsMeas = await fsGetMeasurements(user.id);
@@ -14117,7 +14136,7 @@ import "./styles.css";
                   onGoWorkout={() => { closeProfile(); setTimeout(() => setView("workout"), 380); }}
                   onClearUnread={() => setUnreadFeedback(0)}
                   onClose={closeProfile}
-                  onPhotoUpdate={(photoURL) => fsPushPhotoToFriends(user.id, photoURL, friends.map(f => f.uid))}
+                  onPhotoUpdate={(updates) => fsPushProfileToFriends(user.id, updates, friends.map(f => f.uid))}
                 />
               </div>
             </div>
