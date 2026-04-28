@@ -6762,6 +6762,11 @@ import "./styles.css";
     const [inviteStatus, setInviteStatus] = useState("idle");
     const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
+    const [inviteClosing, setInviteClosing] = useState(false);
+    const closeInvitePanel = () => {
+      setInviteClosing(true);
+      setTimeout(() => { setShowInvitePanel(false); setInviteClosing(false); setInviteStatus("idle"); setInviteEmail(""); }, 220);
+    };
     const [actioning, setActioning] = useState({});
     const [dashFriend, setDashFriend] = useState(null);
     const [competeFriend, setCompeteFriend] = useState(null);
@@ -6849,7 +6854,8 @@ import "./styles.css";
       <div className="slide-up" style={{ paddingBottom: 90 }}>
         <style>{`
           @keyframes sharingFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-          @keyframes invitePop     { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+          @keyframes invitePop   { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+          @keyframes inviteClose { from{opacity:1;transform:scale(1) translateY(0)} to{opacity:0;transform:scale(0.96) translateY(-6px)} }
           @keyframes sentBounce    { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1)} }
           @keyframes inviteShake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
           @keyframes feedFadeIn    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
@@ -7055,10 +7061,10 @@ import "./styles.css";
             INVITE A FRIEND
           </button>
         ) : showInvitePanel ? (
-          <div style={{ ...S.card, padding:18, marginBottom:20, animation:"invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
+          <div style={{ ...S.card, padding:18, marginBottom:20, animation: inviteClosing ? "inviteClose 0.22s cubic-bezier(0.4,0,1,1) forwards" : "invitePop 0.28s cubic-bezier(0,0,0.2,1) forwards" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
               <div style={S.label}>SEND INVITATION</div>
-              <button onClick={() => { setShowInvitePanel(false); setInviteStatus("idle"); setInviteEmail(""); }} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18 }}>✕</button>
+              <button onClick={closeInvitePanel} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18 }}>✕</button>
             </div>
             {inviteStatus === "sent" ? (
               <div style={{ textAlign:"center", padding:"18px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
@@ -12041,6 +12047,8 @@ import "./styles.css";
     const [starNotifications, setStarNotifications]   = useState([]); // reactions on own sessions
     const [unreadStars, setUnreadStars]               = useState(0);
     const [notifOpen, setNotifOpen]                   = useState(false);
+    const [notifClosing, setNotifClosing]             = useState(false);
+    const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
     const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
     const [competitions, setCompetitions]             = useState([]);
     const [sessions, setSessions] = useState([]);
@@ -12948,7 +12956,7 @@ import "./styles.css";
               {view === "sharing" && (
                 <button
                   onClick={() => {
-                    setNotifOpen(o => !o);
+                    if (notifOpen) { closeNotif(); } else { setNotifOpen(true); }
                     if (unreadStars > 0) {
                       const now = Date.now();
                       localStorage.setItem("ib3-lastReadNotif", String(now));
@@ -13153,6 +13161,10 @@ import "./styles.css";
               from { opacity: 0; transform: translateY(18px) scale(0.98); }
               to   { opacity: 1; transform: translateY(0)    scale(1); }
             }
+            @keyframes tabFadeIn {
+              from { opacity: 0; transform: translateY(10px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
             @keyframes removeSlide {
               0%   { opacity: 1; transform: translateX(0)   scaleY(1); max-height: 200px; }
               60%  { opacity: 0; transform: translateX(24px) scaleY(0.8); }
@@ -13196,6 +13208,13 @@ import "./styles.css";
               from { opacity: 1; transform: translateY(0)   scale(1); }
               to   { opacity: 0; transform: translateY(10px) scale(0.97); }
             }
+            /* ── Global button press feedback ── */
+            button:not(:disabled):active {
+              transform: scale(0.95);
+              opacity: 0.82;
+              transition: transform 0.08s ease, opacity 0.08s ease !important;
+            }
+            button { transition: transform 0.18s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.18s ease, background 0.18s ease, color 0.18s ease; }
           `}</style>
           <div
             key={view}
@@ -13209,7 +13228,7 @@ import "./styles.css";
                 workoutExiting      ? "pipExit 0.32s cubic-bezier(0.4,0,1,1) forwards" :
                 view === "workout"  ? "workoutFadeIn 0.45s cubic-bezier(0,0,0.2,1) forwards" :
                 view === "complete" ? "completeFadeIn 0.4s ease-out forwards" :
-                undefined,
+                "tabFadeIn 0.22s ease-out forwards",
             }}
           >
             {view === "home" && (
@@ -13377,7 +13396,7 @@ import "./styles.css";
                 unreadStars={unreadStars}
                 notifPopOpen={notifOpen}
                 onToggleNotifPop={() => {
-                  setNotifOpen(o => !o);
+                  if (notifOpen) { closeNotif(); } else { setNotifOpen(true); }
                   if (unreadStars > 0) {
                     const now = Date.now();
                     localStorage.setItem("ib3-lastReadNotif", String(now));
@@ -13763,8 +13782,11 @@ import "./styles.css";
       {/* ── Notification popup (sharing tab bell) ── */}
       {notifOpen && (
         <>
-          <style>{`@keyframes notifPop { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }`}</style>
-          <div onClick={() => setNotifOpen(false)} style={{ position:"fixed", inset:0, zIndex:55 }} />
+          <style>{`
+            @keyframes notifPop  { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+            @keyframes notifDrop { from{opacity:1;transform:translateY(0) scale(1)} to{opacity:0;transform:translateY(-6px) scale(0.96)} }
+          `}</style>
+          <div onClick={closeNotif} style={{ position:"fixed", inset:0, zIndex:55 }} />
           <div style={{
             position:"fixed",
             top:"calc(env(safe-area-inset-top, 0px) + 68px)",
@@ -13776,12 +13798,14 @@ import "./styles.css";
             border:`1px solid ${th.border}`,
             borderRadius:18,
             boxShadow:"0 8px 32px rgba(0,0,0,0.28)",
-            animation:"notifPop 0.22s cubic-bezier(0,0,0.2,1) forwards",
+            animation: notifClosing
+              ? "notifDrop 0.2s cubic-bezier(0.4,0,1,1) forwards"
+              : "notifPop 0.22s cubic-bezier(0,0,0.2,1) forwards",
             overflow:"hidden",
           }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px 10px" }}>
               <div style={{ fontSize:11, fontWeight:700, letterSpacing:"1.5px", color:th.sub }}>NOTIFICATIONS</div>
-              <button onClick={() => setNotifOpen(false)} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
+              <button onClick={closeNotif} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
             </div>
             {starNotifications.length === 0 ? (
               <div style={{ padding:"12px 16px 20px", textAlign:"center", color:th.muted, fontSize:13 }}>No notifications yet.</div>
