@@ -63,6 +63,33 @@ import "./styles.css";
   }
 
   /* ─── Themes ────────────────────────────────────────────────────────────────── */
+  const LIGHT = {
+    bg: "#eeecea",
+    card: "#ffffff",
+    border: "#d0cfc8",
+    text: "#0a0a0a",
+    sub: "#1a1a1a",
+    muted: "#444",
+    dim: "#777",
+    input: "#f0efea",
+    inputB: "#c8c7c0",
+    row: "#e8e6df",
+    nav: "#f5f4f0",
+    navB: "#dddbd4",
+    navInactive: "#777777",
+    sect: "#eeece8",
+    accentBg: "#0D9E8E",
+    accentT: "#ffffff",
+    accentFg: "#0D9E8E",
+    done: "#cff0ec",
+    doneB: "#7dd4cc",
+    doneText: "#005048",
+    del: "#fff0f0",
+    delB: "#ffd0d0",
+    delText: "#CC1F42",
+    pause: "#fff8e0",
+    pauseB: "#e8a800",
+  };
   const DARK = {
     bg: "#080809",
     card: "#0f0f12",
@@ -89,33 +116,6 @@ import "./styles.css";
     delText: "#CC1F42",
     pause: "#1e1800",
     pauseB: "#E8612C",
-  };
-  const LIGHT = {
-    bg: "#f0efea",
-    card: "#ffffff",
-    border: "#d0cfc8",
-    text: "#0a0a0a",
-    sub: "#1a1a1a",
-    muted: "#333",
-    dim: "#555",
-    input: "#f5f4ef",
-    inputB: "#d0cfc8",
-    row: "#ece9e2",
-    nav: "#ffffff",
-    navB: "#e0dfd8",
-    navInactive: "#555555",
-    sect: "#f5f4ef",
-    accentBg: "#0D9E8E",
-    accentT: "#ffffff",
-    accentFg: "#0D9E8E",
-    done: "#cff0ec",
-    doneB: "#7dd4cc",
-    doneText: "#005048",
-    del: "#fff0f0",
-    delB: "#ffd0d0",
-    delText: "#CC1F42",
-    pause: "#fff8e0",
-    pauseB: "#e8a800",
   };
   const ThemeCtx = createContext(DARK);
   const useTheme = () => useContext(ThemeCtx);
@@ -6553,19 +6553,19 @@ import "./styles.css";
               <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ flex:1 }}>
-                  <div className="bebas" style={{ fontSize:26, textAlign:"center", letterSpacing:2, color:th.text, lineHeight:1 }}>
+              <div style={{ position:"relative", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                <div style={{ textAlign:"center" }}>
+                  <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, lineHeight:1 }}>
                     {isActive ? "COMPETITION IN PROGRESS" : "COMPETE"}
                   </div>
-                  <div style={{ fontSize:15, color:th.muted, marginTop:2 }}>
+                  <div style={{ fontSize:13, color:th.muted, marginTop:4 }}>
                     {isActive ? `vs ${friend.name.split(" ")[0]}` :
                      isOutgoing ? "Waiting for response…" :
                      isIncoming ? `${friend.name.split(" ")[0]} challenged you!` :
                      `Challenge ${friend.name.split(" ")[0]}`}
                   </div>
                 </div>
-                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
+                <button onClick={close} style={{ position:"absolute", right:0, background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
               </div>
             </div>
 
@@ -13771,7 +13771,7 @@ import "./styles.css";
             right:12, left:12,
             maxWidth:360, margin:"0 auto",
             zIndex:56,
-            background:`color-mix(in srgb, ${th.card} 94%, transparent)`,
+            background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)",
             border:`1px solid ${th.border}`,
             borderRadius:18,
