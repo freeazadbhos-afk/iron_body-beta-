@@ -6826,7 +6826,7 @@ import "./styles.css";
 
         {/* ── Pending invitations received ── */}
         {pendingInvitations.length > 0 && (
-          <div style={{ marginBottom: 20, animation: "sharingFadeUp 0.3s ease both" }}>
+          <div style={{ marginBottom: 20,textAlign:"left", animation: "sharingFadeUp 0.3s ease both" }}>
             <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
             {pendingInvitations.map(inv => (
               <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
@@ -6844,7 +6844,7 @@ import "./styles.css";
                     style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
                   {/* Accept */}
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT ✓"}</button>
+                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
                 </div>
               </div>
             ))}
@@ -9440,7 +9440,7 @@ import "./styles.css";
       <div style={{ paddingBottom: 90 }} className="slide-up">
         {sessions.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 16px" }}>
-            <div className="bebas" style={{ fontSize: 42, color: th.border }}>
+            <div className="bebas" style={{ fontSize: 42, color: th.dim }}>
               NO SESSIONS
             </div>
             <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>
