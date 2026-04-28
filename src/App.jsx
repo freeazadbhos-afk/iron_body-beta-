@@ -1404,7 +1404,7 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false };
   const ALL_DASHBOARDS = [
     { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
     { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
@@ -6755,7 +6755,159 @@ import "./styles.css";
       </>
     );
   }
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite }) {
+  function SharingOnboarding({ onDismiss }) {
+    const th = useTheme();
+    const S = useS();
+    const [step, setStep] = useState(0);
+    const [leaving, setLeaving] = useState(false);
+    const [dir, setDir] = useState(1);
+
+    const STEPS = [
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <circle cx="9" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2"/>
+            <path d="M1 19.5c0-4.418 3.582-8 8-8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="17" y1="11" x2="17" y2="19" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+            <line x1="13" y1="15" x2="21" y2="15" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+          </svg>
+        ),
+        title: "Invite Friends",
+        body: "Tap INVITE A FRIEND and enter their email address. They'll get an invitation in their Sharing tab. Once they accept, you're connected.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <circle cx="7" cy="7" r="2.8" stroke={th.accentFg} strokeWidth="1.8"/>
+            <path d="M1 19c0-3.314 2.686-6 6-6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+            <circle cx="15" cy="7" r="2.8" stroke={th.accentFg} strokeWidth="1.8"/>
+            <path d="M21 19c0-3.314-2.686-6-6-6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        ),
+        title: "Friends List",
+        body: "Accepted friends appear as circular bubbles at the top. Tap any bubble to open their full dashboard — streak, volume, muscles trained, and more.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+        ),
+        title: "React to Workouts",
+        body: "Completed workouts from friends appear in your Feed. Tap the star button on any session to react. Your friend gets notified right away.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <path d="M11 2l2.4 6.8H20l-5.5 4 2.1 6.8L11 15.6l-5.6 4 2.1-6.8L2 8.8h6.6z" stroke="#D4AF37" strokeWidth="1.8" strokeLinejoin="round"/>
+          </svg>
+        ),
+        title: "Compete",
+        body: "Open a friend's dashboard and tap COMPETE to send a 7-day challenge. Scores are based on intensity, calories, consistency and activity. The bell icon notifies you of all competition events.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <path d="M4 4h14v10a4 4 0 01-4 4H8a4 4 0 01-4-4V4z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
+            <path d="M8 18v2M14 18v2M6 20h10" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        ),
+        title: "Notifications",
+        body: "Tap the bell icon at the top right of Sharing to see all your notifications — friend requests accepted, competition invites, and workout reactions.",
+      },
+    ];
+
+    const goTo = (next) => {
+      setDir(next > step ? 1 : -1);
+      setLeaving(true);
+      setTimeout(() => { setStep(next); setLeaving(false); }, 160);
+    };
+
+    const isLast = step === STEPS.length - 1;
+    const s = STEPS[step];
+
+    return (
+      <div style={{
+        ...S.card, padding: 0, marginBottom: 14, overflow: "hidden",
+        border: `1px solid ${th.accentBg}44`,
+        animation: "shortcutListIn 0.3s cubic-bezier(0,0,0.2,1) forwards",
+      }}>
+        <style>{`
+          @keyframes obSlideIn  { from{opacity:0;transform:translateX(22px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes obSlideInR { from{opacity:0;transform:translateX(-22px)} to{opacity:1;transform:translateX(0)} }
+          @keyframes obSlideOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(-18px)} }
+          @keyframes obSlideOutR{ from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(18px)} }
+        `}</style>
+        {/* Accent top bar */}
+        <div style={{ height: 3, background: th.accentBg }} />
+        <div style={{ padding: "16px 16px 14px" }}>
+          {/* Step content */}
+          <div
+            key={step}
+            style={{
+              animation: leaving
+                ? (dir > 0 ? "obSlideOut 0.16s ease-in forwards" : "obSlideOutR 0.16s ease-in forwards")
+                : (dir > 0 ? "obSlideIn 0.22s cubic-bezier(0,0,0.2,1) forwards" : "obSlideInR 0.22s cubic-bezier(0,0,0.2,1) forwards"),
+              minHeight: 84,
+            }}
+          >
+            <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.sect})`,
+                display:"flex", alignItems:"center", justifyContent:"center",
+              }}>{s.icon}</div>
+              <div>
+                <div style={{ fontSize: 13, textAlign: "left", fontWeight: 700, color: th.text, marginBottom: 5 }}>{s.title}</div>
+                <div style={{ fontSize: 12, textAlign: "left", color: th.muted, lineHeight: 1.55 }}>{s.body}</div>
+              </div>
+            </div>
+          </div>
+          {/* Footer: dots + nav */}
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: 14 }}>
+            <div style={{ display:"flex", gap:5 }}>
+              {STEPS.map((_,i) => (
+                <div key={i} onClick={() => goTo(i)} style={{
+                  width: i === step ? 18 : 6, height: 6, borderRadius: 3,
+                  background: i === step ? th.accentBg : th.inputB,
+                  cursor: "pointer",
+                  transition: "width 0.2s, background 0.2s",
+                }} />
+              ))}
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              {!isLast && (
+                <button onClick={onDismiss} style={{
+                  background: "none", border: "none",
+                  color: th.dim, fontSize: 12, cursor: "pointer",
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 600, padding: "6px 0",
+                }}>Skip</button>
+              )}
+              {!isLast ? (
+                <button onClick={() => goTo(step + 1)} style={{
+                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                  border: "none", borderRadius: 9, color: th.accentT,
+                  padding: "6px 16px", cursor: "pointer", fontSize: 12,
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 700,
+                }}>Next →</button>
+              ) : (
+                <button onClick={onDismiss} style={{
+                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+                  border: "none", borderRadius: 9, color: th.accentT,
+                  padding: "6px 16px", cursor: "pointer", fontSize: 12,
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 700,
+                }}>Got it ✓</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -6866,6 +7018,11 @@ import "./styles.css";
           }
           @keyframes notifPop { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
         `}</style>
+
+        {/* ── Sharing onboarding guide ── */}
+        {!settings?.hasSharingOnboarded && (
+          <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true })} />
+        )}
 
         {/* ── Pending invitations received ── */}
         {pendingInvitations.length > 0 && (
@@ -13411,6 +13568,8 @@ import "./styles.css";
                   setUnreadStars(0);
                 }}
                 onRemoveFriend={(friendUid) => fsRemoveFriend(user.id, friendUid)}
+                settings={settings}
+                onUpdateSettings={saveSettings}
                 onToggleStar={(ownerUid, sessionId, sName) => fsToggleStar(ownerUid, sessionId, user.id, user.name || "Friend", sName)}
               />
             )}
