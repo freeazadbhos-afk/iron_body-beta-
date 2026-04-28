@@ -6681,7 +6681,7 @@ import "./styles.css";
                         ].map(({ pct, label, desc }) => (
                           <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                             <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
-                            <div><div style={{ fontSize:13, fontWeight:700, color:th.text }}>{label}</div>
+                            <div><div style={{ fontSize:13, fontWeight:700, textAlign:"left", color:th.text }}>{label}</div>
                             <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>{desc}</div></div>
                           </div>
                         ))}
@@ -8459,6 +8459,7 @@ import "./styles.css";
           <span
             style={{
               fontSize: 11,
+              textAlign:"left",
               color: th.dim,
               width: 28,
               flexShrink: 0,
@@ -8467,7 +8468,7 @@ import "./styles.css";
           >
             #{setIdx + 1}
           </span>
-          <span style={{ fontSize: 10, color: th.muted, flex: 1 }}>
+          <span style={{ fontSize: 10,textAlign:"left", color: th.muted, flex: 1 }}>
             FROM WEARABLE / APPLE WATCH
           </span>
           <button
@@ -8485,7 +8486,7 @@ import "./styles.css";
             ✕
           </button>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", textAlign:"left", gap: 8 }}>
           {fields.map((f) => (
             <div key={f.k}>
               <div
