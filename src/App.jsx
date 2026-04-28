@@ -1845,6 +1845,18 @@ import "./styles.css";
       return { ok: false, error: e.message };
     }
   }
+  // Push a notification to a user's top-level notifications collection
+  async function fsPushNotification(toUid, notif) {
+    try {
+      await addDoc(collection(fbDb, "notifications"), {
+        toUid,
+        ...notif,
+        ts: Date.now(),
+        read: false,
+      });
+    } catch (e) { /* silently ignore */ }
+  }
+
   async function fsAcceptInvitation(inviteId, invite, currentUser) {
     try {
       await updateDoc(doc(fbDb, "invitations", inviteId), { status: "accepted" });
@@ -1856,6 +1868,14 @@ import "./styles.css";
       await setDoc(doc(fbDb, "users", invite.fromUid, "friends", currentUser.id), {
         uid: currentUser.id, name: currentUser.name,
         email: currentUser.email, photoURL: currentUser.photoURL || null, since: now,
+      });
+      // Notify the original sender that their friend request was accepted
+      fsPushNotification(invite.fromUid, {
+        type: "friend_accepted",
+        fromUid: currentUser.id,
+        name: currentUser.name,
+        photoURL: currentUser.photoURL || null,
+        text: `${currentUser.name} accepted your friend request`,
       });
       return true;
     } catch (e) {
@@ -1892,8 +1912,14 @@ import "./styles.css";
         status: "pending",
         createdAt: serverTimestamp(),
         acceptedAt: null,
-        startAt: null,      // set when accepted
-        endAt: null,        // startAt + 7 days
+        startAt: null,
+        endAt: null,
+      });
+      // Notify recipient of competition challenge
+      fsPushNotification(toUid, {
+        type: "compete_invite",
+        fromUid, name: fromName,
+        text: `${fromName} challenged you to a 7-day competition`,
       });
       return { ok: true, id: ref.id };
     } catch (e) {
@@ -1901,17 +1927,28 @@ import "./styles.css";
       return { ok: false };
     }
   }
-  async function fsAcceptCompeteInvite(compId) {
+  async function fsAcceptCompeteInvite(compId, acceptorName) {
     try {
+      const compSnap = await getDoc(doc(fbDb, "competitions", compId));
+      const compData = compSnap.exists() ? compSnap.data() : null;
       const now = Date.now();
-      const startAt = now; // starts immediately on acceptance
-      const endAt   = startAt + 7 * 24 * 60 * 60 * 1000; // lasts 7 days
+      const startAt = now;
+      const endAt   = startAt + 7 * 24 * 60 * 60 * 1000;
       await updateDoc(doc(fbDb, "competitions", compId), {
         status: "active",
         acceptedAt: serverTimestamp(),
         startAt,
         endAt,
       });
+      // Notify the challenger that their competition was accepted
+      if (compData?.fromUid) {
+        fsPushNotification(compData.fromUid, {
+          type: "compete_accepted",
+          fromUid: compData.toUid,
+          name: acceptorName || compData.toName || "Your friend",
+          text: `${acceptorName || compData.toName || "Your friend"} accepted your competition challenge`,
+        });
+      }
       return true;
     } catch (e) {
       console.error("fsAcceptCompeteInvite:", e);
@@ -6227,12 +6264,12 @@ import "./styles.css";
                   <button
                     onClick={onCompete}
                     style={{
-                      background:`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
+                      background:`color-mix(in srgb, rgba(212,175,55,0.2) 100%, transparent)`,
                       backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                      border:`1.5px solid color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
+                      border:`1.5px solid rgba(212,175,55,0.5)`,
                       borderRadius:10, padding:"7px 12px", cursor:"pointer",
                       fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                      color: th.accentFg, letterSpacing:"0.5px",
+                      color:"#D4AF37", letterSpacing:"0.5px",
                       transition:"background .2s, color .2s",
                     }}
                   >{(() => {
@@ -6242,7 +6279,7 @@ import "./styles.css";
                     );
                     if (comp?.status === "active") return (
                       <span style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        <span style={{ width:7, height:7, borderRadius:"50%", background:th.accentFg, display:"inline-block", animation:"pulse 1.5s ease-in-out infinite", flexShrink:0 }} />
+                        <span style={{ width:7, height:7, borderRadius:"50%", background:"#D4AF37", display:"inline-block", animation:"pulse 1.5s ease-in-out infinite", flexShrink:0 }} />
                         COMPETING
                       </span>
                     );
@@ -6522,7 +6559,7 @@ import "./styles.css";
                     {isActive ? "COMPETITION IN PROGRESS" : "COMPETE"}
                   </div>
                   <div style={{ fontSize:15, color:th.muted, marginTop:2 }}>
-                    {isActive ? `vs ${friend.name.split(" ")[0]} · ${daysLeft}d left` :
+                    {isActive ? `vs ${friend.name.split(" ")[0]}` :
                      isOutgoing ? "Waiting for response…" :
                      isIncoming ? `${friend.name.split(" ")[0]} challenged you!` :
                      `Challenge ${friend.name.split(" ")[0]}`}
@@ -6696,12 +6733,12 @@ import "./styles.css";
                         }}
                         style={{
                           width:"100%",
-                          background:`color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
+                          background:`color-mix(in srgb, rgba(212,175,55,0.2) 100%, transparent)`,
                           backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                          border:`1.5px solid color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
+                          border:`1.5px solid rgba(212,175,55,0.5)`,
                           borderRadius:14, padding:"15px 0", cursor: sending?"default":"pointer",
                           fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
-                          letterSpacing:"0.5px", color: th.accentFg,
+                          letterSpacing:"0.5px", color:"#D4AF37",
                           transition:"background .2s, color .2s",
                           opacity: sending ? 0.6 : 1,
                         }}
@@ -12189,20 +12226,46 @@ import "./styles.css";
       const unsubFriends  = fsListenFriends(user.id, setFriends);
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
 
-      // Listen for new stars on any of the user's sessions (subcollection group query)
-      // We poll the top-level reactions across all sessions once per minute as a pragmatic approach
-      // (Firestore collection group queries need an index — using a top-level "reactions" collection instead)
+      // Listen for star reactions on user's sessions
       const unsubReactions = onSnapshot(
         query(collection(fbDb, "reactions"), where("ownerUid", "==", user.id)),
         snap => {
           const rxns = snap.docs.map(d => ({ id: d.id, ...d.data() }))
             .sort((a, b) => (b.ts || 0) - (a.ts || 0));
-          setStarNotifications(rxns);
+          setStarNotifications(prev => {
+            // Merge with social notifications (dedupe by id)
+            const social = prev.filter(n => n._type === "social");
+            return [...social, ...rxns.map(r => ({ ...r, _type: "star" }))];
+          });
           const lastRead = parseInt(localStorage.getItem("ib3-lastReadNotif") || "0");
-          setUnreadStars(rxns.filter(r => (r.ts || 0) > lastRead).length);
+          setUnreadStars(prev => {
+            const socialUnread = prev; // will be updated by notifications listener
+            return rxns.filter(r => (r.ts || 0) > lastRead).length;
+          });
         }
       );
-      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); };
+
+      // Listen for social notifications (friend accepted, compete invite, compete accepted)
+      const unsubNotifs = onSnapshot(
+        query(collection(fbDb, "notifications"), where("toUid", "==", user.id)),
+        snap => {
+          const notifs = snap.docs.map(d => ({ id: d.id, ...d.data(), _type: "social" }))
+            .sort((a, b) => (b.ts || 0) - (a.ts || 0));
+          setStarNotifications(prev => {
+            const stars = prev.filter(n => n._type === "star");
+            const merged = [...notifs, ...stars].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+            return merged;
+          });
+          const lastRead = parseInt(localStorage.getItem("ib3-lastReadNotif") || "0");
+          setUnreadStars(prev => {
+            const starUnread = prev;
+            const socialUnread = notifs.filter(n => (n.ts || 0) > lastRead).length;
+            return starUnread + socialUnread;
+          });
+        }
+      );
+
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); };
     }, [user?.id, user?.email]);
     const saveActive = (a) => {
       setActive(a);
@@ -13307,7 +13370,7 @@ import "./styles.css";
                 onGetFriendSessions={fsGetFriendSessions}
                 competitions={competitions}
                 onSendCompeteInvite={(toUid, toName) => fsSendCompeteInvite(user.id, user.name || "Friend", toUid, toName)}
-                onAcceptCompeteInvite={fsAcceptCompeteInvite}
+                onAcceptCompeteInvite={(compId) => fsAcceptCompeteInvite(compId, user.name)}
                 onDeclineCompeteInvite={fsDeclineCompeteInvite}
                 onWithdrawCompeteInvite={fsWithdrawCompeteInvite}
                 starNotifications={starNotifications}
@@ -13730,18 +13793,27 @@ import "./styles.css";
                   const timeStr = m < 60 ? `${m}m ago`
                     : diff < 86400000 ? `${Math.floor(diff/3600000)}h ago`
                     : new Date(n.ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+                  const iconBg = n.type === "compete_accepted" || n.type === "compete_invite"
+                    ? "rgba(212,175,55,0.18)"
+                    : n.type === "friend_accepted"
+                    ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`
+                    : `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`;
+                  const icon = n.type === "compete_accepted" || n.type === "compete_invite"
+                    ? <span style={{ fontSize:14 }}>🏆</span>
+                    : n.type === "friend_accepted"
+                    ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2"/><path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
+                    : <svg width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}><polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.4" strokeLinejoin="round"/></svg>;
+                  const text = n.text || (n.type === "star"
+                    ? <><span style={{ fontWeight:700 }}>{n.name || "Someone"}</span><span style={{ color:th.muted }}> starred your </span><span style={{ fontWeight:600, color:th.text }}>{n.sessionName || "workout"}</span></>
+                    : <span style={{ color:th.text }}>{n.name || "Someone"}</span>);
                   return (
                     <div key={n.id || i} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderTop:`1px solid ${th.border}` }}>
-                      <div style={{ width:32, height:32, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
-                        <svg width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}>
-                          <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.4" strokeLinejoin="round"/>
-                        </svg>
+                      <div style={{ width:32, height:32, borderRadius:"50%", background:iconBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        {icon}
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
                         <div style={{ fontSize:13, textAlign:"left", color:th.text, lineHeight:1.4 }}>
-                          <span style={{ fontWeight:700 }}>{n.name || "Someone"}</span>
-                          <span style={{ color:th.muted }}> starred your </span>
-                          <span style={{ fontWeight:600, color:th.text }}>{n.sessionName || "workout"}</span>
+                          {typeof text === "string" ? text : text}
                         </div>
                         <div style={{ fontSize:11, textAlign:"left", color:th.dim, marginTop:2 }}>{timeStr}</div>
                       </div>
