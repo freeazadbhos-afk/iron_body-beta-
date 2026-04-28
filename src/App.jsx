@@ -6648,7 +6648,7 @@ import "./styles.css";
                   {/* Stats breakdown */}
                   <div style={{ ...S.card, padding:"16px 18px", marginBottom:16 }}>
                     <div style={{ display:"flex", alignItems:"center", marginBottom:12 }}>
-                      <div style={{ flex:1, fontSize:13, fontWeight:800, color:myColor }}>YOU</div>
+                      <div style={{ flex:1, fontSize:13, fontWeight:800, textAlign:"left", color:myColor }}>YOU</div>
                       <div style={{ flex:1, textAlign:"center" }}><div style={{ ...S.label, fontSize:10 }}>SINCE START</div></div>
                       <div style={{ flex:1, fontSize:13, fontWeight:800, color:frColor, textAlign:"right" }}>{friend.name.split(" ")[0].toUpperCase()}</div>
                     </div>
@@ -6658,7 +6658,7 @@ import "./styles.css";
                       { label:"CALORIES", my: myRecent.reduce((a,s)=>a+(s.calories||0),0)||"—", fr: frRecent.reduce((a,s)=>a+(s.calories||0),0)||(friendSessions===null?"…":"—") },
                       { label:"DURATION", my: (()=>{ const m=myRecent.reduce((a,s)=>a+(s.duration||0),0); return m?`${Math.round(m)}min`:"—"; })(), fr: (()=>{ const m=frRecent.reduce((a,s)=>a+(s.duration||0),0); return friendSessions===null?"…":m?`${Math.round(m)}min`:"—"; })() },
                     ].map(row => (
-                      <div key={row.label} style={{ display:"flex", alignItems:"center", padding:"10px 0", borderTop:`1px solid ${th.border}` }}>
+                      <div key={row.label} style={{ display:"flex", textAlign:"left",alignItems:"center", padding:"10px 0", borderTop:`1px solid ${th.border}` }}>
                         <div className="bebas" style={{ flex:1, fontSize:20, color:myColor, lineHeight:1 }}>{row.my}</div>
                         <div style={{ flex:1, textAlign:"center", fontSize:10, color:th.dim, letterSpacing:"1px", fontWeight:700 }}>{row.label}</div>
                         <div className="bebas" style={{ flex:1, fontSize:20, color:frColor, lineHeight:1, textAlign:"right" }}>{row.fr}</div>
