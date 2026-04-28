@@ -7012,6 +7012,9 @@ import "./styles.css";
           @keyframes sharingFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
           @keyframes invitePop   { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
           @keyframes inviteClose { from{opacity:1;transform:scale(1) translateY(0)} to{opacity:0;transform:scale(0.96) translateY(-6px)} }
+          @keyframes xBadgePop   { 0%{transform:scale(0) rotate(-45deg);opacity:0} 70%{transform:scale(1.18) rotate(4deg);opacity:1} 100%{transform:scale(1) rotate(0deg);opacity:1} }
+          @keyframes avatarWobble { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(-2.5deg)} 75%{transform:rotate(2.5deg)} }
+          @keyframes editBtnIn   { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
           @keyframes sentBounce    { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.12);opacity:1} 100%{transform:scale(1)} }
           @keyframes inviteShake   { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
           @keyframes feedFadeIn    { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
@@ -7093,7 +7096,7 @@ import "./styles.css";
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
-                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:13, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:13, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, transition:"color .2s" }}>
                 {editFriends ? "DONE" : "EDIT ✎"}
               </button>
             </div>
@@ -7103,7 +7106,9 @@ import "./styles.css";
               {friends.map(f => {
                 const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
                 return (
-                  <div key={f.uid} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, position:"relative", cursor: editFriends ? "default" : "pointer" }}
+                  <div key={f.uid} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, position:"relative", cursor: editFriends ? "default" : "pointer",
+                    animation: editFriends ? "avatarWobble 0.45s ease-in-out infinite alternate" : "none",
+                  }}
                     onClick={() => { if (!editFriends) setDashFriend(f); }}>
                     {/* Avatar */}
                     {f.photoURL ? (
@@ -7126,16 +7131,22 @@ import "./styles.css";
                           WebkitBackdropFilter: "blur(10px)",
                           border: "1px solid rgba(220, 50, 50, 0.3)",
                           borderRadius: "50%",
+                          minWidth: 22,
+                          minHeight: 22,
                           width: 22,
                           height: 22,
+                          aspectRatio: "1 / 1",
+                          padding: 0,
+                          boxSizing: "content-box",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
                           cursor: "pointer",
                           color: "#fff",
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: 700,
                           lineHeight: 1,
+                          animation: "xBadgePop 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards",
                         }}>✕</button>
                     )}
                     {/* Name */}
@@ -12241,6 +12252,10 @@ import "./styles.css";
     const elRef = useRef(0);
     const [elapsed, setElapsed] = useState(0);
     const timerRef = useRef(null);
+    // Tracks which user.id has had its initial-mount workout-restore performed already.
+    // This prevents subsequent user state updates (profile sync, photo change, settings refresh)
+    // from snapping the view back to workout while the user is browsing other tabs in PiP mode.
+    const initialUserLoadRef = useRef(null);
 
     useEffect(() => {
       if (!user) return;
@@ -12340,7 +12355,16 @@ import "./styles.css";
         startTsRef.current = a.startTime;
         totalPausedRef.current = 0;
         pauseStartRef.current = null;
-        setView("workout");
+        // Only auto-jump to workout view on the FIRST mount of this user session.
+        // Subsequent user updates (profile sync, photo change, etc.) must NOT
+        // hijack navigation while the user is browsing other tabs in PiP mode.
+        if (initialUserLoadRef.current !== user.id) {
+          initialUserLoadRef.current = user.id;
+          setView("workout");
+        }
+      } else {
+        // No active workout — still mark this user as initialized
+        initialUserLoadRef.current = user.id;
       }
     }, [user]);
 
@@ -13637,10 +13661,12 @@ import "./styles.css";
             style={{
               position: "absolute",
               bottom: 20, // Lifts it off the bottom edge
-              left: 24,   // Pulls it in from the left
-              right: 24,  // Pulls it in from the right
-              borderRadius: 200, // Creates the rounded pill shape
+              left: 24,
+              right: 24,
+              borderRadius: 200,
               display: "flex",
+              justifyContent: "space-evenly",
+              alignItems: "center",
               background: `color-mix(in srgb, ${th.nav} 30%, transparent)`, 
               backdropFilter: "blur(10px)",
               WebkitBackdropFilter: "blur(10px)",
@@ -13653,9 +13679,8 @@ import "./styles.css";
             }}
             >
               {NAV.map((tab) => {
-                const isActive =
-                  view === tab.id || (view === "workout" && tab.id === "home");
-                  const col = isActive ? th.accentFg : th.navInactive;
+                const isActive = view === tab.id;
+                const col = isActive ? th.accentFg : th.navInactive;
                 return (
                   <button
                     key={tab.id}
@@ -13671,9 +13696,8 @@ import "./styles.css";
                         osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
                         ctx.close();
                       } catch (_) {}
-                      if (tab.id === "home" && view === "workout")
-                        setView("home");
-                      else setView(tab.id);
+                      // Always navigate freely — workout state persists, PiP pill shows when active
+                      setView(tab.id);
                     }}
                     onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
                     onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
