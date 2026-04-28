@@ -76,7 +76,7 @@ import "./styles.css";
     row: "#e8e6df",
     nav: "#f5f4f0",
     navB: "#dddbd4",
-    navInactive: "#777777",
+    navInactive: "#3a3a3a",
     sect: "#eeece8",
     accentBg: "#0D9E8E",
     accentT: "#ffffff",
@@ -6292,7 +6292,7 @@ import "./styles.css";
             </div>
 
             {/* Scrollable body */}
-            <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px 32px" }}>
+            <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px calc(88px + env(safe-area-inset-bottom, 0px))" }}>
               {loading ? (
                 <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
               ) : !sessions || sessions.length === 0 ? (
@@ -6570,7 +6570,7 @@ import "./styles.css";
             </div>
 
             {/* Body */}
-            <div style={{ flex:1, overflowY:"auto", padding:"20px 16px 32px" }}>
+            <div style={{ flex:1, overflowY:"auto", padding:"20px 16px calc(88px + env(safe-area-inset-bottom, 0px))" }}>
 
               {/* ── INCOMING invitation ── */}
               {isIncoming && (
@@ -7035,16 +7035,16 @@ import "./styles.css";
                     {(inv.fromName||"?")[0].toUpperCase()}
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{inv.fromName}</div>
-                    <div style={{ fontSize:12, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
-                    <div style={{ fontSize:11, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
+                    <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
+                    <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
+                    <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
                   </div>
                   {/* X decline */}
                   <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                    style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
+                    style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
                   {/* Accept */}
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
                 </div>
               </div>
             ))}
@@ -7066,18 +7066,18 @@ import "./styles.css";
                   </div>
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{c.fromName}</div>
-                  <div style={{ fontSize:12, color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
+                  <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{c.fromName}</div>
+                  <div style={{ fontSize:13, color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
                 </div>
               </div>
-              <div style={{ fontSize:12, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+              <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
                 Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT ✓</button>
               </div>
             </div>
           );
@@ -7089,7 +7089,7 @@ import "./styles.css";
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
-                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
+                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:13, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>
                 {editFriends ? "DONE" : "EDIT ✎"}
               </button>
             </div>
@@ -7135,7 +7135,7 @@ import "./styles.css";
                         }}>✕</button>
                     )}
                     {/* Name */}
-                    <div style={{ fontSize:11, fontWeight:700, color:th.sub, maxWidth:60, textAlign:"center", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    <div style={{ fontSize:13, fontWeight:700, color:th.sub, maxWidth:60, textAlign:"center", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
                       {f.name.split(" ")[0]}
                     </div>
                   </div>
@@ -7151,7 +7151,7 @@ import "./styles.css";
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:22, color: th.accentFg, fontWeight:700,
                 }}>+</div>
-                <div style={{ fontSize:11, fontWeight:700, color:th.accentFg }}>Invite</div>
+                <div style={{ fontSize:13, fontWeight:700, color:th.accentFg }}>Invite</div>
               </div>
             </div>
           </div>
@@ -7199,7 +7199,7 @@ import "./styles.css";
               </svg>
             </div>
             <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, marginBottom:8 }}>TRAIN TOGETHER</div>
-            <div style={{ fontSize:14, color:th.muted, lineHeight:1.6, maxWidth:280, marginBottom:28 }}>
+            <div style={{ fontSize:15, color:th.muted, lineHeight:1.6, maxWidth:280, marginBottom:28 }}>
               Invite friends to share progress, celebrate wins, and compete on workouts.
             </div>
           </div>
@@ -7227,11 +7227,11 @@ import "./styles.css";
               <div style={{ textAlign:"center", padding:"18px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
                 <div style={{ fontSize:36, marginBottom:8 }}>✓</div>
                 <div style={{ color:th.accentFg, fontWeight:700, fontSize:15 }}>Invitation sent!</div>
-                <div style={{ color:th.muted, fontSize:12, marginTop:4 }}>They'll see it in their Sharing tab.</div>
+                <div style={{ color:th.muted, fontSize:13, marginTop:4 }}>They'll see it in their Sharing tab.</div>
               </div>
             ) : (
               <>
-                <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5, textAlign:"left" }}>
+                <div style={{ fontSize:14, color:th.muted, marginBottom:12, lineHeight:1.5, textAlign:"left" }}>
                   Enter your friend's email. Once they accept, you'll both see each other's workouts.
                 </div>
                 <input type="email" placeholder="friend@example.com" value={inviteEmail}
@@ -7239,9 +7239,9 @@ import "./styles.css";
                   onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
                   style={{ ...S.input, marginBottom: inviteStatus === "error" ? 6 : 12, animation: inviteStatus === "error" ? "inviteShake 0.3s ease" : "none" }}
                   autoFocus />
-                {inviteStatus === "error" && <div style={{ fontSize:12, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
+                {inviteStatus === "error" && <div style={{ fontSize:13, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
                 <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
-                  style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}>
+                  style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}>
                   {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
                 </button>
               </>
@@ -7255,15 +7255,15 @@ import "./styles.css";
             <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>AWAITING RESPONSE</div>
             {sentInvitations.map(inv => (
               <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, color:th.dim }}>⏳</div>
+                <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:th.dim }}>⏳</div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
-                  <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>Invitation pending</div>
+                  <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
+                  <div style={{ fontSize:13, color:th.dim, marginTop:1 }}>Invitation pending</div>
                 </div>
                 <button
                   onClick={() => handleAction(inv.id, inv, "decline")}
                   disabled={actioning[inv.id]}
-                  style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
+                  style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
                 >✕</button>
               </div>
             ))}
@@ -7275,10 +7275,10 @@ import "./styles.css";
           <div style={{ marginBottom: 20 }}>
             <div style={{ ...S.label, marginBottom: 12,textAlign: "left" }}>FEED</div>
             {feedLoading ? (
-              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:13 }}>Loading activity…</div>
+              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading activity…</div>
             ) : feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
-                <div style={{ color:th.muted, fontSize:13, textAlign: "center" }}>No recent workouts from friends yet.</div>
+                <div style={{ color:th.muted, fontSize:14, textAlign: "center" }}>No recent workouts from friends yet.</div>
               </div>
             ) : feedItems.map(({ friend: f, session: s }, i) => {
               const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -7318,27 +7318,27 @@ import "./styles.css";
                     {f.photoURL ? (
                       <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
                     ) : (
-                      <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
                         {initials}
                       </div>
                     )}
                     <div style={{ flex:1 }}>
-                      <span style={{ fontWeight:700, fontSize:13, color:th.text }}>{f.name.split(" ")[0]}</span>
-                      <span style={{ fontSize:12, color:th.muted }}> completed a workout</span>
+                      <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name.split(" ")[0]}</span>
+                      <span style={{ fontSize:13, color:th.muted }}> completed a workout</span>
                     </div>
-                    <div style={{ fontSize:11, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
+                    <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
                   </div>
                   {/* Session card */}
                   <div style={{ background:th.sect, borderRadius:10, padding:"12px 14px" }}>
                     {/* Session name */}
-                    <div style={{ fontWeight:700, fontSize:14, color:th.text, marginBottom:10 }}>{s.name || "Workout"}</div>
+                    <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:10 }}>{s.name || "Workout"}</div>
                     {/* Stats grid */}
                     {stats.length > 0 && (
                       <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: muscles.length > 0 ? 10 : 0 }}>
                         {stats.map(({ label, value }) => (
                           <div key={label} style={{ background:`color-mix(in srgb, ${th.card} 60%, transparent)`, backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", borderRadius:8, padding:"6px 10px", minWidth:0 }}>
                             <div className="bebas" style={{ fontSize:16, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:2 }}>{label}</div>
+                            <div style={{ fontSize:11, color:th.dim, letterSpacing:"1px", marginTop:2 }}>{label}</div>
                           </div>
                         ))}
                       </div>
@@ -7347,14 +7347,14 @@ import "./styles.css";
                     {muscles.length > 0 && (
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                         {muscles.map(g => (
-                          <div key={g} style={{ padding:"2px 7px", borderRadius:5, fontSize:10, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
+                          <div key={g} style={{ padding:"2px 7px", borderRadius:5, fontSize:12, fontWeight:700, background:`${gc(g)}18`, color:gc(g) }}>{g}</div>
                         ))}
                       </div>
                     )}
                     {/* Star reaction row */}
                     <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", marginTop:10, gap:6 }}>
                       {starInfo.count > 0 && (
-                        <span style={{ fontSize:12, color: starInfo.starred ? th.accentFg : th.dim, fontWeight:700, transition:"color .2s" }}>
+                        <span style={{ fontSize:13, color: starInfo.starred ? th.accentFg : th.dim, fontWeight:700, transition:"color .2s" }}>
                           {starInfo.count}
                         </span>
                       )}
