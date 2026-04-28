@@ -13675,7 +13675,7 @@ import "./styles.css";
                         setView("home");
                       else setView(tab.id);
                     }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.78)"; e.currentTarget.style.opacity = "0.55"; }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
                     onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     style={{
