@@ -5138,15 +5138,9 @@ import "./styles.css";
                   }}
                   title="Pin to home"
                 >
-                  <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    {/* Outer circle head */}
-                    <circle cx="38" cy="38" r="30" fill={th.accentFg}/>
-                    {/* Inner highlight ring */}
-                    <circle cx="38" cy="38" r="19" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="5"/>
-                    {/* Centre dot */}
-                    <circle cx="38" cy="38" r="7" fill="rgba(0,0,0,0.18)"/>
-                    {/* Needle */}
-                    <line x1="60" y1="60" x2="94" y2="94" stroke={th.accentFg} strokeWidth="11" strokeLinecap="round"/>
+                  <svg width="14" height="14" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14.5 2.5C13 1 10.5 1 9 2.5L3 8.5C1.5 10 1.5 12.5 3 14L4.5 15.5L2 20L6.5 17.5L8 19C9.5 20.5 12 20.5 13.5 19L19.5 13C21 11.5 21 9 19.5 7.5L14.5 2.5Z" fill={th.accentFg}/>
+                    <path d="M7 15L4 18" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round"/>
                   </svg>
                 </button>
               </div>
@@ -5259,9 +5253,21 @@ import "./styles.css";
             <div style={S.label}>MY DASHBOARDS</div>
             <button
               onClick={() => setEditingDashboards(true)}
-              style={{ background:"none", border:"none", color:th.dim, fontSize:12, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700 }}
+              style={{
+                background: `color-mix(in srgb, ${th.inputB} 40%, transparent)`,
+                border: `1px solid ${th.border}`,
+                borderRadius: 20,
+                color: th.muted,
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                padding: "4px 12px",
+                transition: "background .2s, color .2s, border-color .2s",
+              }}
             >
-              EDIT ✎
+              EDIT
             </button>
           </div>
         )}
@@ -7169,8 +7175,24 @@ import "./styles.css";
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
-                style={{ background:"none", border:"none", color: editFriends ? th.accentFg : th.dim, fontSize:13, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, transition:"color .2s" }}>
-                {editFriends ? "DONE" : "EDIT ✎"}
+                style={{
+                  background: editFriends
+                    ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
+                    : `color-mix(in srgb, ${th.inputB} 40%, transparent)`,
+                  border: editFriends
+                    ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
+                    : `1px solid ${th.border}`,
+                  borderRadius: 20,
+                  color: editFriends ? th.accentFg : th.muted,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  fontFamily: "'Outfit',sans-serif",
+                  fontWeight: 700,
+                  letterSpacing: "0.5px",
+                  padding: "4px 12px",
+                  transition: "background .2s, color .2s, border-color .2s",
+                }}>
+                {editFriends ? "DONE" : "EDIT"}
               </button>
             </div>
             {/* Horizontal scroll row */}
@@ -7635,6 +7657,8 @@ import "./styles.css";
       <div className="slide-up" style={{ paddingBottom: 160 }}>
         <style>{`
           @keyframes progXPop   { 0%{transform:scale(0) rotate(-45deg);opacity:0} 70%{transform:scale(1.2) rotate(4deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
+          @keyframes playPulse  { 0%{transform:scale(1);opacity:1} 40%{transform:scale(0.91);opacity:0.85} 100%{transform:scale(1);opacity:1} }
+          @keyframes playRipple { 0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.5} 100%{transform:translate(-50%,-50%) scale(2.4);opacity:0} }
         `}</style>
         <div style={{ marginBottom: 12, marginTop: 4 }} />
         {!settings?.hasProgramOnboarded && <ProgramOnboarding onDismiss={dismissProgramOnboarding} />}
@@ -7645,12 +7669,24 @@ import "./styles.css";
           </div>
         ) : (
           <>
-            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20 }}>
               <button onClick={() => setEditing(e => !e)} style={{
-                background:"none", border:"none", cursor:"pointer",
-                fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
-                color: editing ? th.accentFg : th.dim, transition:"color .2s",
-              }}>{editing ? "DONE" : "EDIT ✎"}</button>
+                background: editing
+                  ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
+                  : `color-mix(in srgb, ${th.inputB} 40%, transparent)`,
+                border: editing
+                  ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
+                  : `1px solid ${th.border}`,
+                borderRadius: 20,
+                color: editing ? th.accentFg : th.muted,
+                fontSize: 11,
+                cursor: "pointer",
+                fontFamily: "'Outfit',sans-serif",
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                padding: "4px 12px",
+                transition: "background .2s, color .2s, border-color .2s",
+              }}>{editing ? "DONE" : "EDIT"}</button>
             </div>
             {programs.map((p) => (
               <div key={p.id} id={"prog-card-" + p.id}
@@ -7689,18 +7725,38 @@ import "./styles.css";
                     </div>
                   </div>
                   {!editing && (
-                    <button onClick={() => onStart(p)} style={{
-                      background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                      border:"none", borderRadius:"50%",
-                      width:48, height:48, minWidth:48, flexShrink:0,
-                      display:"flex", alignItems:"center", justifyContent:"center",
-                      cursor:"pointer", marginLeft:12,
-                    }}>
-                      <svg width="18" height="18" viewBox="0 0 18 18">
-                        <polygon points="4,2 16,9 4,16" fill={th.accentT} />
-                      </svg>
-                    </button>
+                    <div style={{ position:"relative", flexShrink:0, marginLeft:12, width:48, height:48 }}>
+                      <button
+                        onClick={() => onStart(p)}
+                        onPointerDown={e => {
+                          const btn = e.currentTarget;
+                          btn.style.animation = "none";
+                          void btn.offsetWidth;
+                          btn.style.animation = "playPulse 0.35s cubic-bezier(0.4,0,0.2,1) forwards";
+                          // ripple element
+                          const wrap = btn.parentElement;
+                          const old = wrap.querySelector(".play-ripple");
+                          if (old) old.remove();
+                          const r = document.createElement("div");
+                          r.className = "play-ripple";
+                          r.style.cssText = `position:absolute;top:50%;left:50%;width:48px;height:48px;border-radius:50%;border:2px solid ${th.accentFg};pointer-events:none;animation:playRipple 0.55s ease-out forwards;`;
+                          wrap.appendChild(r);
+                          setTimeout(() => r.remove(), 560);
+                        }}
+                        style={{
+                          background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                          backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                          border:"none", borderRadius:"50%",
+                          width:48, height:48, minWidth:48,
+                          display:"flex", alignItems:"center", justifyContent:"center",
+                          cursor:"pointer", color: th.accentFg,
+                          transition:"opacity .15s",
+                        }}>
+                        <svg width="18" height="18" viewBox="0 0 18 18">
+                          <polygon points="4,2 16,9 4,16" fill={th.accentT}/>
+                        </svg>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
