@@ -5128,21 +5128,13 @@ import "./styles.css";
                 <button
                   onClick={() => addItem(d.id)}
                   style={{
-                    background:"none",
-                    border:`1.5px solid ${th.border}`,
-                    borderRadius:9, color:th.accentFg,
-                    width:34, height:34,
-                    display:"flex", alignItems:"center", justifyContent:"center",
-                    cursor:"pointer", fontSize:16, flexShrink:0,
-                    transition:"background .18s, border-color .18s",
+                    background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                    backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+                    border:"none", borderRadius:9, color:th.accentT,
+                    padding:"6px 14px", cursor:"pointer", fontSize:12,
+                    fontFamily:"'Outfit',sans-serif", fontWeight:700, flexShrink:0,
                   }}
-                  title="Pin to home"
-                >
-                  <svg width="14" height="14" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14.5 2.5C13 1 10.5 1 9 2.5L3 8.5C1.5 10 1.5 12.5 3 14L4.5 15.5L2 20L6.5 17.5L8 19C9.5 20.5 12 20.5 13.5 19L19.5 13C21 11.5 21 9 19.5 7.5L14.5 2.5Z" fill={th.accentFg}/>
-                    <path d="M7 15L4 18" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                </button>
+                >+ Add</button>
               </div>
             ))
           )}
@@ -11932,7 +11924,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.0 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.1 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
