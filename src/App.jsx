@@ -5138,9 +5138,15 @@ import "./styles.css";
                   }}
                   title="Pin to home"
                 >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill={th.accentFg}>
-                    <path d="M16 3a1 1 0 0 1 .707.293l4 4a1 1 0 0 1-1.072 1.636L17 7.414V13a1 1 0 0 1-.293.707L14 16.414V20a1 1 0 0 1-1.707.707l-3-3V12.414L6.293 9.707A1 1 0 0 1 6 9V7.414l-2.635 1.619a1 1 0 0 1-1.072-1.636l4-4A1 1 0 0 1 8 3h8z"/>
-                    <line x1="12" y1="16" x2="12" y2="22" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+                  <svg width="16" height="16" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    {/* Outer circle head */}
+                    <circle cx="38" cy="38" r="30" fill={th.accentFg}/>
+                    {/* Inner highlight ring */}
+                    <circle cx="38" cy="38" r="19" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="5"/>
+                    {/* Centre dot */}
+                    <circle cx="38" cy="38" r="7" fill="rgba(0,0,0,0.18)"/>
+                    {/* Needle */}
+                    <line x1="60" y1="60" x2="94" y2="94" stroke={th.accentFg} strokeWidth="11" strokeLinecap="round"/>
                   </svg>
                 </button>
               </div>
@@ -7621,141 +7627,89 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const [editing, setEditing] = useState(false);
     const dismissProgramOnboarding = () => {
       onUpdateSettings && onUpdateSettings({ ...settings, hasProgramOnboarded: true });
     };
     return (
-      <div className="slide-up" style={{ paddingBottom: 90 }}>
-
+      <div className="slide-up" style={{ paddingBottom: 160 }}>
+        <style>{`
+          @keyframes progXPop   { 0%{transform:scale(0) rotate(-45deg);opacity:0} 70%{transform:scale(1.2) rotate(4deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
+        `}</style>
         <div style={{ marginBottom: 12, marginTop: 4 }} />
         {!settings?.hasProgramOnboarded && <ProgramOnboarding onDismiss={dismissProgramOnboarding} />}
         {programs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 18px" }}>
-            <div className="bebas" style={{ fontSize: 44, color: th.border }}>
-              NO PROGRAMS
-            </div>
-            <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>
-              Create your first workout program
-            </div>
+            <div className="bebas" style={{ fontSize: 44, color: th.border }}>NO PROGRAMS</div>
+            <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>Create your first workout program</div>
           </div>
         ) : (
-          programs.map((p) => (
-            <div key={p.id} id={"prog-card-" + p.id} style={{ ...S.card, marginBottom: 9, overflow: "hidden" }}>
-              <div
-                style={{
-                  padding: "15px 16px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    flex: 1,
-                    cursor: "pointer",
-                    display: "flex",
-                    gap: 12,
-                    alignItems: "flex-start",
-                  }}
-                  onClick={() => onEdit(p)}
-                >
-                  <ProgramIcon name={p.name} size={44} />
-                  <div>
-                    <div
-                      style={{
-                        fontWeight: 700,
-                        fontSize: 16,
-                        textAlign: "left",
-                        color: th.text,
-                        marginBottom: 5,
-                      }}
-                    >
-                      {p.name}
-                    </div>
-                    <div
-                      style={{ fontSize: 12, color: th.muted, marginBottom: 8, textAlign: "left" }}
-                    >
-                      {p.exs.length} exercises
-                    </div>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                      {[
-                        ...new Set(
-                          p.exs
-                            .map((e) => DB.find((d) => d.id === e.id)?.group)
-                            .filter(Boolean)
-                        ),
-                      ].map((g) => (
-                        <span key={g} style={S.tag(g)}>
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 6,
-                    flexShrink: 0,
-                    marginLeft: 10,
-                  }}
-                >
-                  <button
-                    onClick={() => onStart(p)}
-                    style={{
-                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "none",
-                      borderRadius: 8,
-                      color: th.accentT,
-                      padding: "7px 14px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontFamily: "'Outfit',sans-serif",
-                      fontWeight: 700,
-                      letterSpacing: 0.5,
-                    }}
-                  >
-                    START
-                  </button>
+          <>
+            <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:8 }}>
+              <button onClick={() => setEditing(e => !e)} style={{
+                background:"none", border:"none", cursor:"pointer",
+                fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+                color: editing ? th.accentFg : th.dim, transition:"color .2s",
+              }}>{editing ? "DONE" : "EDIT ✎"}</button>
+            </div>
+            {programs.map((p) => (
+              <div key={p.id} id={"prog-card-" + p.id}
+                style={{ ...S.card, marginBottom:9, overflow:"visible", position:"relative",
+                  // no wobble in edit mode
+                }}>
+                {editing && (
                   <button
                     onClick={() => {
-                      if (!window.confirm("Delete this program?")) return;
                       const el = document.getElementById("prog-card-" + p.id);
-                      if (el) {
-                        el.style.animation = "removeSlide 0.31s ease-in forwards";
-                        setTimeout(() => onDelete(p.id), 310);
-                      } else {
-                        onDelete(p.id);
-                      }
+                      if (el) { el.style.animation = "removeSlide 0.31s ease-in forwards"; setTimeout(() => onDelete(p.id), 310); }
+                      else onDelete(p.id);
                     }}
                     style={{
-                      background: "rgba(220, 50, 50, 0.15)",
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "1px solid rgba(220, 50, 50, 0.3)",
-                      borderRadius: 8,
-                      color: th.delText,
-                      padding: "7px 12px",
-                      cursor: "pointer",
-                      fontSize: 12,
-                      fontFamily: "'Outfit',sans-serif",
-                    }}
-                  >
-                    Delete
-                  </button>
+                      position:"absolute", top:-8, right:-8, zIndex:50,
+                      background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                      border:"1px solid rgba(220,50,50,0.3)", borderRadius:"50%",
+                      minWidth:24, minHeight:24, width:24, height:24, aspectRatio:"1/1",
+                      padding:0, boxSizing:"content-box",
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
+                      animation:"progXPop 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                    }}>✕</button>
+                )}
+                <div style={{ padding:"15px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                  <div style={{ flex:1, cursor:"pointer", display:"flex", gap:12, alignItems:"flex-start" }} onClick={() => !editing && onEdit(p)}>
+                    <ProgramIcon name={p.name} size={44} />
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:16, textAlign:"left", color:th.text, marginBottom:5 }}>{p.name}</div>
+                      <div style={{ fontSize:12, color:th.muted, marginBottom:8, textAlign:"left" }}>{p.exs.length} exercise{p.exs.length !== 1 ? "s" : ""}</div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                        {[...new Set(p.exs.map(e => DB.find(d => d.id === e.id)?.group).filter(Boolean))].slice(0,4).map(g => (
+                          <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  {!editing && (
+                    <button onClick={() => onStart(p)} style={{
+                      background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                      border:"none", borderRadius:"50%",
+                      width:48, height:48, minWidth:48, flexShrink:0,
+                      display:"flex", alignItems:"center", justifyContent:"center",
+                      cursor:"pointer", marginLeft:12,
+                    }}>
+                      <svg width="18" height="18" viewBox="0 0 18 18">
+                        <polygon points="4,2 16,9 4,16" fill={th.accentT} />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
-            </div>
-          ))
+            ))}
+          </>
         )}
       </div>
     );
   }
-
-  /* ─── Create / Edit Program — with suggestions ───────────────────────────────── */
   /* ─── Create Program Guide — inline, shown once inside new program ────────────── */
   function CreateProgramGuide({ onDismiss }) {
     const th = useTheme();
@@ -9108,8 +9062,16 @@ import "./styles.css";
                       )}
                     </div>
                   </div>
-                  <div style={{ paddingLeft: 14, marginTop: 2, textAlign: "left", }}>
+                  <div style={{ paddingLeft: 14, marginTop: 2, textAlign: "left", display:"flex", flexWrap:"wrap", gap:5 }}>
                     <span style={S.tag(ex.group)}>{ex.muscle.toUpperCase()}</span>
+                    {(SECONDARY[ex.exId] || SECONDARY[ex.id]) && (SECONDARY[ex.exId] || SECONDARY[ex.id]).split(" · ").map(m => {
+                      const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
+                      return (
+                        <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                          {m.toUpperCase()}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
                 <button
@@ -11914,7 +11876,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.0 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
