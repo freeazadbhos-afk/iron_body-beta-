@@ -3047,47 +3047,36 @@ import "./styles.css";
     };
 
     return (
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          bottom: 0,
-          left: 0,
-          right: 0,
-          margin: "0 auto",
-          width: "100%",
-          maxWidth: 480,
-          background: "rgba(0,0,0,0.45)",
-          backdropFilter: "blur(8px)",
-          WebkitBackdropFilter: "blur(8px)",
-          zIndex: 100,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "flex-end",
-          animation: epClosing ? "epFadeOut 0.3s ease-in forwards" : "epFadeIn 0.25s ease-out forwards",
-        }}
-      >
+      <>
         <style>{`
           @keyframes epFadeIn  { from { opacity: 0; } to { opacity: 1; } }
           @keyframes epFadeOut { from { opacity: 1; } to { opacity: 0; } }
           @keyframes epSlideUp   { from { transform: translateY(100%); opacity:0.6; } to { transform: translateY(0); opacity:1; } }
           @keyframes epSlideDown { from { transform: translateY(0); opacity:1; } to { transform: translateY(100%); opacity:0; } }
         `}</style>
-        <div
-          style={{
-            background: `color-mix(in srgb, ${th.card} 88%, transparent)`,
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
-            borderRadius: "20px 20px 0 0",
-            borderTop: `1px solid ${th.border}`,
-            marginTop: 0,
-            height: "85vh",
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden",
-            animation: epClosing ? "epSlideDown 0.3s cubic-bezier(0.4,0,1,1) forwards" : "epSlideUp 0.35s cubic-bezier(0,0,0.2,1) forwards",
-          }}
-        >
+
+        {/* Backdrop */}
+        <div onClick={() => closeMe()} style={{
+          position:"fixed", inset:0, zIndex:70,
+          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: epClosing ? "epFadeOut 0.3s ease-in forwards" : "epFadeIn 0.25s ease-out forwards",
+        }} />
+
+        {/* Sheet */}
+        <div style={{
+          position:"fixed", inset:0, zIndex:71,
+          display:"flex", flexDirection:"column",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background: `color-mix(in srgb, ${th.card} 90%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            pointerEvents:"auto",
+            animation: epClosing ? "epSlideDown 0.34s cubic-bezier(0.4,0,1,1) forwards" : "epSlideUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
           <div style={{ padding: "18px 18px 0" }}>
             <div
               style={{
@@ -3303,7 +3292,8 @@ import "./styles.css";
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </>
     );
   }
 
@@ -12540,11 +12530,18 @@ import "./styles.css";
               if (Array.isArray(prev.homePrograms) && !Array.isArray(remote.homePrograms)) {
                 merged.homePrograms = prev.homePrograms;
               }
+              // Onboarding flags are sticky — once dismissed locally, never revert
+              // even if a stale snapshot still has the old false value
+              ["hasDashOnboarded", "hasProgramOnboarded", "hasProgramBuildOnboarded", "hasSharingOnboarded"].forEach(k => {
+                if (prev[k] === true) merged[k] = true;
+              });
               const changed =
                 JSON.stringify(merged.homeDashboards) !== JSON.stringify(prev.homeDashboards) ||
                 JSON.stringify(merged.homePrograms)   !== JSON.stringify(prev.homePrograms)   ||
-                merged.hasDashOnboarded    !== prev.hasDashOnboarded    ||
-                merged.hasProgramOnboarded !== prev.hasProgramOnboarded;
+                merged.hasDashOnboarded         !== prev.hasDashOnboarded         ||
+                merged.hasProgramOnboarded      !== prev.hasProgramOnboarded      ||
+                merged.hasProgramBuildOnboarded !== prev.hasProgramBuildOnboarded ||
+                merged.hasSharingOnboarded      !== prev.hasSharingOnboarded;
               if (changed) {
                 lsSet(uKey(user.id, "settings"), merged);
                 return merged;
