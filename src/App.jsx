@@ -3052,8 +3052,9 @@ import "./styles.css";
           position: "fixed",
           top: 0,
           bottom: 0,
-          left: "50%",
-          transform: "translateX(-50%)",
+          left: 0,
+          right: 0,
+          margin: "0 auto",
           width: "100%",
           maxWidth: 480,
           background: "rgba(0,0,0,0.45)",
@@ -3062,6 +3063,7 @@ import "./styles.css";
           zIndex: 100,
           display: "flex",
           flexDirection: "column",
+          justifyContent: "flex-end",
           animation: epClosing ? "epFadeOut 0.3s ease-in forwards" : "epFadeIn 0.25s ease-out forwards",
         }}
       >
@@ -3078,10 +3080,10 @@ import "./styles.css";
             WebkitBackdropFilter: "blur(24px)",
             borderRadius: "20px 20px 0 0",
             borderTop: `1px solid ${th.border}`,
-            marginTop: "auto",
+            marginTop: 0,
+            height: "85vh",
             display: "flex",
             flexDirection: "column",
-            flex: 1,
             overflow: "hidden",
             animation: epClosing ? "epSlideDown 0.3s cubic-bezier(0.4,0,1,1) forwards" : "epSlideUp 0.35s cubic-bezier(0,0,0.2,1) forwards",
           }}
@@ -7345,21 +7347,30 @@ import "./styles.css";
               @keyframes inviteBdOut { from{opacity:1} to{opacity:0} }
             `}</style>
             <div onClick={closeInvitePanel}
-              style={{ position:"fixed", top:0, bottom:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:480, zIndex:80, background:"rgba(0,0,0,0.52)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+              style={{ position:"fixed", top:0, bottom:0, left:0, right:0, margin:"0 auto", width:"100%", maxWidth:480, zIndex:80, background:"rgba(0,0,0,0.52)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
                 animation: inviteClosing ? "inviteBdOut 0.22s ease forwards" : "inviteBdIn 0.2s ease forwards" }} />
             <div style={{
               position:"fixed",
-              top:"50%",
-              left:"50%",
-              transform:"translate(-50%,-50%)",
-              zIndex:81, width:"min(88vw, 360px)",
-              maxWidth:380,
-              background:`color-mix(in srgb, ${th.card} 88%, transparent)`,
-              backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
-              border:`1px solid ${th.border}`, borderRadius:22,
-              padding:"24px 22px",
-              animation: inviteClosing ? "inviteModalOut 0.22s cubic-bezier(0.4,0,1,1) forwards" : "inviteModalIn 0.28s cubic-bezier(0,0,0.2,1) forwards",
+              top:0, bottom:0, left:0, right:0,
+              margin:"0 auto",
+              width:"100%", maxWidth:480,
+              zIndex:81,
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              padding:"0 20px",
+              pointerEvents:"none",
             }}>
+              <div style={{
+                width:"100%",
+                maxWidth:360,
+                background:`color-mix(in srgb, ${th.card} 88%, transparent)`,
+                backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+                border:`1px solid ${th.border}`, borderRadius:22,
+                padding:"24px 22px",
+                pointerEvents:"auto",
+                animation: inviteClosing ? "inviteModalOut 0.22s cubic-bezier(0.4,0,1,1) forwards" : "inviteModalIn 0.28s cubic-bezier(0,0,0.2,1) forwards",
+              }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text }}>INVITE A FRIEND</div>
                 <button onClick={closeInvitePanel} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"2px 4px" }}>✕</button>
@@ -7387,6 +7398,7 @@ import "./styles.css";
                   </button>
                 </>
               )}
+            </div>
             </div>
           </>
         )}
