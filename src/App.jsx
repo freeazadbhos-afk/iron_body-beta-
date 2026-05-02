@@ -3570,7 +3570,7 @@ import "./styles.css";
             style={{
               fontSize: 85,
               textAlign: "left",
-              color: "rgba(200,240,48,0.4)",
+              color: "#c8f030",
               lineHeight: 0.85,
               marginBottom: 8,
             }}
@@ -3837,7 +3837,7 @@ import "./styles.css";
             style={{
               marginTop: 48,
               textAlign: "center",
-              color: "rgba(200,240,48,0.4)",
+              color: "#c8f030",
               fontSize: 11,
               letterSpacing: "1.5px",
             }}
@@ -5132,11 +5132,11 @@ import "./styles.css";
                   style={{
                     background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
                     backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
-                    border:"none", borderRadius:9, color:th.accentT,
-                    padding:"6px 14px", cursor:"pointer", fontSize:12,
-                    fontFamily:"'Outfit',sans-serif", fontWeight:700, flexShrink:0,
+                    border:"none", borderRadius:8, color:th.accentT,
+                    padding:"0px 9px", cursor:"pointer", fontSize:20,
+                    fontFamily:"'Outfit',sans-serif", fontWeight:600, flexShrink:0,
                   }}
-                >+ Add</button>
+                >+</button>
               </div>
             ))
           )}
@@ -11969,7 +11969,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.2 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.6.3 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
