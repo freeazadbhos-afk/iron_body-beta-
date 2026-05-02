@@ -13083,7 +13083,7 @@ import "./styles.css";
                       marginTop: 2,
                     }}
                   >
-                    <span style={{ fontSize: 15, color: th.muted }}>
+                    <span style={{ fontSize: 15, color: "#5B9CF6" }}>
                       {wDoneSets}/{wTotalSets} sets
                     </span>
                     <span
