@@ -5976,7 +5976,7 @@ import "./styles.css";
                         {v > 0 ? fmtV(v) : ""}
                       </div>
                       <div style={{ width:"100%", height:h, background:col, borderRadius:"3px 3px 0 0" }} />
-                      <div style={{ fontSize:8, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
+                      <div style={{ fontSize:10, color:th.dim, marginTop:3, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{w.label}</div>
                     </div>
                   );
                 })}
