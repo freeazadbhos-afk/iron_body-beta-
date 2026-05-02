@@ -13756,7 +13756,7 @@ import "./styles.css";
           {/* ── Programs FAB — floating + button above nav ── */}
           {view === "programs" && !hideNav && (
             <div
-              style={{ position:"absolute", bottom:95, right:28, zIndex:20, width:52, height:52 }}
+              style={{ position:"absolute", bottom:105, right:28, zIndex:20, width:52, height:52 }}
             >
               <style>{`@keyframes fabRipple{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0.6}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}`}</style>
               <div
@@ -13769,7 +13769,7 @@ import "./styles.css";
                   if (old) old.remove();
                   const r = document.createElement("div");
                   r.className = "fab-ripple";
-                  r.style.cssText = `position:absolute;top:50%;left:50%;width:52px;height:52px;border-radius:50%;border:2.5px solid ${th.accentFg};pointer-events:none;animation:fabRipple 0.55s ease-out forwards;`;
+                  r.style.cssText = `position:absolute;top:50%;left:50%;width:52px;height:52px;border-radius:50%;border:2.5px solid ${"#5B9CF6"};pointer-events:none;animation:fabRipple 0.55s ease-out forwards;`;
                   wrap.appendChild(r);
                   setTimeout(() => r.remove(), 560);
                 }}
@@ -13778,18 +13778,18 @@ import "./styles.css";
                 style={{
                   width: 52, height: 52,
                   borderRadius: 20,
-                  background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                  backdropFilter: "blur(14px)",
-                  WebkitBackdropFilter: "blur(14px)",
-                  border: `1px solid color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
-                  boxShadow: `0 4px 20px color-mix(in srgb, ${th.accentBg} 30%, transparent)`,
+                  background: `color-mix(in srgb, ${"#5B9CF6"} 85%, transparent)`,
+                  backdropFilter: "blur(10px)",
+                  WebkitBackdropFilter: "blur(10px)",
+                  border: `1px solid color-mix(in srgb, ${"#5B9CF6"} 60%, transparent)`,
+                  boxShadow: `0 4px 20px color-mix(in srgb, ${"#5B9CF6"} 50%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
                   color: th.accentT,
-                  fontSize: 26,
-                  fontWeight: 300,
+                  fontSize: 32,
+                  fontWeight: 400,
                   lineHeight: 1,
                   userSelect: "none",
                   transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94)",
