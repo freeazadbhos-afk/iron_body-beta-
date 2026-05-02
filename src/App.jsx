@@ -4429,7 +4429,7 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>WORKLOAD RATIO</div>
               <DashInfoBtn title="Workload Ratio" text="Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load." />
             </div>
@@ -4742,7 +4742,7 @@ import "./styles.css";
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>TRAINING DENSITY</div>
               <DashInfoBtn title="Training Density" text="Weekly tonnage divided by total session time for that week (kg/min). Tracks whether you're doing more work per hour across 5-week periods." />
             </div>
@@ -4825,7 +4825,7 @@ import "./styles.css";
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
         {/* Group selector */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>STRENGTH PROGRESSION</div>
               <DashInfoBtn title="Strength Progression" text="Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula." />
             </div>
@@ -5347,7 +5347,7 @@ import "./styles.css";
               `}</style>
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>STREAK</div>
               <DashInfoBtn title="Streak" text="Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout." />
             </div>
@@ -5422,7 +5422,7 @@ import "./styles.css";
                   marginBottom: 10,
                 }}
               >
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>INTENSITY</div>
               <DashInfoBtn title="Intensity" text="Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period." />
             </div>
@@ -5563,7 +5563,7 @@ import "./styles.css";
 
             {isDashEnabled("calories") && <div style={{ order: dashOrder("calories") }}><div style={{ ...S.card, padding: 16, marginBottom: 16 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>CALORIES BURNED</div>
               <DashInfoBtn title="Calories Burned" text="Average estimated calories burned per session over the last 7 days, compared to the prior week." />
             </div>
@@ -5853,7 +5853,7 @@ import "./styles.css";
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div>
-                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>SESSION PACE</div>
               <DashInfoBtn title="Session Pace" text="Tonnage lifted per minute for each individual session over the last 30 days. A rising trend means your sessions are becoming more productive over time." />
             </div>
@@ -5952,7 +5952,7 @@ import "./styles.css";
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>WEEKLY VOLUME</div>
               <DashInfoBtn title="Weekly Volume" text="Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management." />
             </div>
