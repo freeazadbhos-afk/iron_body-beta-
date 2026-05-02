@@ -7231,7 +7231,7 @@ import "./styles.css";
                           top: -4,
                           right: -4,
                           zIndex: 50,
-                          background: "rgba(220, 50, 50, 0.45)",
+                          background: "rgba(160, 10, 10, 0.75)",
                           backdropFilter: "blur(10px)",
                           WebkitBackdropFilter: "blur(10px)",
                           border: "1px solid rgba(220, 50, 50, 0.3)",
@@ -7251,7 +7251,7 @@ import "./styles.css";
                           fontSize: 11,
                           fontWeight: 700,
                           lineHeight: 1,
-                          animation: "xBadgePop 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                          animation: "xBadgePop 0.22s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                         }}>✕</button>
                     )}
                     {/* Name */}
