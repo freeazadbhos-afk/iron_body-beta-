@@ -7251,7 +7251,7 @@ import "./styles.css";
                           fontSize: 11,
                           fontWeight: 700,
                           lineHeight: 1,
-                          animation: "xBadgePop 0.22s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
+                          animation: "xBadgePop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                         }}>✕</button>
                     )}
                     {/* Name */}
@@ -7744,7 +7744,7 @@ import "./styles.css";
                       padding:0, boxSizing:"content-box",
                       display:"flex", alignItems:"center", justifyContent:"center",
                       cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
-                      animation:"progXPop 0.22s cubic-bezier(0.34,1.56,0.64,1) forwards",
+                      animation:"progXPop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                     }}>✕</button>
                 )}
                 <div style={{ padding:"15px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
