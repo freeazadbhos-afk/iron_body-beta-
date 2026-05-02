@@ -2334,11 +2334,11 @@ import "./styles.css";
         >
           {done && (
             <span style={{
-              color: th.accentT, fontSize: 13, fontWeight: 900,
+              color: th.accentT, fontSize: 16, fontWeight: 900,
               display: "block",
               animation: smashing ? "checkTick 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
             }}>
-              ✓
+              ✔
             </span>
           )}
         </div>
@@ -3254,7 +3254,7 @@ import "./styles.css";
                           fontWeight: 800,
                         }}
                       >
-                        ✓
+                        ✔
                       </span>
                     )}
                   </div>
@@ -4170,7 +4170,7 @@ import "./styles.css";
               <button onClick={() => setOpen(false)} style={{
                 display:"block", marginTop:12, background:"none", border:"none",
                 cursor:"pointer", fontSize:12, color:th.accentFg, fontWeight:700, padding:0,
-              }}>Got it ✓</button>
+              }}>Got it ✔</button>
             </div>
           </div>,
           document.body
@@ -5036,7 +5036,7 @@ import "./styles.css";
                   border: "none", borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Got it ✓</button>
+                }}>Got it ✔</button>
               )}
             </div>
           </div>
@@ -6681,7 +6681,7 @@ import "./styles.css";
                     <button onClick={async () => { await onDeclineCompeteInvite(comp.id); close(); }}
                       style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                     <button onClick={async () => { await onAcceptCompeteInvite(comp.id); }}
-                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✓</button>
+                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✔</button>
                   </div>
                 </div>
               )}
@@ -6977,7 +6977,7 @@ import "./styles.css";
                   border: "none", borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Got it ✓</button>
+                }}>Got it ✔</button>
               )}
             </div>
           </div>
@@ -7159,7 +7159,7 @@ import "./styles.css";
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
                   style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT ✓</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT ✔</button>
               </div>
             </div>
           );
@@ -7367,7 +7367,7 @@ import "./styles.css";
               </div>
               {inviteStatus === "sent" ? (
                 <div style={{ textAlign:"center", padding:"18px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
-                  <div style={{ fontSize:40, marginBottom:8 }}>✓</div>
+                  <div style={{ fontSize:40, marginBottom:8 }}>✔</div>
                   <div style={{ color:th.accentFg, fontWeight:700, fontSize:16 }}>Invitation sent!</div>
                   <div style={{ color:th.muted, fontSize:13, marginTop:4 }}>They'll see it in their Sharing tab.</div>
                 </div>
@@ -7562,7 +7562,7 @@ import "./styles.css";
         body: "Tap the START button on any program card to kick off a live session. The timer starts automatically.",
       },
       {
-        icon: "✓",
+        icon: "✔",
         title: "Log Sets as You Go",
         body: "Tap the circle next to each set to mark it done. Adjust weight and reps on the fly — the session saves your actual numbers.",
       },
@@ -7660,7 +7660,7 @@ import "./styles.css";
                   border: "none", borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Got it ✓</button>
+                }}>Got it ✔</button>
               )}
             </div>
           </div>
@@ -7832,7 +7832,7 @@ import "./styles.css";
         body: "Scroll down to find ready-made programs. Tap one to load it as a starting point — you can then edit it however you like.",
       },
       {
-        icon: "✓",
+        icon: "✔",
         title: "Save & Go",
         body: "Hit SAVE PROGRAM when done. It will appear on your Programs tab ready to start any time.",
       },
@@ -7916,7 +7916,7 @@ import "./styles.css";
                   border:"none", borderRadius:9, color:th.accentT,
                   padding:"6px 16px", cursor:"pointer", fontSize:12,
                   fontFamily:"'Outfit',sans-serif", fontWeight:700,
-                }}>Got it ✓</button>
+                }}>Got it ✔</button>
               )}
             </div>
           </div>
@@ -9150,7 +9150,7 @@ import "./styles.css";
                           }}
                         >
                           {" "}
-                          ✓
+                          ✔
                         </span>
                       )}
                     </div>
@@ -11461,7 +11461,7 @@ import "./styles.css";
             >
               {feedbackSent ? (
                 <div style={{ textAlign: "center", padding: "16px 0" }}>
-                  <div style={{ fontSize: 24, marginBottom: 8 }}>✓</div>
+                  <div style={{ fontSize: 24, marginBottom: 8 }}>✔</div>
                   <div
                     style={{ fontWeight: 700, color: th.accentFg, fontSize: 14 }}
                   >
