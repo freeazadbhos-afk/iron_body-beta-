@@ -1940,7 +1940,7 @@ import "./styles.css";
 
   /* ─── Competition invitations ────────────────────────────────────────────────── */
   // Stored at: competitions/{id}
-  // status: "pending" → "active" (24h after accepted) → "finished"
+  // status: "pending" → "active" (immediately after accepted) → "finished"
   async function fsSendCompeteInvite(fromUid, fromName, toUid, toName) {
     try {
       const ref = await addDoc(collection(fbDb, "competitions"), {
@@ -3133,7 +3133,6 @@ import "./styles.css";
               placeholder="Search exercises or muscles..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              autoFocus
               style={{ ...S.input, marginBottom: 10 }}
             />
             <div
@@ -6659,7 +6658,7 @@ import "./styles.css";
                     {friend.name.split(" ")[0].toUpperCase()} CHALLENGED YOU
                   </div>
                   <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, marginBottom:24, maxWidth:280, margin:"0 auto 24px" }}>
-                    7-day competition starting 24 hours after you accept. Only sessions logged <em>after</em> the start time count.
+                    7-day competition starting immediately after both of you accept. Only sessions logged <em>after</em> the start time count.
                   </div>
                   {/* Rules */}
                   <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
@@ -6693,7 +6692,7 @@ import "./styles.css";
                   <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:8 }}>INVITATION SENT</div>
                   <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, marginBottom:24 }}>
                     Waiting for {friend.name.split(" ")[0]} to accept.<br/>
-                    Competition starts 24 hours after they accept.
+                    Competition starts immediately after they accept.
                   </div>
                   <button
                     onClick={async () => { await onWithdrawCompeteInvite(comp.id); close(); }}
@@ -7380,7 +7379,7 @@ import "./styles.css";
                     onChange={(e) => { setInviteEmail(e.target.value); if (inviteStatus === "error") setInviteStatus("idle"); }}
                     onKeyDown={(e) => e.key === "Enter" && handleSendInvite()}
                     style={{ ...S.input, marginBottom: inviteStatus === "error" ? 6 : 14, animation: inviteStatus === "error" ? "inviteShake 0.3s ease" : "none" }}
-                    autoFocus />
+                    />
                   {inviteStatus === "error" && <div style={{ fontSize:13, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
                   <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
                     style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}>
@@ -7925,7 +7924,7 @@ import "./styles.css";
     );
   }
 
-  function CreateProgramView({ program, onSave, onStart, onBack }) {
+  function CreateProgramView({ program, onSave, onStart, onBack, settings, onUpdateSettings }) {
     const th = useTheme();
     const S = useS();
     const editing = !!program?.id;
@@ -7947,7 +7946,8 @@ import "./styles.css";
     const [showPicker, setShowPicker] = useState(false);
     const [expandedEx, setExpandedEx] = useState(null);
     const [showSuggestions, setShowSuggestions] = useState(!editing);
-    const [showBuildGuide, setShowBuildGuide] = useState(!editing);
+    const [showBuildGuide, setShowBuildGuide] = useState(!editing && !settings?.hasProgramBuildOnboarded);
+    const dismissBuildGuide = () => { setShowBuildGuide(false); if (onUpdateSettings && !settings?.hasProgramBuildOnboarded) onUpdateSettings({ ...settings, hasProgramBuildOnboarded: true }); };
     const listRef = useRef(null);
     const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(exs, setExs);
 
@@ -8218,7 +8218,7 @@ import "./styles.css";
           </button>
           {showBuildGuide && (
             <div style={{ marginTop: 12 }}>
-              <CreateProgramGuide onDismiss={() => setShowBuildGuide(false)} />
+              <CreateProgramGuide onDismiss={dismissBuildGuide} />
             </div>
           )}
         </div>
@@ -13093,9 +13093,21 @@ import "./styles.css";
                         fontSize: 18,
                         fontFamily: "'Bebas Neue',sans-serif",
                         letterSpacing: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
                       }}
                     >
-                      {paused ? "⏸ " : ""}
+                      {paused ? (
+                        <span>⏸</span>
+                      ) : (
+                        <>
+                          <style>{`@keyframes heartBeat{0%,100%{transform:scale(1)}14%{transform:scale(1.25)}28%{transform:scale(1)}42%{transform:scale(1.18)}70%{transform:scale(1)}}`}</style>
+                          <svg width="13" height="13" viewBox="0 0 24 24" style={{ animation:"heartBeat 1.1s ease-in-out infinite", display:"block", flexShrink:0 }}>
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill={th.accentFg}/>
+                          </svg>
+                        </>
+                      )}
                       {fmtTime(elapsed)}
                     </span>
                   </div>
@@ -13180,6 +13192,7 @@ import "./styles.css";
                   marginBottom: 0,
                 }}
               >
+                <style>{`@keyframes progressPulse{0%,100%{opacity:1}50%{opacity:0.45}}`}</style>
                 <div
                   style={{
                     background: th.accentBg,
@@ -13187,6 +13200,7 @@ import "./styles.css";
                     height: 4,
                     width: `${wPct * 100}%`,
                     transition: "width .4s ease",
+                    animation: "progressPulse 1.8s ease-in-out infinite",
                   }}
                 />
               </div>
@@ -13672,6 +13686,8 @@ import "./styles.css";
                   handleTemplate(p);
                 }}
                 onBack={() => setView("programs")}
+                settings={settings}
+                onUpdateSettings={saveSettings}
               />
             )}
             {view === "history" && (
