@@ -8028,12 +8028,13 @@ import "./styles.css";
 
     return (
       <>
-        {showPicker && (
+        {showPicker && createPortal(
           <ExercisePicker
             onAdd={addEx}
             onClose={() => setShowPicker(false)}
             added={exs.map((e) => e.id)}
-          />
+          />,
+          document.body
         )}
         <div className="slide-up" style={{ paddingBottom: 100, paddingTop: 4 }}>
           {/* Suggestions section */}
@@ -8392,13 +8393,14 @@ import "./styles.css";
       );
     return (
       <>
-        {showPicker && (
+        {showPicker && createPortal(
           <ExercisePicker
             onAdd={addEx}
             onClose={() => setShowPicker(false)}
             added={exercises.map((e) => e.exId)}
             key="create-picker"
-          />
+          />,
+          document.body
         )}
         <div className="slide-up" style={{ paddingBottom: 100, paddingTop: 4 }}>
           <input
