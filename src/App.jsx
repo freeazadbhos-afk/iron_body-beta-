@@ -2053,7 +2053,7 @@ import "./styles.css";
     try {
       const snap = await getDocs(collection(fbDb, "users", friendUid, "sessions"));
       const docs = snap.docs.map(d => d.data());
-      return docs.sort((a, b) => (b.startTime || 0) - (a.startTime || 0)).slice(0, 20);
+      return docs.sort((a, b) => (b.startTime || 0) - (a.startTime || 0)).slice(0, 60);
     } catch (e) {
       return [];
     }
