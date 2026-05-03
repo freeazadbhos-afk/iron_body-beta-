@@ -3065,15 +3065,16 @@ import "./styles.css";
         {/* Sheet */}
         <div style={{
           position:"fixed", inset:0, zIndex:71,
-          display:"flex", flexDirection:"column",
+          display:"flex", flexDirection:"column", justifyContent:"flex-end",
           maxWidth:480, margin:"0 auto", pointerEvents:"none",
         }}>
           <div onClick={e=>e.stopPropagation()} style={{
             background: `color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
-            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            marginTop:"auto",
+            display:"flex", flexDirection:"column", overflow:"hidden",
+            maxHeight:"72vh",
             pointerEvents:"auto",
             animation: epClosing ? "epSlideDown 0.34s cubic-bezier(0.4,0,1,1) forwards" : "epSlideUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
@@ -13192,7 +13193,7 @@ import "./styles.css";
                   marginBottom: 0,
                 }}
               >
-                <style>{`@keyframes progressPulse{0%,100%{opacity:1}50%{opacity:0.45}}`}</style>
+                <style>{`@keyframes progressGlow{0%,100%{box-shadow:0 0 0px 0px color-mix(in srgb,${th.accentBg} 0%,transparent)}50%{box-shadow:0 0 8px 3px color-mix(in srgb,${th.accentBg} 55%,transparent)}}`}</style>
                 <div
                   style={{
                     background: th.accentBg,
@@ -13200,7 +13201,7 @@ import "./styles.css";
                     height: 4,
                     width: `${wPct * 100}%`,
                     transition: "width .4s ease",
-                    animation: "progressPulse 1.8s ease-in-out infinite",
+                    animation: "progressGlow 2.2s ease-in-out infinite",
                   }}
                 />
               </div>
