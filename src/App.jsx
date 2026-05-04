@@ -7220,6 +7220,44 @@ import "./styles.css";
   }
 
 
+  function SuggestSendBtn({ user, suggested, alreadySent }) {
+    const th = useTheme();
+    const [state, setState] = useState(alreadySent ? "sent" : "idle");
+    const initials = (suggested.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    return (
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, flexShrink:0, width:72 }}>
+        {suggested.photoURL ? (
+          <img src={suggested.photoURL} alt={suggested.name}
+            style={{ width:56, height:56, borderRadius:"50%", objectFit:"cover", border:`2px solid ${th.border}` }} />
+        ) : (
+          <div style={{ width:56, height:56, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 16%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, fontWeight:700, color:th.accentFg, border:`2px solid ${th.border}` }}>
+            {initials}
+          </div>
+        )}
+        <div style={{ fontSize:12, fontWeight:700, color:th.sub, textAlign:"center", width:"100%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {suggested.name.split(" ")[0]}
+        </div>
+        <button
+          onClick={async () => {
+            if (state !== "idle") return;
+            setState("sending");
+            await fsSendInvitation(user.id, user.name, user.email, suggested.email, user.photoURL);
+            setState("sent");
+          }}
+          style={{
+            background: state === "sent"
+              ? `color-mix(in srgb, #1db954 20%, transparent)`
+              : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+            border:"none", borderRadius:20, padding:"4px 10px", cursor: state === "sent" ? "default" : "pointer",
+            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
+            color: state === "sent" ? "#1db954" : th.accentT,
+            transition:"background .2s, color .2s", whiteSpace:"nowrap",
+          }}
+        >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "+ Add"}</button>
+      </div>
+    );
+  }
+
   function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram }) {
     const th = useTheme();
     const S = useS();
@@ -7285,45 +7323,27 @@ import "./styles.css";
       return () => { u1(); u2(); };
     }, [user?.id]);
 
-    // Load suggestions: combine invitations (existing data) + publicProfiles (new registrations)
+    // Load suggestions from publicProfiles only (invitations collection requires broad access)
     useEffect(() => {
       if (!user?.id || !user?.email) return;
-
-      // Always re-register current user
       fsRegisterPublicProfile(user.id, user.name || "", user.photoURL || null, user.email);
-
       const friendUidSet = new Set(friends.map(f => f.uid));
       const pendingEmails = new Set([
         user.email.toLowerCase(),
         ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()).filter(Boolean),
         ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
-        ...friends.map(f => (f.email||"").toLowerCase()).filter(Boolean),
       ]);
-
       setSuggestLoading(true);
-
-      // Primary: scan invitations collection (has data for ALL existing users)
-      const invPromise = fsGetSuggestedFromInvitations(user.id, friendUidSet, pendingEmails);
-
-      // Secondary: live publicProfiles listener (catches new users)
-      const unsubProfiles = fsListenPublicProfiles(profileUsers => {
-        invPromise.then(invUsers => {
-          // Merge both sources, deduplicate by uid
-          const seen = new Set();
-          const merged = [...invUsers, ...profileUsers].filter(u => {
-            if (!u.uid || !u.name || u.uid === user.id) return false;
-            if (friendUidSet.has(u.uid)) return false;
-            if (pendingEmails.has((u.email||"").toLowerCase())) return false;
-            if (seen.has(u.uid)) return false;
-            seen.add(u.uid);
-            return true;
-          }).slice(0, 3);
-          setSuggestedUsers(merged);
-          setSuggestLoading(false);
-        });
+      const unsub = fsListenPublicProfiles(all => {
+        const filtered = all
+          .filter(u => u.uid && u.uid !== user.id && u.name && u.email
+            && !friendUidSet.has(u.uid)
+            && !pendingEmails.has((u.email||"").toLowerCase()))
+          .slice(0, 3);
+        setSuggestedUsers(filtered);
+        setSuggestLoading(false);
       });
-
-      return () => unsubProfiles();
+      return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
     // Build feed items: last 7 days only, sort newest first
