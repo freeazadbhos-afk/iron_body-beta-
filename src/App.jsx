@@ -7225,28 +7225,41 @@ import "./styles.css";
   function SuggestSendBtn({ user, suggested, alreadySent }) {
     const th = useTheme();
     const [state, setState] = useState(alreadySent ? "sent" : "idle");
+    const initials = (suggested.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
     return (
-      <button
-        onClick={async () => {
-          if (state !== "idle") return;
-          setState("sending");
-          await fsSendInvitation(user.id, user.name, user.email, suggested.email, user.photoURL);
-          setState("sent");
-        }}
-        style={{
-          background: state === "sent"
-            ? `color-mix(in srgb, #1db954 18%, transparent)`
-            : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-          backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-          border:"none", borderRadius:10, padding:"6px 14px", cursor: state === "sent" ? "default" : "pointer",
-          fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-          color: state === "sent" ? "#1db954" : th.accentT,
-          letterSpacing:"0.4px", flexShrink:0,
-          transition:"background .2s, color .2s",
-        }}
-      >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "+ Add"}</button>
+      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, flexShrink:0, width:72 }}>
+        {suggested.photoURL ? (
+          <img src={suggested.photoURL} alt={suggested.name}
+            style={{ width:56, height:56, borderRadius:"50%", objectFit:"cover", border:`2px solid ${th.border}` }} />
+        ) : (
+          <div style={{ width:56, height:56, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 16%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, fontWeight:700, color:th.accentFg, border:`2px solid ${th.border}` }}>
+            {initials}
+          </div>
+        )}
+        <div style={{ fontSize:12, fontWeight:700, color:th.sub, textAlign:"center", width:"100%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+          {suggested.name.split(" ")[0]}
+        </div>
+        <button
+          onClick={async () => {
+            if (state !== "idle") return;
+            setState("sending");
+            await fsSendInvitation(user.id, user.name, user.email, suggested.email, user.photoURL);
+            setState("sent");
+          }}
+          style={{
+            background: state === "sent"
+              ? `color-mix(in srgb, #1db954 20%, transparent)`
+              : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+            border:"none", borderRadius:20, padding:"4px 10px", cursor: state === "sent" ? "default" : "pointer",
+            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
+            color: state === "sent" ? "#1db954" : th.accentT,
+            transition:"background .2s, color .2s", whiteSpace:"nowrap",
+          }}
+        >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "+ Add"}</button>
+      </div>
     );
   }
+
 
   function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram }) {
     const th = useTheme();
@@ -7274,6 +7287,7 @@ import "./styles.css";
     const [savedProgIds, setSavedProgIds] = useState(new Set()); // shared prog ids I've saved
     const [openSharedProg, setOpenSharedProg] = useState(null); // sp doc to show in detail sheet
     const [suggestedUsers, setSuggestedUsers] = useState([]);
+    const [suggestLoading, setSuggestLoading] = useState(false);
 
     // Load feed when friends list changes
     useEffect(() => {
@@ -7320,7 +7334,7 @@ import "./styles.css";
         ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
       ]);
       const friendUidSet = new Set(friends.map(f => f.uid));
-
+      setSuggestLoading(true);
       const unsub = fsListenPublicProfiles(all => {
         const filtered = all
           .filter(u =>
@@ -7329,8 +7343,9 @@ import "./styles.css";
             !friendUidSet.has(u.uid) &&
             !pendingEmails.has((u.email||"").toLowerCase())
           )
-          .slice(0, 2);
+          .slice(0, 3);
         setSuggestedUsers(filtered);
+        setSuggestLoading(false);
       });
       return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
@@ -7706,30 +7721,38 @@ import "./styles.css";
                 </div>
               ) : (
                 <>
-                  {/* ── Suggested users ── */}
-                  {suggestedUsers.length > 0 && (
-                    <div style={{ marginBottom:16 }}>
-                      <div style={{ fontSize:11, color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:10 }}>PEOPLE YOU MAY KNOW</div>
-                      {suggestedUsers.map(u => {
-                        const initials = (u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-                        const alreadySent = sentInvitations.some(i => i.toEmail?.toLowerCase() === u.email?.toLowerCase());
-                        return (
-                          <div key={u.uid} style={{ display:"flex", alignItems:"center", gap:12, padding:"9px 0", borderBottom:`1px solid ${th.border}` }}>
-                            {u.photoURL ? (
-                              <img src={u.photoURL} alt={u.name} style={{ width:38, height:38, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                            ) : (
-                              <div style={{ width:38, height:38, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 14%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
-                            )}
-                            <div style={{ flex:1, minWidth:0 }}>
-                              <div style={{ fontWeight:700, fontSize:14, color:th.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{u.name}</div>
-                            </div>
-                            <SuggestSendBtn user={user} suggested={u} alreadySent={alreadySent} />
+                  {/* ── Suggested users — horizontal bubbles, max 3 ── */}
+                  <div style={{ marginBottom:18 }}>
+                    <div style={{ fontSize:11, color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:12 }}>PEOPLE YOU MAY KNOW</div>
+                    {suggestLoading ? (
+                      /* Loading skeleton */
+                      <div style={{ display:"flex", gap:16, justifyContent:"center" }}>
+                        {[0,1,2].map(i => (
+                          <div key={i} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, width:72 }}>
+                            <div style={{ width:56, height:56, borderRadius:"50%", background:th.inputB, opacity:0.4, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            <div style={{ width:40, height:10, borderRadius:5, background:th.inputB, opacity:0.35, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            <div style={{ width:34, height:18, borderRadius:10, background:th.inputB, opacity:0.3, animation:"pulse 1.5s ease-in-out infinite" }} />
                           </div>
-                        );
-                      })}
-                      <div style={{ fontSize:12, color:th.dim, marginTop:14, marginBottom:4 }}>OR INVITE BY EMAIL</div>
+                        ))}
+                      </div>
+                    ) : suggestedUsers.length > 0 ? (
+                      <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"nowrap" }}>
+                        {suggestedUsers.map(u => (
+                          <SuggestSendBtn key={u.uid} user={user} suggested={u}
+                            alreadySent={sentInvitations.some(i => i.toEmail?.toLowerCase() === u.email?.toLowerCase())} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ textAlign:"center", fontSize:12, color:th.dim, padding:"8px 0" }}>No suggestions yet</div>
+                    )}
+                    <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:18 }}>
+                      <div style={{ flex:1, height:1, background:th.border }} />
+                      <div style={{ fontSize:11, color:th.dim, fontWeight:600, letterSpacing:"0.5px" }}>OR INVITE BY EMAIL</div>
+                      <div style={{ flex:1, height:1, background:th.border }} />
                     </div>
-                  )}
+                  </div>
+
+                  {/* Description always visible */}
                   <div style={{ fontSize:13, color:th.muted, marginBottom:14, lineHeight:1.55, textAlign:"left" }}>
                     Enter your friend's email. Once they accept, you'll both see each other's workouts.
                   </div>
