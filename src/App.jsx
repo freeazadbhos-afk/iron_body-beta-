@@ -2158,25 +2158,37 @@ import "./styles.css";
     });
   }
 
+  // Get suggested users by scanning invitations (existing data) + publicProfiles
+  // invitations already stores fromUid/fromName/fromEmail/fromPhotoURL for every registered user
+  async function fsGetSuggestedFromInvitations(myUid, excludeUids, excludeEmails) {
+    try {
+      const snap = await getDocs(collection(fbDb, "invitations"));
+      const seen = new Set();
+      const users = [];
+      snap.docs.forEach(d => {
+        const inv = d.data();
+        const uid = inv.fromUid;
+        const email = (inv.fromEmail || "").toLowerCase();
+        if (!uid || !inv.fromName || uid === myUid) return;
+        if (excludeUids.has(uid)) return;
+        if (excludeEmails.has(email)) return;
+        if (seen.has(uid)) return;
+        seen.add(uid);
+        users.push({ uid, name: inv.fromName, email: inv.fromEmail || "", photoURL: inv.fromPhotoURL || null });
+      });
+      return users;
+    } catch (e) {
+      console.warn("fsGetSuggestedFromInvitations:", e.code, e.message);
+      return [];
+    }
+  }
+
   function fsListenPublicProfiles(cb) {
     return onSnapshot(
       collection(fbDb, "publicProfiles"),
-      snap => {
-        cb(snap.docs.map(d => d.data()));
-      },
+      snap => cb(snap.docs.map(d => d.data())),
       err => { console.warn("fsListenPublicProfiles:", err.code, err.message); cb([]); }
     );
-  }
-
-  // Fetch all users who have ever interacted (sent/received invitations) to build suggestion pool
-  async function fsGetAllKnownUsers() {
-    try {
-      const snap = await getDocs(collection(fbDb, "publicProfiles"));
-      return snap.docs.map(d => d.data()).filter(u => u.uid && u.name && u.email);
-    } catch (e) {
-      console.warn("fsGetAllKnownUsers:", e.code, e.message);
-      return [];
-    }
   }
   async function fsUpdateChangelog(id, text) {
     try {
@@ -7337,37 +7349,45 @@ import "./styles.css";
       return () => { u1(); u2(); };
     }, [user?.id]);
 
-    // Real-time suggestions from publicProfiles + fallback from invitations
+    // Load suggestions: combine invitations (existing data) + publicProfiles (new registrations)
     useEffect(() => {
       if (!user?.id || !user?.email) return;
 
-      // Always re-register current user so their profile is in the pool
-      fsRegisterPublicProfile(user.id, user.name, user.photoURL, user.email);
+      // Always re-register current user
+      fsRegisterPublicProfile(user.id, user.name || "", user.photoURL || null, user.email);
 
       const friendUidSet = new Set(friends.map(f => f.uid));
       const pendingEmails = new Set([
+        user.email.toLowerCase(),
         ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()).filter(Boolean),
         ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
+        ...friends.map(f => (f.email||"").toLowerCase()).filter(Boolean),
       ]);
 
-      const filterAndSet = (all) => {
-        const filtered = (all || [])
-          .filter(u =>
-            u.uid &&
-            u.uid !== user.id &&
-            u.name &&
-            u.email &&
-            !friendUidSet.has(u.uid) &&
-            !pendingEmails.has((u.email||"").toLowerCase())
-          )
-          .slice(0, 3);
-        setSuggestedUsers(filtered);
-        setSuggestLoading(false);
-      };
-
       setSuggestLoading(true);
-      const unsub = fsListenPublicProfiles(filterAndSet);
-      return () => unsub();
+
+      // Primary: scan invitations collection (has data for ALL existing users)
+      const invPromise = fsGetSuggestedFromInvitations(user.id, friendUidSet, pendingEmails);
+
+      // Secondary: live publicProfiles listener (catches new users)
+      const unsubProfiles = fsListenPublicProfiles(profileUsers => {
+        invPromise.then(invUsers => {
+          // Merge both sources, deduplicate by uid
+          const seen = new Set();
+          const merged = [...invUsers, ...profileUsers].filter(u => {
+            if (!u.uid || !u.name || u.uid === user.id) return false;
+            if (friendUidSet.has(u.uid)) return false;
+            if (pendingEmails.has((u.email||"").toLowerCase())) return false;
+            if (seen.has(u.uid)) return false;
+            seen.add(u.uid);
+            return true;
+          }).slice(0, 3);
+          setSuggestedUsers(merged);
+          setSuggestLoading(false);
+        });
+      });
+
+      return () => unsubProfiles();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
     // Build feed items: last 7 days only, sort newest first
