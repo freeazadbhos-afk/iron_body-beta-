@@ -7028,139 +7028,145 @@ import "./styles.css";
   function SharedProgramSheet({ sp, user, onClose, onSave }) {
     const th = useTheme();
     const S = useS();
-    const [closing, setClosing] = useState(false);
+    const [spClosing, setSpClosing] = useState(false);
     const [saved, setSaved] = useState(false);
     const prog = sp.program || {};
     const isReceiver = sp.toUid === user?.id;
-    const close = () => { setClosing(true); setTimeout(onClose, 340); };
-
-    // Resolve avatar for the sender (even when viewing as sender, show own photo)
-    const senderPhoto = sp.fromPhotoURL || null;
-    const senderName  = sp.fromName || "Unknown";
-    const senderInitials = senderName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    const recipientName = sp.toName || "Friend";
+    const senderName = sp.fromName || "Someone";
+    const recipName  = sp.toName   || "Friend";
+    const closeMe = () => { setSpClosing(true); setTimeout(onClose, 300); };
 
     return (
       <>
         <style>{`
-          @keyframes spDetailIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
-          @keyframes spDetailOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
-          @keyframes spDetailBdIn  { from{opacity:0} to{opacity:1} }
-          @keyframes spDetailBdOut { from{opacity:1} to{opacity:0} }
+          @keyframes spFadeIn    { from{opacity:0}                      to{opacity:1} }
+          @keyframes spFadeOut   { from{opacity:1}                      to{opacity:0} }
+          @keyframes spSlideUp   { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes spSlideDown { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
         `}</style>
-        <div onClick={close} style={{
-          position:"fixed", inset:0, zIndex:90,
+
+        {/* Backdrop — identical to ExercisePicker */}
+        <div onClick={closeMe} style={{
+          position:"fixed", inset:0, zIndex:70,
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
-          animation: closing ? "spDetailBdOut .34s ease forwards" : "spDetailBdIn .26s ease forwards",
+          animation: spClosing ? "spFadeOut .3s ease-in forwards" : "spFadeIn .25s ease-out forwards",
         }} />
+
+        {/* Sheet — identical positioning to ExercisePicker but bottom clears nav */}
         <div style={{
-          position:"fixed", inset:0, zIndex:91,
-          display:"flex", flexDirection:"column",
+          position:"fixed",
+          top:0, left:0, right:0,
+          bottom:"calc(72px + env(safe-area-inset-bottom, 0px))",
+          zIndex:71,
+          display:"flex", flexDirection:"column", justifyContent:"flex-end",
           maxWidth:480, margin:"0 auto", pointerEvents:"none",
         }}>
           <div onClick={e=>e.stopPropagation()} style={{
-            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
-            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            marginTop:"auto", maxHeight:"calc(100% - 0px)",
+            display:"flex", flexDirection:"column", overflow:"hidden",
             pointerEvents:"auto",
-            animation: closing ? "spDetailOut .34s cubic-bezier(0.4,0,1,1) forwards" : "spDetailIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+            animation: spClosing ? "spSlideDown .34s cubic-bezier(0.4,0,1,1) forwards" : "spSlideUp .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
-
-            {/* Header — same for both sender and receiver */}
-            <div style={{ flexShrink:0, padding:"12px 18px 14px", borderBottom:`1px solid ${th.border}` }}>
-              <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
-                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
-              </div>
-              {/* Sender identity row */}
-              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-                {senderPhoto ? (
-                  <img src={senderPhoto} alt={senderName} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                ) : (
-                  <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{senderInitials}</div>
-                )}
-                <div style={{ flex:1 }}>
-                  <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{senderName.split(" ")[0]}</span>
-                  <span style={{ fontSize:13, color:th.muted }}> shared a program with {isReceiver ? "you" : recipientName.split(" ")[0]}</span>
-                </div>
-                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"4px 6px", flexShrink:0 }}>✕</button>
-              </div>
-              {/* Program title + muscle tags */}
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <ProgramIcon name={prog.name || ""} size={44} />
-                <div style={{ flex:1 }}>
-                  <div className="bebas" style={{ fontSize:24, letterSpacing:1.5, color:th.text, lineHeight:1 }}>{prog.name || "Program"}</div>
-                  <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
-                    {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
-                      <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
-                    ))}
+            {/* Header — mirrors ExercisePicker header */}
+            <div style={{ padding:"18px 18px 0" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                <div>
+                  <span className="bebas" style={{ fontSize:24, letterSpacing:2, color:th.text }}>
+                    {prog.name || "PROGRAM"}
+                  </span>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+                    {sp.fromPhotoURL ? (
+                      <img src={sp.fromPhotoURL} alt={senderName} style={{ width:20, height:20, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:20, height:20, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                        {senderName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                      </div>
+                    )}
+                    <span style={{ fontSize:13, color:th.muted }}>
+                      {isReceiver
+                        ? `${senderName.split(" ")[0]} shared this with you`
+                        : `You shared with ${recipName.split(" ")[0]}`}
+                    </span>
                   </div>
                 </div>
+                <button onClick={closeMe} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, marginTop:2 }}>✕</button>
+              </div>
+              {/* Muscle group tags — mirrors ExercisePicker filter row */}
+              <div style={{ display:"flex", gap:5, overflowX:"auto", paddingBottom:12, scrollbarWidth:"none" }}>
+                {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
+                  <span key={g} style={{
+                    padding:"5px 13px", borderRadius:20, fontSize:12, fontWeight:700,
+                    whiteSpace:"nowrap", flexShrink:0,
+                    background:`color-mix(in srgb, ${gc(g)}22, ${th.sect})`,
+                    color: gc(g),
+                    fontFamily:"'Outfit',sans-serif",
+                  }}>{g.toUpperCase()}</span>
+                ))}
               </div>
             </div>
 
-            {/* Exercise list — scrolls, stops at content end, clears save button */}
-            <div style={{
-              flex:1, overflowY:"auto", overflowX:"hidden",
-              padding:"14px 18px",
-              // Extra bottom padding so last card clears the floating save button
-              paddingBottom: isReceiver ? "calc(88px + env(safe-area-inset-bottom, 0px))" : "calc(32px + env(safe-area-inset-bottom, 0px))",
-              // Prevent overscroll bounce pulling the whole sheet
-              overscrollBehavior:"contain",
-            }}>
-              {(prog.exs || []).length === 0 ? (
-                <div style={{ color:th.muted, fontSize:14, textAlign:"center", padding:"28px 0" }}>No exercises</div>
-              ) : (prog.exs || []).map((ex, i) => {
+            {/* Exercise list — individual cards like workout program view */}
+            <div style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"10px 18px 18px" }}>
+              {(prog.exs||[]).length === 0 ? (
+                <div style={{ textAlign:"center", padding:"30px 0", color:th.dim, fontSize:13 }}>No exercises.</div>
+              ) : (prog.exs||[]).map((ex, i) => {
                 const dbEx = DB.find(d => d.id === ex.id);
                 const sets = ex.sets || [];
                 const firstSet = sets[0] || {};
                 return (
-                  <div key={ex.id || i} style={{ ...S.card, padding:"12px 14px", marginBottom:8 }}>
-                    <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                  <div key={ex.id||i} style={{ ...S.card, padding:"12px 14px", marginBottom:8 }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontWeight:700, fontSize:14, color:th.text, marginBottom:4 }}>{dbEx?.name || ex.name || "Exercise"}</div>
-                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
-                          {dbEx && <span style={S.tag(dbEx.group)}>{(dbEx.muscle||"").toUpperCase()}</span>}
+                        <div style={{ display:"flex", alignItems:"center", gap:8, fontWeight:700, fontSize:14, color:th.text, marginBottom:5 }}>
+                          {dbEx?.name || ex.name || "Exercise"}
+                          {dbEx && <DiffBadge id={dbEx.id} />}
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:5 }}>
+                          {dbEx && (
+                            <span style={{ fontSize:11, color:gc(dbEx.group), fontWeight:700,
+                              background:`color-mix(in srgb, ${gc(dbEx.group)}18, ${th.sect})`,
+                              borderRadius:6, padding:"2px 8px" }}>
+                              {dbEx.muscle.toUpperCase()}
+                            </span>
+                          )}
                           {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
-                            const grp = DB.find(d=>d.muscle===m)?.group || "Back";
-                            return <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>{m.toUpperCase()}</span>;
+                            const grp = DB.find(d=>d&&d.muscle===m)?.group||"Back";
+                            return <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:9, padding:"2px 6px" }}>{m.toUpperCase()}</span>;
                           })}
                         </div>
                         <div style={{ fontSize:12, color:th.dim }}>
-                          {sets.length} set{sets.length!==1?"s":""}{firstSet.reps ? ` · ${firstSet.reps} reps` : ""}{firstSet.weight ? ` · ${firstSet.weight}kg` : ""}
+                          {sets.length} set{sets.length!==1?"s":""}
+                          {firstSet.reps   ? ` · ${firstSet.reps} reps`  : ""}
+                          {firstSet.weight ? ` · ${firstSet.weight}kg`   : ""}
                         </div>
                       </div>
-                      {dbEx && <DiffBadge id={dbEx.id} />}
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Floating save button — receiver only, no separate bar */}
+            {/* Save button — mirrors ExercisePicker confirm button, receiver only */}
             {isReceiver && (
-              <div style={{
-                position:"absolute", bottom:0, left:0, right:0,
-                padding:"12px 18px calc(16px + env(safe-area-inset-bottom, 0px))",
-                background:`color-mix(in srgb, ${th.card} 70%, transparent)`,
-                backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
-              }}>
+              <div style={{ padding:"12px 18px 20px", borderTop:`1px solid ${th.border}` }}>
                 <button
                   onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
                   style={{
                     width:"100%",
                     background: saved
-                      ? `color-mix(in srgb, #1db954 18%, transparent)`
-                      : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                    backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                    border:"none", borderRadius:14, padding:"16px 0",
+                      ? `color-mix(in srgb, #1db954 25%, transparent)`
+                      : `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border:"none", borderRadius:13, padding:"14px",
                     cursor: saved ? "default" : "pointer",
-                    fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:16,
-                    color: saved ? "#1db954" : th.accentT,
-                    letterSpacing:"0.5px", transition:"background .2s, color .2s",
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
+                    letterSpacing:0.5, color: saved ? "#1db954" : th.accentT,
+                    transition:"background .2s, color .2s",
                   }}
-                >{saved ? "✓ Saved to My Workouts" : "Save to My Workouts"}</button>
+                >{saved ? "✓ SAVED TO MY WORKOUTS" : "SAVE TO MY WORKOUTS"}</button>
               </div>
             )}
           </div>
@@ -7168,6 +7174,7 @@ import "./styles.css";
       </>
     );
   }
+
 
   function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram }) {
     const th = useTheme();
@@ -7673,7 +7680,9 @@ import "./styles.css";
                           {direction === "received" ? sName.split(" ")[0] : "You"}
                         </span>
                         <span style={{ fontSize:13, color:th.muted }}>
-                          {direction === "received" ? " shared a program with you" : ` shared a program with ${recipName.split(" ")[0]}`}
+                          {direction === "received"
+                            ? " shared a program with you"
+                            : ` shared a program with ${recipName.split(" ")[0]}`}
                         </span>
                       </div>
                       <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
