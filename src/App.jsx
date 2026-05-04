@@ -7039,38 +7039,36 @@ import "./styles.css";
     return (
       <>
         <style>{`
-          @keyframes spFadeIn    { from{opacity:0}                      to{opacity:1} }
-          @keyframes spFadeOut   { from{opacity:1}                      to{opacity:0} }
+          @keyframes spFadeIn    { from{opacity:0}                           to{opacity:1} }
+          @keyframes spFadeOut   { from{opacity:1}                           to{opacity:0} }
           @keyframes spSlideUp   { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
           @keyframes spSlideDown { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
         `}</style>
 
-        {/* Backdrop — identical to ExercisePicker */}
+        {/* Backdrop — full-screen */}
         <div onClick={closeMe} style={{
           position:"fixed", inset:0, zIndex:70,
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
           animation: spClosing ? "spFadeOut .3s ease-in forwards" : "spFadeIn .25s ease-out forwards",
         }} />
 
-        {/* Sheet — identical positioning to ExercisePicker but bottom clears nav */}
+        {/* Sheet — standard full-height overlay identical to FriendDashboardSheet */}
         <div style={{
-          position:"fixed",
-          top:0, left:0, right:0,
-          bottom:"calc(72px + env(safe-area-inset-bottom, 0px))",
-          zIndex:71,
-          display:"flex", flexDirection:"column", justifyContent:"flex-end",
+          position:"fixed", inset:0, zIndex:71,
+          display:"flex", flexDirection:"column",
           maxWidth:480, margin:"0 auto", pointerEvents:"none",
         }}>
           <div onClick={e=>e.stopPropagation()} style={{
             background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"auto", maxHeight:"calc(100% - 0px)",
-            display:"flex", flexDirection:"column", overflow:"hidden",
+            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
             pointerEvents:"auto",
             animation: spClosing ? "spSlideDown .34s cubic-bezier(0.4,0,1,1) forwards" : "spSlideUp .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
-            {/* Header — mirrors ExercisePicker header */}
+
+            {/* Header */}
             <div style={{ padding:"18px 18px 0" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                 <div>
@@ -7094,22 +7092,25 @@ import "./styles.css";
                 </div>
                 <button onClick={closeMe} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, marginTop:2 }}>✕</button>
               </div>
-              {/* Muscle group tags — mirrors ExercisePicker filter row */}
+              {/* Muscle group tags */}
               <div style={{ display:"flex", gap:5, overflowX:"auto", paddingBottom:12, scrollbarWidth:"none" }}>
                 {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
                   <span key={g} style={{
                     padding:"5px 13px", borderRadius:20, fontSize:12, fontWeight:700,
                     whiteSpace:"nowrap", flexShrink:0,
                     background:`color-mix(in srgb, ${gc(g)}22, ${th.sect})`,
-                    color: gc(g),
-                    fontFamily:"'Outfit',sans-serif",
+                    color: gc(g), fontFamily:"'Outfit',sans-serif",
                   }}>{g.toUpperCase()}</span>
                 ))}
               </div>
             </div>
 
-            {/* Exercise list — individual cards like workout program view */}
-            <div style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"10px 18px 18px" }}>
+            {/* Exercise list — individual cards, extra bottom padding for floating save button */}
+            <div style={{
+              flex:1, overflowY:"auto", overscrollBehavior:"contain",
+              padding:"10px 18px",
+              paddingBottom: isReceiver ? "calc(100px + env(safe-area-inset-bottom, 0px))" : "calc(32px + env(safe-area-inset-bottom, 0px))",
+            }}>
               {(prog.exs||[]).length === 0 ? (
                 <div style={{ textAlign:"center", padding:"30px 0", color:th.dim, fontSize:13 }}>No exercises.</div>
               ) : (prog.exs||[]).map((ex, i) => {
@@ -7148,29 +7149,54 @@ import "./styles.css";
                 );
               })}
             </div>
-
-            {/* Save button — mirrors ExercisePicker confirm button, receiver only */}
-            {isReceiver && (
-              <div style={{ padding:"12px 18px 20px", borderTop:`1px solid ${th.border}` }}>
-                <button
-                  onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
-                  style={{
-                    width:"100%",
-                    background: saved
-                      ? `color-mix(in srgb, #1db954 25%, transparent)`
-                      : `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border:"none", borderRadius:13, padding:"14px",
-                    cursor: saved ? "default" : "pointer",
-                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
-                    letterSpacing:0.5, color: saved ? "#1db954" : th.accentT,
-                    transition:"background .2s, color .2s",
-                  }}
-                >{saved ? "✓ SAVED TO MY WORKOUTS" : "SAVE TO MY WORKOUTS"}</button>
-              </div>
-            )}
           </div>
         </div>
+
+        {/* Floating save button — above nav bar, same width as nav pill */}
+        {isReceiver && (
+          <div style={{
+            position:"fixed",
+            bottom:`calc(80px + env(safe-area-inset-bottom, 0px))`,
+            left:24, right:24,
+            margin:"0 auto",
+            maxWidth:480,
+            zIndex:72,
+            pointerEvents:"auto",
+            animation: spClosing ? "spFadeOut .3s ease-in forwards" : "spFadeIn .3s ease-out forwards",
+          }}>
+            <button
+              onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
+              style={{
+                width:"100%",
+                background: saved
+                  ? `color-mix(in srgb, #1db954 70%, transparent)`
+                  : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
+                backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                border:`1px solid color-mix(in srgb, ${saved ? "#1db954" : th.accentBg} 50%, transparent)`,
+                borderRadius:14,
+                padding:"15px 0",
+                cursor: saved ? "default" : "pointer",
+                fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
+                letterSpacing:"0.5px",
+                color: th.accentT,
+                transition:"background .2s, border-color .2s",
+                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              }}
+            >
+              {saved ? (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  SAVED TO MY WORKOUTS
+                </>
+              ) : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="3,1 13,7 3,13" fill="currentColor"/></svg>
+                  SAVE TO MY WORKOUTS
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </>
     );
   }
