@@ -7089,30 +7089,30 @@ import "./styles.css";
           @keyframes spSlideDown { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
         `}</style>
 
-        {/* Backdrop — full-screen */}
+        {/* Backdrop — identical to ExercisePicker */}
         <div onClick={closeMe} style={{
           position:"fixed", inset:0, zIndex:70,
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
           animation: spClosing ? "spFadeOut .3s ease-in forwards" : "spFadeIn .25s ease-out forwards",
         }} />
 
-        {/* Sheet — standard full-height overlay identical to FriendDashboardSheet */}
+        {/* Sheet — identical positioning to ExercisePicker */}
         <div style={{
           position:"fixed", inset:0, zIndex:71,
-          display:"flex", flexDirection:"column",
+          display:"flex", flexDirection:"column", justifyContent:"flex-end",
           maxWidth:480, margin:"0 auto", pointerEvents:"none",
         }}>
           <div onClick={e=>e.stopPropagation()} style={{
             background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
-            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            marginTop:"auto", maxHeight:"80vh",
+            display:"flex", flexDirection:"column", overflow:"hidden",
             pointerEvents:"auto",
             animation: spClosing ? "spSlideDown .34s cubic-bezier(0.4,0,1,1) forwards" : "spSlideUp .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
 
-            {/* Header */}
+            {/* Header — mirrors ExercisePicker header */}
             <div style={{ padding:"18px 18px 0" }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
                 <div>
@@ -7128,32 +7128,31 @@ import "./styles.css";
                       </div>
                     )}
                     <span style={{ fontSize:13, color:th.muted }}>
-                      {isReceiver
-                        ? `${senderName.split(" ")[0]} shared this with you`
-                        : `You shared with ${recipName.split(" ")[0]}`}
+                      {isReceiver ? `${senderName.split(" ")[0]} shared this with you` : `You shared with ${recipName.split(" ")[0]}`}
                     </span>
                   </div>
                 </div>
                 <button onClick={closeMe} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, marginTop:2 }}>✕</button>
               </div>
-              {/* Muscle group tags */}
+
+              {/* Muscle group tags row — mirrors ExercisePicker filter row */}
               <div style={{ display:"flex", gap:5, overflowX:"auto", paddingBottom:12, scrollbarWidth:"none" }}>
                 {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
                   <span key={g} style={{
                     padding:"5px 13px", borderRadius:20, fontSize:12, fontWeight:700,
-                    whiteSpace:"nowrap", flexShrink:0,
+                    whiteSpace:"nowrap", flexShrink:0, fontFamily:"'Outfit',sans-serif",
                     background:`color-mix(in srgb, ${gc(g)}22, ${th.sect})`,
-                    color: gc(g), fontFamily:"'Outfit',sans-serif",
+                    color: gc(g),
                   }}>{g.toUpperCase()}</span>
                 ))}
               </div>
             </div>
 
-            {/* Exercise list — individual cards, extra bottom padding for floating save button */}
+            {/* Exercise list — individual cards like workouts tab */}
             <div style={{
               flex:1, overflowY:"auto", overscrollBehavior:"contain",
-              padding:"10px 18px",
-              paddingBottom: isReceiver ? "calc(100px + env(safe-area-inset-bottom, 0px))" : "calc(32px + env(safe-area-inset-bottom, 0px))",
+              padding:"6px 18px",
+              paddingBottom: isReceiver ? "90px" : "18px",
             }}>
               {(prog.exs||[]).length === 0 ? (
                 <div style={{ textAlign:"center", padding:"30px 0", color:th.dim, fontSize:13 }}>No exercises.</div>
@@ -7193,95 +7192,30 @@ import "./styles.css";
                 );
               })}
             </div>
+
+            {/* Save button — mirrors ExercisePicker confirm button, receiver only */}
+            {isReceiver && (
+              <div style={{ padding:"12px 18px 20px", borderTop:`1px solid ${th.border}` }}>
+                <button
+                  onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
+                  style={{
+                    width:"100%",
+                    background: saved
+                      ? `color-mix(in srgb, #1db954 25%, transparent)`
+                      : `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border:"none", borderRadius:13, padding:"14px",
+                    cursor: saved ? "default" : "pointer",
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
+                    letterSpacing:0.5, color: saved ? "#1db954" : th.accentT,
+                    transition:"background .2s, color .2s",
+                  }}
+                >{saved ? "✓ SAVED TO MY WORKOUTS" : "SAVE TO MY WORKOUTS"}</button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Floating save button — above nav bar, same width as nav pill */}
-        {isReceiver && (
-          <div style={{
-            position:"fixed",
-            bottom:`calc(80px + env(safe-area-inset-bottom, 0px))`,
-            left:24, right:24,
-            margin:"0 auto",
-            maxWidth:480,
-            zIndex:72,
-            pointerEvents:"auto",
-            animation: spClosing ? "spFadeOut .3s ease-in forwards" : "spFadeIn .3s ease-out forwards",
-          }}>
-            <button
-              onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
-              style={{
-                width:"100%",
-                background: saved
-                  ? `color-mix(in srgb, #1db954 70%, transparent)`
-                  : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
-                backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                border:`1px solid color-mix(in srgb, ${saved ? "#1db954" : th.accentBg} 50%, transparent)`,
-                borderRadius:14,
-                padding:"15px 0",
-                cursor: saved ? "default" : "pointer",
-                fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
-                letterSpacing:"0.5px",
-                color: th.accentT,
-                transition:"background .2s, border-color .2s",
-                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-              }}
-            >
-              {saved ? (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polyline points="2,7 6,11 12,3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                  SAVED TO MY WORKOUTS
-                </>
-              ) : (
-                <>
-                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><polygon points="3,1 13,7 3,13" fill="currentColor"/></svg>
-                  SAVE TO MY WORKOUTS
-                </>
-              )}
-            </button>
-          </div>
-        )}
       </>
-    );
-  }
-
-
-  // Small self-contained send button for suggested users — needs own state to avoid hooks-in-map
-  function SuggestSendBtn({ user, suggested, alreadySent }) {
-    const th = useTheme();
-    const [state, setState] = useState(alreadySent ? "sent" : "idle");
-    const initials = (suggested.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    return (
-      <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, flexShrink:0, width:72 }}>
-        {suggested.photoURL ? (
-          <img src={suggested.photoURL} alt={suggested.name}
-            style={{ width:56, height:56, borderRadius:"50%", objectFit:"cover", border:`2px solid ${th.border}` }} />
-        ) : (
-          <div style={{ width:56, height:56, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 16%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:17, fontWeight:700, color:th.accentFg, border:`2px solid ${th.border}` }}>
-            {initials}
-          </div>
-        )}
-        <div style={{ fontSize:12, fontWeight:700, color:th.sub, textAlign:"center", width:"100%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-          {suggested.name.split(" ")[0]}
-        </div>
-        <button
-          onClick={async () => {
-            if (state !== "idle") return;
-            setState("sending");
-            await fsSendInvitation(user.id, user.name, user.email, suggested.email, user.photoURL);
-            setState("sent");
-          }}
-          style={{
-            background: state === "sent"
-              ? `color-mix(in srgb, #1db954 20%, transparent)`
-              : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-            border:"none", borderRadius:20, padding:"4px 10px", cursor: state === "sent" ? "default" : "pointer",
-            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
-            color: state === "sent" ? "#1db954" : th.accentT,
-            transition:"background .2s, color .2s", whiteSpace:"nowrap",
-          }}
-        >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "+ Add"}</button>
-      </div>
     );
   }
 
@@ -7655,7 +7589,7 @@ import "./styles.css";
         )}
 
         {/* ── Shared program detail sheet ── */}
-        {openSharedProg && (
+        {openSharedProg && createPortal(
           <SharedProgramSheet
             sp={openSharedProg}
             user={user}
@@ -7664,7 +7598,8 @@ import "./styles.css";
               onSaveSharedProgram && onSaveSharedProgram(prog);
               setSavedProgIds(s => new Set([...s, openSharedProg.id]));
             }}
-          />
+          />,
+          document.body
         )}
 
         {/* ── Competition sheet ── */}
