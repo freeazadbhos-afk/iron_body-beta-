@@ -2150,22 +2150,33 @@ import "./styles.css";
   }
 
   async function fsRegisterPublicProfile(uid, name, photoURL, email) {
-    try {
-      await setDoc(doc(fbDb, "publicProfiles", uid), {
-        uid, name: name || "", photoURL: photoURL || null, email: email || "",
-        updatedAt: Date.now(),
-      }, { merge: true });
-    } catch (e) {
-      console.warn("fsRegisterPublicProfile failed:", e.code, e.message);
-    }
+    return setDoc(doc(fbDb, "publicProfiles", uid), {
+      uid, name: name || "", photoURL: photoURL || null, email: email || "",
+      updatedAt: Date.now(),
+    }, { merge: true }).catch(e => {
+      console.warn("fsRegisterPublicProfile:", e.code, e.message);
+    });
   }
 
   function fsListenPublicProfiles(cb) {
     return onSnapshot(
       collection(fbDb, "publicProfiles"),
-      snap => cb(snap.docs.map(d => d.data())),
+      snap => {
+        cb(snap.docs.map(d => d.data()));
+      },
       err => { console.warn("fsListenPublicProfiles:", err.code, err.message); cb([]); }
     );
+  }
+
+  // Fetch all users who have ever interacted (sent/received invitations) to build suggestion pool
+  async function fsGetAllKnownUsers() {
+    try {
+      const snap = await getDocs(collection(fbDb, "publicProfiles"));
+      return snap.docs.map(d => d.data()).filter(u => u.uid && u.name && u.email);
+    } catch (e) {
+      console.warn("fsGetAllKnownUsers:", e.code, e.message);
+      return [];
+    }
   }
   async function fsUpdateChangelog(id, text) {
     try {
@@ -7326,27 +7337,36 @@ import "./styles.css";
       return () => { u1(); u2(); };
     }, [user?.id]);
 
-    // Real-time suggestions from publicProfiles — updates live as new users register
+    // Real-time suggestions from publicProfiles + fallback from invitations
     useEffect(() => {
-      if (!user?.id) return;
+      if (!user?.id || !user?.email) return;
+
+      // Always re-register current user so their profile is in the pool
+      fsRegisterPublicProfile(user.id, user.name, user.photoURL, user.email);
+
+      const friendUidSet = new Set(friends.map(f => f.uid));
       const pendingEmails = new Set([
         ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()).filter(Boolean),
         ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
       ]);
-      const friendUidSet = new Set(friends.map(f => f.uid));
-      setSuggestLoading(true);
-      const unsub = fsListenPublicProfiles(all => {
-        const filtered = all
+
+      const filterAndSet = (all) => {
+        const filtered = (all || [])
           .filter(u =>
+            u.uid &&
             u.uid !== user.id &&
             u.name &&
+            u.email &&
             !friendUidSet.has(u.uid) &&
             !pendingEmails.has((u.email||"").toLowerCase())
           )
           .slice(0, 3);
         setSuggestedUsers(filtered);
         setSuggestLoading(false);
-      });
+      };
+
+      setSuggestLoading(true);
+      const unsub = fsListenPublicProfiles(filterAndSet);
       return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
@@ -13029,8 +13049,10 @@ import "./styles.css";
       const unsubReceived = fsListenInvitationsReceived(user.email, setPendingInvitations);
       const unsubSent     = fsListenInvitationsSent(user.id, setSentInvitations);
       const unsubFriends  = fsListenFriends(user.id, setFriends);
-      // Register/update public profile for user discovery
-      fsRegisterPublicProfile(user.id, user.name, user.photoURL, user.email);
+      // Register/update public profile for user discovery — runs on every app open
+      fsRegisterPublicProfile(user.id, user.name || "User", user.photoURL || null, user.email)
+        .then(() => console.log("Public profile registered for", user.email))
+        .catch(e => console.warn("Profile register failed:", e));
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
 
       // Listen for star reactions on user's sessions
