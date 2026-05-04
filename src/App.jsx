@@ -2148,6 +2148,26 @@ import "./styles.css";
       console.error("fsSaveSettings:", e.code, e.message);
     }
   }
+
+  async function fsRegisterPublicProfile(uid, name, photoURL, email) {
+    try {
+      await setDoc(doc(fbDb, "publicProfiles", uid), {
+        uid, name: name || "", photoURL: photoURL || null, email: email || "",
+        updatedAt: Date.now(),
+      }, { merge: true });
+    } catch { /* silently ignore */ }
+  }
+
+  async function fsGetSuggestedUsers(myUid, friendUids, limit = 2) {
+    try {
+      const snap = await getDocs(collection(fbDb, "publicProfiles"));
+      const excluded = new Set([myUid, ...friendUids]);
+      return snap.docs
+        .map(d => d.data())
+        .filter(u => !excluded.has(u.uid) && u.name)
+        .slice(0, limit);
+    } catch { return []; }
+  }
   async function fsUpdateChangelog(id, text) {
     try {
       await setDoc(doc(fbDb, "changelog", id), { text }, { merge: true });
@@ -7227,6 +7247,10 @@ import "./styles.css";
     const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
     const [savedProgIds, setSavedProgIds] = useState(new Set()); // shared prog ids I've saved
     const [openSharedProg, setOpenSharedProg] = useState(null); // sp doc to show in detail sheet
+    const [suggestedUsers, setSuggestedUsers] = useState([]);
+    const [confirmSuggest, setConfirmSuggest] = useState(null); // {uid, name, photoURL, email}
+    const [confirmSending, setConfirmSending] = useState(false);
+    const [confirmSent, setConfirmSent] = useState(false);
 
     // Load feed when friends list changes
     useEffect(() => {
@@ -7264,6 +7288,20 @@ import "./styles.css";
       const u2 = fsListenSharedByMe(user.id, items => setSharedByMe(items.sort((a,b) => b.ts - a.ts)));
       return () => { u1(); u2(); };
     }, [user?.id]);
+
+    // Load up to 2 suggested users — refresh when friends or invitations change
+    useEffect(() => {
+      if (!user?.id) return;
+      const pendingEmails = new Set([
+        ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()),
+        ...sentInvitations.map(i => i.toEmail?.toLowerCase()),
+      ]);
+      fsGetSuggestedUsers(user.id, friends.map(f => f.uid), 4).then(all => {
+        // Also exclude anyone already invited
+        const filtered = all.filter(u => !pendingEmails.has((u.email||"").toLowerCase()));
+        setSuggestedUsers(filtered.slice(0, 2));
+      });
+    }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
     // Build feed items: last 7 days only, sort newest first
     const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -7508,8 +7546,127 @@ import "./styles.css";
                   </div>
                 );
               })}
+
             </div>
           </div>
+        )}
+
+        {/* ── People you may know ── shown independently of friend count */}
+        {suggestedUsers.length > 0 && !editFriends && (
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ ...S.label, marginBottom:12, textAlign:"left" }}>PEOPLE YOU MAY KNOW</div>
+            {suggestedUsers.map(u => {
+              const initials = (u.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+              return (
+                <div key={u.uid} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12, cursor:"pointer" }}
+                  onClick={() => { setConfirmSuggest(u); setConfirmSending(false); setConfirmSent(false); }}>
+                  {u.photoURL ? (
+                    <img src={u.photoURL} alt={u.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                  ) : (
+                    <div style={{ width:44, height:44, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 14%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{u.name}</div>
+                    <div style={{ fontSize:12, color:th.muted, marginTop:1 }}>Also on Iron Body</div>
+                  </div>
+                  <button style={{
+                    background:`color-mix(in srgb, ${th.accentBg} 14%, transparent)`,
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border:`1px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)`,
+                    borderRadius:10, padding:"6px 14px", cursor:"pointer",
+                    fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                    color:th.accentFg, letterSpacing:"0.4px", flexShrink:0,
+                  }}>+ Add</button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Suggested friend confirmation popup ── */}
+        {confirmSuggest && (
+          <>
+            <style>{`
+              @keyframes suggestBdIn  { from{opacity:0} to{opacity:1} }
+              @keyframes suggestBdOut { from{opacity:1} to{opacity:0} }
+              @keyframes suggestIn    { from{opacity:0;transform:scale(0.94) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
+              @keyframes suggestOut   { from{opacity:1;transform:scale(1) translateY(0)} to{opacity:0;transform:scale(0.94) translateY(8px)} }
+            `}</style>
+            <div onClick={() => { if (!confirmSending) setConfirmSuggest(null); }}
+              style={{ position:"fixed", top:0, bottom:0, left:0, right:0, margin:"0 auto", width:"100%", maxWidth:480, zIndex:80,
+                background:"rgba(0,0,0,0.52)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+                animation:"suggestBdIn .2s ease forwards" }} />
+            <div style={{
+              position:"fixed", top:0, bottom:0, left:0, right:0,
+              margin:"0 auto", width:"100%", maxWidth:480, zIndex:81,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              padding:"0 20px", pointerEvents:"none",
+            }}>
+              <div style={{
+                width:"100%", maxWidth:360,
+                background:`color-mix(in srgb, ${th.card} 88%, transparent)`,
+                backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+                border:`1px solid ${th.border}`, borderRadius:22, padding:"24px 22px",
+                pointerEvents:"auto",
+                animation:"suggestIn .28s cubic-bezier(0,0,0.2,1) forwards",
+              }}>
+                {/* Header */}
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:18 }}>
+                  <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text }}>ADD FRIEND</div>
+                  <button onClick={() => setConfirmSuggest(null)} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1 }}>✕</button>
+                </div>
+
+                {confirmSent ? (
+                  <div style={{ textAlign:"center", padding:"14px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
+                    <div style={{ fontSize:36, marginBottom:8 }}>✓</div>
+                    <div style={{ color:th.accentFg, fontWeight:700, fontSize:16 }}>Friend request sent!</div>
+                    <div style={{ color:th.muted, fontSize:13, marginTop:4 }}>
+                      {confirmSuggest.name.split(" ")[0]} will see it in their Sharing tab.
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Person preview */}
+                    <div style={{ display:"flex", alignItems:"center", gap:14, background:th.sect, borderRadius:14, padding:"14px 16px", marginBottom:18 }}>
+                      {confirmSuggest.photoURL ? (
+                        <img src={confirmSuggest.photoURL} alt={confirmSuggest.name} style={{ width:48, height:48, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      ) : (
+                        <div style={{ width:48, height:48, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                          {(confirmSuggest.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div style={{ fontWeight:700, fontSize:16, color:th.text }}>{confirmSuggest.name}</div>
+                        <div style={{ fontSize:12, color:th.muted, marginTop:2 }}>{confirmSuggest.email}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize:13, color:th.muted, marginBottom:18, lineHeight:1.55 }}>
+                      Send a friend request to <strong style={{ color:th.text }}>{confirmSuggest.name.split(" ")[0]}</strong>? Once they accept, you'll see each other's workouts.
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirmSending) return;
+                        setConfirmSending(true);
+                        await fsSendInvitation(user.id, user.name, user.email, confirmSuggest.email, user.photoURL);
+                        setConfirmSending(false);
+                        setConfirmSent(true);
+                        setTimeout(() => { setConfirmSuggest(null); setConfirmSent(false); }, 2400);
+                      }}
+                      style={{
+                        width:"100%", border:"none", borderRadius:12, padding:"13px 0",
+                        background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                        cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15,
+                        color:th.accentT, letterSpacing:"0.5px",
+                      }}>
+                      {confirmSending ? "SENDING…" : "SEND FRIEND REQUEST →"}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── Friend dashboard sheet ── */}
@@ -12907,6 +13064,8 @@ import "./styles.css";
       const unsubReceived = fsListenInvitationsReceived(user.email, setPendingInvitations);
       const unsubSent     = fsListenInvitationsSent(user.id, setSentInvitations);
       const unsubFriends  = fsListenFriends(user.id, setFriends);
+      // Register/update public profile for user discovery
+      fsRegisterPublicProfile(user.id, user.name, user.photoURL, user.email);
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
 
       // Listen for star reactions on user's sessions
