@@ -1893,6 +1893,45 @@ import "./styles.css";
     } catch (e) { /* silently ignore */ }
   }
 
+  async function fsShareProgram(fromUser, toFriend, program) {
+    try {
+      const docRef = await addDoc(collection(fbDb, "sharedPrograms"), {
+        fromUid: fromUser.id,
+        fromName: fromUser.name,
+        fromPhotoURL: fromUser.photoURL || null,
+        toUid: toFriend.uid,
+        toName: toFriend.name,
+        program: {
+          id: program.id,
+          name: program.name,
+          exs: program.exs || [],
+        },
+        ts: Date.now(),
+      });
+      fsPushNotification(toFriend.uid, {
+        type: "program_shared",
+        fromUid: fromUser.id,
+        name: fromUser.name,
+        photoURL: fromUser.photoURL || null,
+        text: `${fromUser.name} shared a workout program with you: ${program.name}`,
+        programId: docRef.id,
+      });
+      return { ok: true, id: docRef.id };
+    } catch (e) {
+      return { ok: false };
+    }
+  }
+
+  function fsListenSharedWithMe(uid, cb) {
+    const q = query(collection(fbDb, "sharedPrograms"), where("toUid", "==", uid));
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => cb([]));
+  }
+
+  function fsListenSharedByMe(uid, cb) {
+    const q = query(collection(fbDb, "sharedPrograms"), where("fromUid", "==", uid));
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => cb([]));
+  }
+
   async function fsAcceptInvitation(inviteId, invite, currentUser) {
     try {
       await updateDoc(doc(fbDb, "invitations", inviteId), { status: "accepted" });
@@ -6986,7 +7025,125 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings }) {
+  function SharedProgramSheet({ sp, user, onClose, onSave }) {
+    const th = useTheme();
+    const S = useS();
+    const [closing, setClosing] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const prog = sp.program || {};
+    const isReceiver = sp.toUid === user?.id;
+    const close = () => { setClosing(true); setTimeout(onClose, 340); };
+
+    return (
+      <>
+        <style>{`
+          @keyframes spDetailIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes spDetailOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
+          @keyframes spDetailBdIn  { from{opacity:0} to{opacity:1} }
+          @keyframes spDetailBdOut { from{opacity:1} to{opacity:0} }
+        `}</style>
+        <div onClick={close} style={{
+          position:"fixed", inset:0, zIndex:90,
+          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: closing ? "spDetailBdOut .34s ease forwards" : "spDetailBdIn .26s ease forwards",
+        }} />
+        <div style={{
+          position:"fixed", inset:0, zIndex:91,
+          display:"flex", flexDirection:"column",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            pointerEvents:"auto",
+            animation: closing ? "spDetailOut .34s cubic-bezier(0.4,0,1,1) forwards" : "spDetailIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            {/* Header */}
+            <div style={{ flexShrink:0, padding:"12px 18px 0", borderBottom:`1px solid ${th.border}`, paddingBottom:14 }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <ProgramIcon name={prog.name || ""} size={44} />
+                <div style={{ flex:1 }}>
+                  <div className="bebas" style={{ fontSize:24, letterSpacing:1.5, color:th.text, lineHeight:1 }}>{prog.name || "Program"}</div>
+                  <div style={{ fontSize:13, color:th.muted, marginTop:3 }}>
+                    {isReceiver
+                      ? `Shared by ${sp.fromName || "a friend"}`
+                      : `You shared with ${sp.toName || "friend"}`}
+                  </div>
+                </div>
+                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"4px 6px", flexShrink:0 }}>✕</button>
+              </div>
+              <div style={{ display:"flex", gap:6, marginTop:10, flexWrap:"wrap" }}>
+                {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
+                  <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Exercise list */}
+            <div style={{ flex:1, overflowY:"auto", padding:"14px 18px" }}>
+              {(prog.exs || []).length === 0 ? (
+                <div style={{ color:th.muted, fontSize:14, textAlign:"center", padding:"28px 0" }}>No exercises</div>
+              ) : (prog.exs || []).map((ex, i) => {
+                const dbEx = DB.find(d => d.id === ex.id);
+                const sets = ex.sets || [];
+                const firstSet = sets[0] || {};
+                return (
+                  <div key={ex.id || i} style={{ ...S.card, padding:"12px 14px", marginBottom:8 }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontWeight:700, fontSize:14, color:th.text, marginBottom:4 }}>{dbEx?.name || ex.name || "Exercise"}</div>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
+                          {dbEx && <span style={S.tag(dbEx.group)}>{(dbEx.muscle||"").toUpperCase()}</span>}
+                          {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
+                            const grp = DB.find(d=>d.muscle===m)?.group || "Back";
+                            return <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>{m.toUpperCase()}</span>;
+                          })}
+                        </div>
+                        <div style={{ fontSize:12, color:th.dim }}>
+                          {sets.length} set{sets.length!==1?"s":""}{firstSet.reps ? ` · ${firstSet.reps} reps` : ""}{firstSet.weight ? ` · ${firstSet.weight}kg` : ""}
+                        </div>
+                      </div>
+                      {dbEx && <DiffBadge id={dbEx.id} />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Save button — only shown to receiver */}
+            {isReceiver && (
+              <div style={{ flexShrink:0, padding:"12px 18px calc(24px + env(safe-area-inset-bottom, 0px))", borderTop:`1px solid ${th.border}` }}>
+                <button
+                  onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
+                  style={{
+                    width:"100%",
+                    background: saved
+                      ? `color-mix(in srgb, #1db954 18%, transparent)`
+                      : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                    backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                    border:"none", borderRadius:14, padding:"16px 0",
+                    cursor: saved ? "default" : "pointer",
+                    fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:16,
+                    color: saved ? "#1db954" : th.accentT,
+                    letterSpacing:"0.5px",
+                    transition:"background .2s, color .2s",
+                  }}
+                >{saved ? "✓ Saved to My Workouts" : "Save to My Workouts"}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -7007,6 +7164,10 @@ import "./styles.css";
     const [feedLoading, setFeedLoading] = useState(false);
     // Stars: key = `${ownerUid}-${sessionId}`, value = { starred: bool, count: number }
     const [starState, setStarState] = useState({});
+    const [sharedPrograms, setSharedPrograms] = useState([]); // programs shared with me
+    const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
+    const [savedProgIds, setSavedProgIds] = useState(new Set()); // shared prog ids I've saved
+    const [openSharedProg, setOpenSharedProg] = useState(null); // sp doc to show in detail sheet
 
     // Load feed when friends list changes
     useEffect(() => {
@@ -7037,14 +7198,41 @@ import "./styles.css";
       });
     }, [friends.map(f => f.uid).join(",")]);
 
+    // Real-time listeners for shared programs
+    useEffect(() => {
+      if (!user?.id) return;
+      const u1 = fsListenSharedWithMe(user.id, items => setSharedPrograms(items.sort((a,b) => b.ts - a.ts)));
+      const u2 = fsListenSharedByMe(user.id, items => setSharedByMe(items.sort((a,b) => b.ts - a.ts)));
+      return () => { u1(); u2(); };
+    }, [user?.id]);
+
     // Build feed items: last 7 days only, sort newest first
     const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const feedItems = friends.flatMap(f => {
+    const sessionFeedItems = friends.flatMap(f => {
       const sessions = feedData[f.uid] || [];
       return sessions
         .filter(s => (s.startTime || 0) >= W7)
-        .map(s => ({ friend: f, session: s }));
-    }).sort((a, b) => (b.session.startTime || 0) - (a.session.startTime || 0));
+        .map(s => ({ type:"session", friend: f, session: s, ts: s.startTime || 0 }));
+    });
+    // Shared programs in feed: programs shared TO me (from friends) + programs I shared (to show in my feed)
+    const sharedProgFeedItems = [
+      ...sharedPrograms.filter(sp => sp.ts >= W7).map(sp => ({
+        type: "sharedProg",
+        direction: "received",
+        sp,
+        ts: sp.ts,
+        friend: friends.find(f => f.uid === sp.fromUid) || { uid: sp.fromUid, name: sp.fromName, photoURL: sp.fromPhotoURL },
+      })),
+      ...sharedByMe.filter(sp => sp.ts >= W7).map(sp => ({
+        type: "sharedProg",
+        direction: "sent",
+        sp,
+        ts: sp.ts,
+        friend: friends.find(f => f.uid === sp.toUid) || { uid: sp.toUid, name: "Friend" },
+      })),
+    ];
+    const feedItems = [...sessionFeedItems, ...sharedProgFeedItems]
+      .sort((a, b) => b.ts - a.ts);
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -7277,6 +7465,19 @@ import "./styles.css";
           />
         )}
 
+        {/* ── Shared program detail sheet ── */}
+        {openSharedProg && (
+          <SharedProgramSheet
+            sp={openSharedProg}
+            user={user}
+            onClose={() => setOpenSharedProg(null)}
+            onSave={(prog) => {
+              onSaveSharedProgram && onSaveSharedProgram(prog);
+              setSavedProgIds(s => new Set([...s, openSharedProg.id]));
+            }}
+          />
+        )}
+
         {/* ── Competition sheet ── */}
         {competeFriend && (
           <CompetitionSheet
@@ -7424,7 +7625,53 @@ import "./styles.css";
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
                 <div style={{ color:th.muted, fontSize:14, textAlign: "center" }}>No recent workouts from friends yet.</div>
               </div>
-            ) : feedItems.map(({ friend: f, session: s }, i) => {
+            ) : feedItems.map((item, i) => {
+              if (item.type === "sharedProg") {
+                const { sp, direction, friend: f } = item;
+                const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                const isSaved = savedProgIds.has(sp.id);
+                return (
+                  <div key={`sp-${sp.id}-${direction}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                    {/* Who shared row */}
+                    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                      {f.photoURL ? (
+                        <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      ) : (
+                        <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
+                      )}
+                      <div style={{ flex:1 }}>
+                        <span style={{ fontWeight:700, fontSize:14, color:th.text }}>
+                          {direction === "received" ? f.name.split(" ")[0] : "You"}
+                        </span>
+                        <span style={{ fontSize:13, color:th.muted }}>
+                          {direction === "received" ? " shared a program with you" : ` shared a program with ${f.name.split(" ")[0]}`}
+                        </span>
+                      </div>
+                      <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
+                    </div>
+                    {/* Program card — tappable to open detail */}
+                    <button onClick={() => setOpenSharedProg(sp)}
+                      style={{ width:"100%", background:"none", border:"none", padding:0, cursor:"pointer", textAlign:"left" }}>
+                      <div style={{ background:th.sect, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
+                        <ProgramIcon name={sp.program?.name || ""} size={40} />
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:3 }}>{sp.program?.name || "Program"}</div>
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                            {[...new Set((sp.program?.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,3).map(g => (
+                              <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                            ))}
+                          </div>
+                          <div style={{ fontSize:12, color:th.dim, marginTop:5 }}>{(sp.program?.exs||[]).length} exercises · tap to view</div>
+                        </div>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke={th.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+                      </div>
+                    </button>
+                  </div>
+                );
+              }
+
+              // Session feed item
+              const { friend: f, session: s } = item;
               const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
               const vol = sessionVol(s);
               const muscles = [...new Set((s.exercises||[]).map(e=>e.group).filter(Boolean))];
@@ -7925,7 +8172,7 @@ import "./styles.css";
     );
   }
 
-  function CreateProgramView({ program, onSave, onStart, onBack, settings, onUpdateSettings }) {
+  function CreateProgramView({ program, onSave, onStart, onBack, settings, onUpdateSettings, friends, onShare }) {
     const th = useTheme();
     const S = useS();
     const editing = !!program?.id;
@@ -8231,6 +8478,33 @@ import "./styles.css";
           display: "flex",
           gap: 10,
         }}>
+          {/* SHARE button — shown only when editing an existing program and has friends */}
+          {editing && friends?.length > 0 && (
+            <button
+              onClick={() => onShare && onShare({ id: program?.id || uid(), name: name.trim(), exs })}
+              disabled={!name.trim() || exs.length === 0}
+              style={{
+                width: 50, height: 50, flexShrink: 0,
+                background: (!name.trim() || exs.length === 0)
+                  ? `color-mix(in srgb, ${th.card} 40%, transparent)`
+                  : `color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
+                backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                border: `1.5px solid ${(!name.trim() || exs.length === 0) ? th.inputB : `color-mix(in srgb, ${th.accentBg} 60%, transparent)`}`,
+                borderRadius: 14,
+                cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "background .2s, border-color .2s",
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="18" cy="5" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2"/>
+                <circle cx="6" cy="12" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2"/>
+                <circle cx="18" cy="19" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+            </button>
+          )}
           {/* SAVE button — subtle secondary, frosted glass with accent border */}
           <button
             onClick={() => {
@@ -12328,6 +12602,11 @@ import "./styles.css";
     const [view, setView] = useState("home");
     const [profileOpen, setProfileOpen] = useState(false);
     const [profileClosing, setProfileClosing] = useState(false);
+    const [shareProgOpen, setShareProgOpen] = useState(false);
+    const [shareProgClosing, setShareProgClosing] = useState(false);
+    const [shareProgTarget, setShareProgTarget] = useState(null); // program to share
+    const [sharingSending, setSharingSending] = useState({}); // {friendUid: 'idle'|'sending'|'sent'}
+    const closeShareProg = () => { setShareProgClosing(true); setTimeout(() => { setShareProgOpen(false); setShareProgClosing(false); setSharingSending({}); }, 340); };
     const closeProfile = () => {
       setProfileClosing(true);
       setTimeout(() => { setProfileOpen(false); setProfileClosing(false); }, 360);
@@ -13691,6 +13970,8 @@ import "./styles.css";
                 onBack={() => setView("programs")}
                 settings={settings}
                 onUpdateSettings={saveSettings}
+                friends={friends}
+                onShare={(prog) => { setShareProgTarget(prog); setShareProgOpen(true); setSharingSending({}); }}
               />
             )}
             {view === "history" && (
@@ -13768,6 +14049,12 @@ import "./styles.css";
                 settings={settings}
                 onUpdateSettings={saveSettings}
                 onToggleStar={(ownerUid, sessionId, sName) => fsToggleStar(ownerUid, sessionId, user.id, user.name || "Friend", sName)}
+                onSaveSharedProgram={(prog) => {
+                  // Add the shared program to user's own programs list
+                  const newProg = { ...prog, id: uid(), name: prog.name };
+                  const updated = [...programs, newProg];
+                  savePrograms(updated);
+                }}
               />
             )}
           </div>
@@ -14326,6 +14613,102 @@ import "./styles.css";
                   onClose={closeProfile}
                   onPhotoUpdate={(updates) => fsPushProfileToFriends(user.id, updates, friends.map(f => f.uid))}
                 />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Share Program Modal ── */}
+      {shareProgOpen && (
+        <>
+          <style>{`
+            @keyframes spBdIn  { from{opacity:0} to{opacity:1} }
+            @keyframes spBdOut { from{opacity:1} to{opacity:0} }
+            @keyframes spSheetIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+            @keyframes spSheetOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+          `}</style>
+          {/* Backdrop */}
+          <div onClick={closeShareProg} style={{
+            position:"fixed", inset:0, zIndex:80,
+            background:"rgba(0,0,0,0.55)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+            animation: shareProgClosing ? "spBdOut .34s ease forwards" : "spBdIn .26s ease forwards",
+          }} />
+          {/* Sheet */}
+          <div style={{
+            position:"fixed", inset:0, zIndex:81,
+            display:"flex", flexDirection:"column",
+            maxWidth:480, margin:"0 auto", pointerEvents:"none",
+          }}>
+            <div onClick={e=>e.stopPropagation()} style={{
+              background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+              backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+              borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+              marginTop:"auto", maxHeight:"80vh",
+              display:"flex", flexDirection:"column",
+              pointerEvents:"auto",
+              animation: shareProgClosing ? "spSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "spSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+            }}>
+              {/* Header */}
+              <div style={{ padding:"12px 18px 0" }}>
+                <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
+                  <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+                </div>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                  <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text }}>SHARE PROGRAM</div>
+                  <button onClick={closeShareProg} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"4px 6px" }}>✕</button>
+                </div>
+                {shareProgTarget && (
+                  <div style={{ display:"flex", alignItems:"center", gap:10, background:`color-mix(in srgb, ${th.accentBg} 12%, ${th.sect})`, border:`1px solid color-mix(in srgb, ${th.accentBg} 30%, transparent)`, borderRadius:12, padding:"10px 14px", marginBottom:14 }}>
+                    <ProgramIcon name={shareProgTarget.name} size={32} />
+                    <div>
+                      <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{shareProgTarget.name}</div>
+                      <div style={{ fontSize:11, color:th.muted }}>{(shareProgTarget.exs||[]).length} exercises</div>
+                    </div>
+                  </div>
+                )}
+                <div style={{ fontSize:11, color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:4 }}>SELECT FRIENDS</div>
+              </div>
+
+              {/* Friend picker */}
+              <div style={{ overflowY:"auto", padding:"0 18px 18px", flex:1 }}>
+                {friends.length === 0 ? (
+                  <div style={{ textAlign:"center", padding:"28px 0", color:th.muted, fontSize:14 }}>No friends yet.</div>
+                ) : friends.map(f => {
+                  const state = sharingSending[f.uid] || "idle";
+                  const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                  return (
+                    <div key={f.uid} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${th.border}` }}>
+                      {f.photoURL ? (
+                        <img src={f.photoURL} alt={f.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      ) : (
+                        <div style={{ width:44, height:44, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
+                      )}
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{f.name}</div>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (state !== "idle" || !shareProgTarget) return;
+                          setSharingSending(p => ({ ...p, [f.uid]: "sending" }));
+                          const result = await fsShareProgram(user, f, shareProgTarget);
+                          setSharingSending(p => ({ ...p, [f.uid]: result.ok ? "sent" : "idle" }));
+                        }}
+                        style={{
+                          background: state === "sent"
+                            ? `color-mix(in srgb, #1db954 20%, transparent)`
+                            : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                          backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                          border:"none", borderRadius:10,
+                          padding:"7px 16px", cursor: state === "sent" ? "default" : "pointer",
+                          fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+                          color: state === "sent" ? "#1db954" : th.accentT,
+                          letterSpacing:"0.5px", transition:"background .2s, color .2s", flexShrink:0,
+                        }}
+                      >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "Send"}</button>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
