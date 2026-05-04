@@ -2155,18 +2155,17 @@ import "./styles.css";
         uid, name: name || "", photoURL: photoURL || null, email: email || "",
         updatedAt: Date.now(),
       }, { merge: true });
-    } catch { /* silently ignore */ }
+    } catch (e) {
+      console.warn("fsRegisterPublicProfile failed:", e.code, e.message);
+    }
   }
 
-  async function fsGetSuggestedUsers(myUid, friendUids, limit = 2) {
-    try {
-      const snap = await getDocs(collection(fbDb, "publicProfiles"));
-      const excluded = new Set([myUid, ...friendUids]);
-      return snap.docs
-        .map(d => d.data())
-        .filter(u => !excluded.has(u.uid) && u.name)
-        .slice(0, limit);
-    } catch { return []; }
+  function fsListenPublicProfiles(cb) {
+    return onSnapshot(
+      collection(fbDb, "publicProfiles"),
+      snap => cb(snap.docs.map(d => d.data())),
+      err => { console.warn("fsListenPublicProfiles:", err.code, err.message); cb([]); }
+    );
   }
   async function fsUpdateChangelog(id, text) {
     try {
@@ -7313,18 +7312,27 @@ import "./styles.css";
       return () => { u1(); u2(); };
     }, [user?.id]);
 
-    // Load up to 2 suggested users — refresh when friends or invitations change
+    // Real-time suggestions from publicProfiles — updates live as new users register
     useEffect(() => {
       if (!user?.id) return;
       const pendingEmails = new Set([
-        ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()),
-        ...sentInvitations.map(i => i.toEmail?.toLowerCase()),
+        ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()).filter(Boolean),
+        ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
       ]);
-      fsGetSuggestedUsers(user.id, friends.map(f => f.uid), 4).then(all => {
-        // Also exclude anyone already invited
-        const filtered = all.filter(u => !pendingEmails.has((u.email||"").toLowerCase()));
-        setSuggestedUsers(filtered.slice(0, 2));
+      const friendUidSet = new Set(friends.map(f => f.uid));
+
+      const unsub = fsListenPublicProfiles(all => {
+        const filtered = all
+          .filter(u =>
+            u.uid !== user.id &&
+            u.name &&
+            !friendUidSet.has(u.uid) &&
+            !pendingEmails.has((u.email||"").toLowerCase())
+          )
+          .slice(0, 2);
+        setSuggestedUsers(filtered);
       });
+      return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
     // Build feed items: last 7 days only, sort newest first
@@ -10890,6 +10898,8 @@ import "./styles.css";
           age: eAge ? parseInt(eAge) : null,
           gender: eGender || null,
         });
+        // Keep public profile in sync for user discovery
+        fsRegisterPublicProfile(fbUser.uid, eName.trim(), photoData || null, eEmail.trim().toLowerCase());
         // Push updated name + photo to every friend's friend-list entry
         if (onPhotoUpdate) onPhotoUpdate({ name: eName.trim(), photoURL: photoData || null });
         onUpdateUser({
