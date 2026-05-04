@@ -7034,6 +7034,12 @@ import "./styles.css";
     const isReceiver = sp.toUid === user?.id;
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
 
+    // Resolve avatar for the sender (even when viewing as sender, show own photo)
+    const senderPhoto = sp.fromPhotoURL || null;
+    const senderName  = sp.fromName || "Unknown";
+    const senderInitials = senderName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+    const recipientName = sp.toName || "Friend";
+
     return (
       <>
         <style>{`
@@ -7061,32 +7067,48 @@ import "./styles.css";
             pointerEvents:"auto",
             animation: closing ? "spDetailOut .34s cubic-bezier(0.4,0,1,1) forwards" : "spDetailIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
-            {/* Header */}
-            <div style={{ flexShrink:0, padding:"12px 18px 0", borderBottom:`1px solid ${th.border}`, paddingBottom:14 }}>
+
+            {/* Header — same for both sender and receiver */}
+            <div style={{ flexShrink:0, padding:"12px 18px 14px", borderBottom:`1px solid ${th.border}` }}>
               <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
+              {/* Sender identity row */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+                {senderPhoto ? (
+                  <img src={senderPhoto} alt={senderName} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{senderInitials}</div>
+                )}
+                <div style={{ flex:1 }}>
+                  <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{senderName.split(" ")[0]}</span>
+                  <span style={{ fontSize:13, color:th.muted }}> shared a program with {isReceiver ? "you" : recipientName.split(" ")[0]}</span>
+                </div>
+                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"4px 6px", flexShrink:0 }}>✕</button>
+              </div>
+              {/* Program title + muscle tags */}
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
                 <ProgramIcon name={prog.name || ""} size={44} />
                 <div style={{ flex:1 }}>
                   <div className="bebas" style={{ fontSize:24, letterSpacing:1.5, color:th.text, lineHeight:1 }}>{prog.name || "Program"}</div>
-                  <div style={{ fontSize:13, color:th.muted, marginTop:3 }}>
-                    {isReceiver
-                      ? `Shared by ${sp.fromName || "a friend"}`
-                      : `You shared with ${sp.toName || "friend"}`}
+                  <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap" }}>
+                    {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
+                      <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                    ))}
                   </div>
                 </div>
-                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"4px 6px", flexShrink:0 }}>✕</button>
-              </div>
-              <div style={{ display:"flex", gap:6, marginTop:10, flexWrap:"wrap" }}>
-                {[...new Set((prog.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].map(g => (
-                  <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
-                ))}
               </div>
             </div>
 
-            {/* Exercise list */}
-            <div style={{ flex:1, overflowY:"auto", padding:"14px 18px" }}>
+            {/* Exercise list — scrolls, stops at content end, clears save button */}
+            <div style={{
+              flex:1, overflowY:"auto", overflowX:"hidden",
+              padding:"14px 18px",
+              // Extra bottom padding so last card clears the floating save button
+              paddingBottom: isReceiver ? "calc(88px + env(safe-area-inset-bottom, 0px))" : "calc(32px + env(safe-area-inset-bottom, 0px))",
+              // Prevent overscroll bounce pulling the whole sheet
+              overscrollBehavior:"contain",
+            }}>
               {(prog.exs || []).length === 0 ? (
                 <div style={{ color:th.muted, fontSize:14, textAlign:"center", padding:"28px 0" }}>No exercises</div>
               ) : (prog.exs || []).map((ex, i) => {
@@ -7116,9 +7138,14 @@ import "./styles.css";
               })}
             </div>
 
-            {/* Save button — only shown to receiver */}
+            {/* Floating save button — receiver only, no separate bar */}
             {isReceiver && (
-              <div style={{ flexShrink:0, padding:"12px 18px calc(24px + env(safe-area-inset-bottom, 0px))", borderTop:`1px solid ${th.border}` }}>
+              <div style={{
+                position:"absolute", bottom:0, left:0, right:0,
+                padding:"12px 18px calc(16px + env(safe-area-inset-bottom, 0px))",
+                background:`color-mix(in srgb, ${th.card} 70%, transparent)`,
+                backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
+              }}>
                 <button
                   onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
                   style={{
@@ -7131,8 +7158,7 @@ import "./styles.css";
                     cursor: saved ? "default" : "pointer",
                     fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:16,
                     color: saved ? "#1db954" : th.accentT,
-                    letterSpacing:"0.5px",
-                    transition:"background .2s, color .2s",
+                    letterSpacing:"0.5px", transition:"background .2s, color .2s",
                   }}
                 >{saved ? "✓ Saved to My Workouts" : "Save to My Workouts"}</button>
               </div>
@@ -7627,29 +7653,32 @@ import "./styles.css";
               </div>
             ) : feedItems.map((item, i) => {
               if (item.type === "sharedProg") {
-                const { sp, direction, friend: f } = item;
-                const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-                const isSaved = savedProgIds.has(sp.id);
+                const { sp, direction } = item;
+                // Always show the SENDER's photo and name (same layout for both users)
+                const sPhoto = sp.fromPhotoURL || null;
+                const sName = sp.fromName || "Unknown";
+                const sInitials = sName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                const recipName = sp.toName || "Friend";
                 return (
                   <div key={`sp-${sp.id}-${direction}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
-                    {/* Who shared row */}
+                    {/* Sender row — identical for both sender and receiver */}
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                      {f.photoURL ? (
-                        <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      {sPhoto ? (
+                        <img src={sPhoto} alt={sName} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
                       ) : (
-                        <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
+                        <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{sInitials}</div>
                       )}
                       <div style={{ flex:1 }}>
                         <span style={{ fontWeight:700, fontSize:14, color:th.text }}>
-                          {direction === "received" ? f.name.split(" ")[0] : "You"}
+                          {direction === "received" ? sName.split(" ")[0] : "You"}
                         </span>
                         <span style={{ fontSize:13, color:th.muted }}>
-                          {direction === "received" ? " shared a program with you" : ` shared a program with ${f.name.split(" ")[0]}`}
+                          {direction === "received" ? " shared a program with you" : ` shared a program with ${recipName.split(" ")[0]}`}
                         </span>
                       </div>
                       <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
                     </div>
-                    {/* Program card — tappable to open detail */}
+                    {/* Program card — same layout for both */}
                     <button onClick={() => setOpenSharedProg(sp)}
                       style={{ width:"100%", background:"none", border:"none", padding:0, cursor:"pointer", textAlign:"left" }}>
                       <div style={{ background:th.sect, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
