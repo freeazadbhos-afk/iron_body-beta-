@@ -3588,6 +3588,8 @@ import "./styles.css";
         // 3. Seed default programs, but keep shortcuts empty so home tab is clean
         lsSet(uKey(cred.user.uid, "programs"), DEFAULT_PROGRAMS);
         lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"], hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false });
+        // 4. Register public profile immediately so this user appears in others' suggestions
+        fsRegisterPublicProfile(cred.user.uid, trimmedName, null, email.trim().toLowerCase());
         // 4. Reload Firebase user so displayName is fresh on next auth state change
         await cred.user.reload();
         // 5. Belt-and-suspenders: if auth state already fired with empty name, patch it directly
@@ -7750,7 +7752,7 @@ import "./styles.css";
                 animation: inviteClosing ? "inviteModalOut 0.22s cubic-bezier(0.4,0,1,1) forwards" : "inviteModalIn 0.28s cubic-bezier(0,0,0.2,1) forwards",
               }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text }}>INVITE A FRIEND</div>
+                <div className="bebas" style={{ fontSize:22, textAlign:"left", letterSpacing:2, color:th.text }}>INVITE A FRIEND</div>
                 <button onClick={closeInvitePanel} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"2px 4px" }}>✕</button>
               </div>
               {inviteStatus === "sent" ? (
@@ -7763,29 +7765,30 @@ import "./styles.css";
                 <>
                   {/* ── Suggested users — horizontal bubbles, max 3 ── */}
                   <div style={{ marginBottom:18 }}>
-                    <div style={{ fontSize:11, color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:12 }}>PEOPLE YOU MAY KNOW</div>
+                    <div style={{ fontSize:11, textAlign:"center", color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:12 }}>PEOPLE YOU MAY KNOW</div>
                     {suggestLoading ? (
-                      /* Loading skeleton */
-                      <div style={{ display:"flex", gap:16, justifyContent:"center" }}>
+                      <div style={{ display:"flex", gap:16, justifyContent:"center", padding:"8px 0" }}>
                         {[0,1,2].map(i => (
-                          <div key={i} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, width:72 }}>
-                            <div style={{ width:56, height:56, borderRadius:"50%", background:th.inputB, opacity:0.4, animation:"pulse 1.5s ease-in-out infinite" }} />
-                            <div style={{ width:40, height:10, borderRadius:5, background:th.inputB, opacity:0.35, animation:"pulse 1.5s ease-in-out infinite" }} />
-                            <div style={{ width:34, height:18, borderRadius:10, background:th.inputB, opacity:0.3, animation:"pulse 1.5s ease-in-out infinite" }} />
+                          <div key={i} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6, width:72, opacity: 0.35 + i*0.1 }}>
+                            <div style={{ width:56, height:56, borderRadius:"50%", background:th.inputB, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            <div style={{ width:36, height:8, borderRadius:4, background:th.inputB, animation:"pulse 1.5s ease-in-out infinite" }} />
+                            <div style={{ width:32, height:16, borderRadius:8, background:th.inputB, animation:"pulse 1.5s ease-in-out infinite" }} />
                           </div>
                         ))}
                       </div>
                     ) : suggestedUsers.length > 0 ? (
-                      <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"nowrap" }}>
+                      <div style={{ display:"flex", gap:12, justifyContent:"left" }}>
                         {suggestedUsers.map(u => (
                           <SuggestSendBtn key={u.uid} user={user} suggested={u}
                             alreadySent={sentInvitations.some(i => i.toEmail?.toLowerCase() === u.email?.toLowerCase())} />
                         ))}
                       </div>
                     ) : (
-                      <div style={{ textAlign:"center", fontSize:12, color:th.dim, padding:"8px 0" }}>No suggestions yet</div>
+                      <div style={{ textAlign:"center", fontSize:12, color:th.dim, padding:"6px 0 4px" }}>
+                        No other users found yet
+                      </div>
                     )}
-                    <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:18 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:16 }}>
                       <div style={{ flex:1, height:1, background:th.border }} />
                       <div style={{ fontSize:11, color:th.dim, fontWeight:600, letterSpacing:"0.5px" }}>OR INVITE BY EMAIL</div>
                       <div style={{ flex:1, height:1, background:th.border }} />
@@ -13029,6 +13032,10 @@ import "./styles.css";
           if (snap.metadata.hasPendingWrites) return;
           if (snap.exists()) {
             const remote = snap.data();
+            // Backfill public profile with Firestore data — fires for every existing user on every app open
+            if (remote.name || user.name) {
+              fsRegisterPublicProfile(user.id, remote.name || user.name, remote.photoURL || user.photoURL || null, user.email || "");
+            }
             setSettings(prev => {
               // Merge remote into defaults; never overwrite a valid array with null
               const merged = { ...DEFAULT_SETTINGS, ...remote };
