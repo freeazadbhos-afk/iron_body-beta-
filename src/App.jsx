@@ -6633,7 +6633,15 @@ import "./styles.css";
     const startAt = toMs(comp?.startAt);
     const endAt   = toMs(comp?.endAt) || Infinity;
     const now     = Date.now();
-    const daysLeft = isActive ? Math.max(0, Math.floor((endAt - now) / 86400000)) : null;
+    const isExpired = isActive && endAt !== Infinity && now > endAt;
+    const daysLeft = isActive && !isExpired ? Math.max(0, Math.floor((endAt - now) / 86400000)) : 0;
+
+    // Auto-mark expired competitions as finished
+    useEffect(() => {
+      if (isExpired && comp?.id) {
+        updateDoc(doc(fbDb, "competitions", comp.id), { status: "finished" }).catch(() => {});
+      }
+    }, [isExpired, comp?.id]);
 
     const compFilter = (s) => {
       // Use endTime (when the workout was saved/completed) — this is what matters.
@@ -6831,15 +6839,22 @@ import "./styles.css";
                 </div>
               )}
 
-              {/* ── ACTIVE — live scoreboard ── */}
-              {isActive && (
+              {/* ── ACTIVE or EXPIRED — scoreboard ── */}
+              {(isActive || isExpired) && (
                 <>
                   {/* Status bar */}
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:24, padding:"10px 16px", background:`color-mix(in srgb, ${th.accentBg} 8%, ${th.sect})`, borderRadius:14, border:`1px solid ${th.border}` }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:th.accentFg, animation:"pulse 1.5s ease-in-out infinite" }} />
-                    <div style={{ fontSize:13, fontWeight:700, color:th.accentFg, letterSpacing:"0.5px" }}>LIVE</div>
-                    <div style={{ fontSize:13, color:th.muted }}>{daysLeft} day{daysLeft!==1?"s":""} remaining</div>
-                  </div>
+                  {isExpired ? (
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:24, padding:"10px 16px", background:`color-mix(in srgb, #D4AF37 10%, ${th.sect})`, borderRadius:14, border:`1px solid rgba(212,175,55,0.4)` }}>
+                      <div style={{ fontSize:18, lineHeight:1 }}>🏁</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:"#D4AF37", letterSpacing:"0.5px" }}>COMPETITION ENDED</div>
+                    </div>
+                  ) : (
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:10, marginBottom:24, padding:"10px 16px", background:`color-mix(in srgb, ${th.accentBg} 8%, ${th.sect})`, borderRadius:14, border:`1px solid ${th.border}` }}>
+                      <div style={{ width:8, height:8, borderRadius:"50%", background:th.accentFg, animation:"pulse 1.5s ease-in-out infinite" }} />
+                      <div style={{ fontSize:13, fontWeight:700, color:th.accentFg, letterSpacing:"0.5px" }}>LIVE</div>
+                      <div style={{ fontSize:13, color:th.muted }}>{daysLeft} day{daysLeft!==1?"s":""} remaining</div>
+                    </div>
+                  )}
 
                   {/* Score rings */}
                   <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:24 }}>
@@ -6879,12 +6894,16 @@ import "./styles.css";
                     <div style={{ borderRadius:16, padding:"20px 18px", textAlign:"center", marginBottom:4,
                       background: leading==="you"?`color-mix(in srgb, ${th.accentBg} 14%, ${th.card})`:leading==="friend"?"color-mix(in srgb, rgba(232,97,44,0.18) 100%, transparent)":th.sect,
                       border: leading==="you"?`1px solid ${th.accentBg}55`:leading==="friend"?"1px solid rgba(232,97,44,0.35)":`1px solid ${th.border}` }}>
-                      <div style={{ fontSize:38, marginBottom:8, lineHeight:1 }}>{leading==="you"?"🏆":leading==="friend"?"💪":"🤝"}</div>
+                      <div style={{ fontSize:38, marginBottom:8, lineHeight:1 }}>{leading==="you"?"🏆":leading==="friend"?"🥈":"🤝"}</div>
                       <div className="bebas" style={{ fontSize:26, letterSpacing:2, marginBottom:6, color:leading==="you"?th.accentFg:leading==="friend"?"#E8612C":th.sub }}>
-                        {leading==="you"?"YOU'RE WINNING!":leading==="friend"?`${friend.name.split(" ")[0].toUpperCase()} IS AHEAD`:"ALL TIED UP"}
+                        {isExpired
+                          ? leading==="you" ? "🎉 YOU WIN! CONGRATULATIONS!" : leading==="friend" ? `${friend.name.split(" ")[0].toUpperCase()} WINS!` : "IT'S A TIE!"
+                          : leading==="you"?"YOU'RE WINNING!":leading==="friend"?`${friend.name.split(" ")[0].toUpperCase()} IS AHEAD`:"ALL TIED UP"}
                       </div>
                       <div style={{ fontSize:14, color:th.muted, lineHeight:1.5 }}>
-                        {leading==="you"?"Keep the pressure on — train hard every day.":leading==="friend"?"Time to turn it up. You've got this.":"Anyone's game — every session counts!"}
+                        {isExpired
+                          ? leading==="you" ? "Amazing work! You dominated this competition." : leading==="friend" ? "Great effort! Keep training to beat them next time." : "What a match! Neck and neck all the way."
+                          : leading==="you"?"Keep the pressure on — train hard every day.":leading==="friend"?"Time to turn it up. You've got this.":"Anyone's game — every session counts!"}
                       </div>
                     </div>
                   )}
@@ -7385,9 +7404,15 @@ import "./styles.css";
   function StarredBySheet({ reactors, onClose }) {
     const th = useTheme();
     const [closing, setClosing] = useState(false);
-    const close = () => { setClosing(true); setTimeout(onClose, 280); };
+    const close = () => { setClosing(true); setTimeout(onClose, 300); };
     return (
       <>
+        <style>{`
+          @keyframes cmBdIn  {from{opacity:0}to{opacity:1}}
+          @keyframes cmBdOut {from{opacity:1}to{opacity:0}}
+          @keyframes cmIn    {from{transform:translateY(100%);opacity:.6}to{transform:translateY(0);opacity:1}}
+          @keyframes cmOut   {from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}
+        `}</style>
         <div onClick={close} style={{ position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)", animation: closing ? "cmBdOut .28s ease forwards" : "cmBdIn .22s ease forwards" }} />
         <div style={{ position:"fixed",inset:0,zIndex:81,display:"flex",flexDirection:"column",justifyContent:"flex-end",maxWidth:480,margin:"0 auto",pointerEvents:"none" }}>
           <div onClick={e=>e.stopPropagation()} style={{
