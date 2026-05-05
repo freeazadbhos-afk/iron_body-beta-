@@ -2088,6 +2088,52 @@ import "./styles.css";
       return [];
     }
   }
+
+  // Comments stored at: comments/{postId}/messages/{messageId}
+  // postId = `session_${ownerUid}_${sessionId}` or `program_${sharedProgId}`
+  async function fsPostComment(postId, authorUid, authorName, authorPhotoURL, text) {
+    try {
+      const ref = await addDoc(collection(fbDb, "comments", postId, "messages"), {
+        authorUid, authorName, authorPhotoURL: authorPhotoURL || null,
+        text: text.trim(), ts: Date.now(),
+      });
+      return { ok: true, id: ref.id };
+    } catch (e) { console.warn("fsPostComment:", e.code); return { ok: false }; }
+  }
+
+  function fsListenComments(postId, cb) {
+    return onSnapshot(
+      collection(fbDb, "comments", postId, "messages"),
+      snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.ts - b.ts)),
+      () => cb([])
+    );
+  }
+
+  async function fsDeleteComment(postId, messageId) {
+    try { await deleteDoc(doc(fbDb, "comments", postId, "messages", messageId)); } catch {}
+  }
+
+  // Stars on shared programs
+  async function fsToggleProgramStar(spId, reactorUid, reactorName, programName, ownerUid) {
+    const ref = doc(fbDb, "programReactions", `${spId}_${reactorUid}`);
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) { await deleteDoc(ref); return false; }
+      await setDoc(ref, { spId, reactorUid, reactorName, ownerUid, programName, ts: Date.now() });
+      if (ownerUid !== reactorUid) {
+        fsPushNotification(ownerUid, { type:"program_star", fromUid: reactorUid, name: reactorName, text:`${reactorName} starred your program "${programName}"` });
+      }
+      return true;
+    } catch (e) { console.warn("fsToggleProgramStar:", e.code); return null; }
+  }
+
+  async function fsGetProgramReactions(spId) {
+    try {
+      const q = query(collection(fbDb, "programReactions"), where("spId", "==", spId));
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data());
+    } catch { return []; }
+  }
   async function fsGetFriendSessions(friendUid) {
     try {
       const snap = await getDocs(collection(fbDb, "users", friendUid, "sessions"));
@@ -7220,6 +7266,169 @@ import "./styles.css";
   }
 
 
+  // ── CommentsSheet ─────────────────────────────────────────────────────────────
+  function CommentsSheet({ postId, user, onClose }) {
+    const th = useTheme();
+    const S = useS();
+    const [comments, setComments] = useState([]);
+    const [text, setText] = useState("");
+    const [sending, setSending] = useState(false);
+    const [closing, setClosing] = useState(false);
+    const listRef = useRef(null);
+    const close = () => { setClosing(true); setTimeout(onClose, 300); };
+
+    useEffect(() => {
+      const unsub = fsListenComments(postId, c => {
+        setComments(c);
+        setTimeout(() => listRef.current?.scrollTo({ top: 99999, behavior:"smooth" }), 80);
+      });
+      return () => unsub();
+    }, [postId]);
+
+    const send = async () => {
+      const t = text.trim();
+      if (!t || sending) return;
+      setSending(true);
+      setText("");
+      await fsPostComment(postId, user.id, user.name, user.photoURL, t);
+      setSending(false);
+    };
+
+    return (
+      <>
+        <style>{`
+          @keyframes cmBdIn  {from{opacity:0}to{opacity:1}}
+          @keyframes cmBdOut {from{opacity:1}to{opacity:0}}
+          @keyframes cmIn    {from{transform:translateY(100%);opacity:.6}to{transform:translateY(0);opacity:1}}
+          @keyframes cmOut   {from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}
+        `}</style>
+        <div onClick={close} style={{ position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)", animation: closing ? "cmBdOut .3s ease forwards" : "cmBdIn .25s ease forwards" }} />
+        <div style={{ position:"fixed",inset:0,zIndex:81,display:"flex",flexDirection:"column",justifyContent:"flex-end",maxWidth:480,margin:"0 auto",pointerEvents:"none" }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"auto", maxHeight:"75vh",
+            display:"flex", flexDirection:"column", pointerEvents:"auto",
+            animation: closing ? "cmOut .3s cubic-bezier(0.4,0,1,1) forwards" : "cmIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            {/* Header */}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 18px 12px", borderBottom:`1px solid ${th.border}`, flexShrink:0 }}>
+              <div style={{ display:"flex", justifyContent:"center", position:"absolute", left:"50%", transform:"translateX(-50%)", top:8 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ fontWeight:700, fontSize:16, color:th.text }}>Comments</div>
+              <button onClick={close} style={{ background:"none",border:"none",color:th.muted,fontSize:22,cursor:"pointer",lineHeight:1 }}>✕</button>
+            </div>
+            {/* Comment list */}
+            <div ref={listRef} style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"12px 18px" }}>
+              {comments.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"28px 0", color:th.dim, fontSize:14 }}>No comments yet. Be the first!</div>
+              ) : comments.map(c => {
+                const ini = (c.authorName||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                const isOwn = c.authorUid === user.id;
+                return (
+                  <div key={c.id} style={{ display:"flex", gap:10, marginBottom:14, alignItems:"flex-start" }}>
+                    {c.authorPhotoURL ? (
+                      <img src={c.authorPhotoURL} alt={c.authorName} style={{ width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:34,height:34,borderRadius:"50%",background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:th.accentFg,flexShrink:0 }}>{ini}</div>
+                    )}
+                    <div style={{ flex:1 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
+                        <span style={{ fontWeight:700, fontSize:13, color:th.text }}>{c.authorName?.split(" ")[0]}</span>
+                        <span style={{ fontSize:11, color:th.dim }}>{fmtTimeAgo(c.ts)}</span>
+                        {isOwn && (
+                          <button onClick={() => fsDeleteComment(postId, c.id)}
+                            style={{ marginLeft:"auto", background:"none",border:"none",color:th.dim,fontSize:11,cursor:"pointer",padding:0 }}>Delete</button>
+                        )}
+                      </div>
+                      <div style={{ fontSize:14, color:th.sub, lineHeight:1.5, background:th.sect, borderRadius:"4px 12px 12px 12px", padding:"8px 12px", display:"inline-block", maxWidth:"100%", wordBreak:"break-word" }}>
+                        {c.text}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Input */}
+            <div style={{ padding:"10px 18px calc(16px + env(safe-area-inset-bottom,0px))", borderTop:`1px solid ${th.border}`, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+              {user.photoURL ? (
+                <img src={user.photoURL} alt="" style={{ width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0 }} />
+              ) : (
+                <div style={{ width:32,height:32,borderRadius:"50%",background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:th.accentFg,flexShrink:0 }}>
+                  {(user.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase()}
+                </div>
+              )}
+              <input
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && send()}
+                placeholder="Add a comment…"
+                style={{ flex:1, background:th.sect, border:`1px solid ${th.border}`, borderRadius:20, padding:"9px 14px", fontSize:14, color:th.text, fontFamily:"'Outfit',sans-serif", outline:"none" }}
+              />
+              <button onClick={send} disabled={!text.trim() || sending}
+                style={{ background: text.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:"50%", width:36,height:36, display:"flex",alignItems:"center",justifyContent:"center", cursor: text.trim() ? "pointer" : "default", transition:"background .18s", flexShrink:0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13" stroke={text.trim() ? th.accentT : th.dim} strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={text.trim() ? th.accentT : th.dim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  // ── StarredBySheet ────────────────────────────────────────────────────────────
+  function StarredBySheet({ reactors, onClose }) {
+    const th = useTheme();
+    const [closing, setClosing] = useState(false);
+    const close = () => { setClosing(true); setTimeout(onClose, 280); };
+    return (
+      <>
+        <div onClick={close} style={{ position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)", animation: closing ? "cmBdOut .28s ease forwards" : "cmBdIn .22s ease forwards" }} />
+        <div style={{ position:"fixed",inset:0,zIndex:81,display:"flex",flexDirection:"column",justifyContent:"flex-end",maxWidth:480,margin:"0 auto",pointerEvents:"none" }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"auto", maxHeight:"50vh",
+            display:"flex", flexDirection:"column", pointerEvents:"auto",
+            animation: closing ? "cmOut .28s cubic-bezier(0.4,0,1,1) forwards" : "cmIn .34s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            <div style={{ padding:"12px 18px 10px", borderBottom:`1px solid ${th.border}`, flexShrink:0, position:"relative" }}>
+              <div style={{ display:"flex",justifyContent:"center",marginBottom:8 }}><div style={{ width:36,height:4,borderRadius:2,background:th.inputB }} /></div>
+              <div style={{ fontWeight:700,fontSize:16,color:th.text,textAlign:"center" }}>Starred by</div>
+              <button onClick={close} style={{ position:"absolute",right:18,top:20,background:"none",border:"none",color:th.muted,fontSize:20,cursor:"pointer",lineHeight:1 }}>✕</button>
+            </div>
+            <div style={{ overflowY:"auto", padding:"8px 18px calc(16px + env(safe-area-inset-bottom,0px))" }}>
+              {reactors.length === 0 ? (
+                <div style={{ textAlign:"center",padding:"20px 0",color:th.dim,fontSize:14 }}>No stars yet</div>
+              ) : reactors.map((r,i) => {
+                const ini = (r.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                return (
+                  <div key={r.uid||i} style={{ display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${th.border}` }}>
+                    {r.photoURL ? (
+                      <img src={r.photoURL} alt={r.name} style={{ width:40,height:40,borderRadius:"50%",objectFit:"cover",flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:40,height:40,borderRadius:"50%",background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13,fontWeight:700,color:th.accentFg,flexShrink:0 }}>{ini}</div>
+                    )}
+                    <div style={{ fontWeight:600,fontSize:15,color:th.text }}>{r.name}</div>
+                    <svg style={{ marginLeft:"auto",flexShrink:0 }} width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}>
+                      <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"/>
+                    </svg>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   function SuggestSendBtn({ user, suggested, alreadySent }) {
     const th = useTheme();
     const [state, setState] = useState(alreadySent ? "sent" : "idle");
@@ -7282,7 +7491,11 @@ import "./styles.css";
     const [sharedPrograms, setSharedPrograms] = useState([]); // programs shared with me
     const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
     const [savedProgIds, setSavedProgIds] = useState(new Set()); // shared prog ids I've saved
-    const [openSharedProg, setOpenSharedProg] = useState(null); // sp doc to show in detail sheet
+    const [openSharedProg, setOpenSharedProg] = useState(null);
+    const [openComments, setOpenComments] = useState(null); // { postId }
+    const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
+    const [commentCounts, setCommentCounts] = useState({}); // postId -> count
+    const [progStarState, setProgStarState] = useState({}); // spId -> { starred, count }
     const [suggestedUsers, setSuggestedUsers] = useState([]);
     const [suggestLoading, setSuggestLoading] = useState(false);
 
@@ -7622,6 +7835,18 @@ import "./styles.css";
           document.body
         )}
 
+        {/* ── Comments sheet ── */}
+        {openComments && createPortal(
+          <CommentsSheet postId={openComments.postId} user={user} onClose={() => setOpenComments(null)} />,
+          document.body
+        )}
+
+        {/* ── Starred-by sheet ── */}
+        {openStarredBy && createPortal(
+          <StarredBySheet reactors={openStarredBy} onClose={() => setOpenStarredBy(null)} />,
+          document.body
+        )}
+
         {/* ── Competition sheet ── */}
         {competeFriend && (
           <CompetitionSheet
@@ -7831,23 +8056,68 @@ import "./styles.css";
                       </div>
                       <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
                     </div>
-                    {/* Program card — same layout for both */}
+                    {/* Program card — tappable to open */}
                     <button onClick={() => setOpenSharedProg(sp)}
                       style={{ width:"100%", background:"none", border:"none", padding:0, cursor:"pointer", textAlign:"left" }}>
                       <div style={{ background:th.sect, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
                         <ProgramIcon name={sp.program?.name || ""} size={40} />
                         <div style={{ flex:1, minWidth:0 }}>
                           <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:3 }}>{sp.program?.name || "Program"}</div>
-                          <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
                             {[...new Set((sp.program?.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,3).map(g => (
                               <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
                             ))}
                           </div>
-                          <div style={{ fontSize:12, color:th.dim, marginTop:5 }}>{(sp.program?.exs||[]).length} exercises · tap to view</div>
+                          <div style={{ fontSize:12, color:th.dim }}>{(sp.program?.exs||[]).length} exercises · tap to view</div>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke={th.muted} strokeWidth="2" strokeLinecap="round"/></svg>
                       </div>
                     </button>
+                    {/* Interaction row — outside tappable button */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
+                      <button
+                        onClick={() => setOpenComments({ postId: `program_${sp.id}` })}
+                        style={{ background:"none",border:"none",display:"flex",alignItems:"center",gap:5,cursor:"pointer",padding:"4px 0",color:th.dim }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span style={{ fontSize:13, fontWeight:600 }}>{commentCounts[`program_${sp.id}`] || ""}</span>
+                      </button>
+                      <div style={{ display:"flex",alignItems:"center",gap:6 }}>
+                        {(() => {
+                          const ps = progStarState[sp.id] || { starred:false, count:0 };
+                          return (
+                            <>
+                              {ps.count > 0 && (
+                                <button onClick={async () => {
+                                  const rxns = await fsGetProgramReactions(sp.id);
+                                  setOpenStarredBy(rxns.map(r => ({ uid:r.reactorUid, name:r.reactorName })));
+                                }} style={{ background:"none",border:"none",cursor:"pointer",padding:0,fontSize:13,color:th.accentFg,fontWeight:700 }}>
+                                  {ps.count} ★
+                                </button>
+                              )}
+                              <button
+                                onClick={async () => {
+                                  const wasStarred = ps.starred;
+                                  setProgStarState(p => ({ ...p, [sp.id]: { starred:!wasStarred, count: Math.max(0,ps.count+(wasStarred?-1:1)) }}));
+                                  await fsToggleProgramStar(sp.id, user.id, user.name, sp.program?.name||"Program", sp.fromUid);
+                                }}
+                                style={{
+                                  background: ps.starred ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "transparent",
+                                  border:`1.5px solid ${ps.starred ? th.accentBg : th.inputB}`,
+                                  borderRadius:10, padding:"6px 10px", cursor:"pointer",
+                                  display:"flex",alignItems:"center",gap:5, transition:"background .18s",
+                                }}>
+                                <svg width="14" height="14" viewBox="0 0 22 22" fill={ps.starred ? th.accentFg : "none"}>
+                                  <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"
+                                    stroke={ps.starred ? th.accentFg : th.dim} strokeWidth="1.8" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
                   </div>
                 );
               }
@@ -7924,27 +8194,36 @@ import "./styles.css";
                         ))}
                       </div>
                     )}
-                    {/* Star reaction row */}
-                    <div style={{ display:"flex", justifyContent:"flex-end", alignItems:"center", marginTop:10, gap:6 }}>
-                      {starInfo.count > 0 && (
-                        <span style={{ fontSize:13, color: starInfo.starred ? th.accentFg : th.dim, fontWeight:700, transition:"color .2s" }}>
-                          {starInfo.count}
-                        </span>
-                      )}
-                      <div style={{ position:"relative", display:"inline-flex" }}>
+                    {/* Interaction row: star + comments */}
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
+                      {/* Comment button */}
+                      <button
+                        onClick={() => setOpenComments({ postId: `session_${f.uid}_${sid}` })}
+                        style={{ background:"none", border:"none", display:"flex", alignItems:"center", gap:5, cursor:"pointer", padding:"4px 0", color:th.dim }}>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        <span style={{ fontSize:13, fontWeight:600 }}>{commentCounts[`session_${f.uid}_${sid}`] || ""}</span>
+                      </button>
+                      {/* Star + count */}
+                      <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                        {starInfo.count > 0 && (
+                          <button
+                            onClick={async () => {
+                              const rxns = await fsGetReactions(f.uid, sid);
+                              setOpenStarredBy(rxns);
+                            }}
+                            style={{ background:"none",border:"none",cursor:"pointer",padding:0,fontSize:13,color:th.accentFg,fontWeight:700 }}>
+                            {starInfo.count} ★
+                          </button>
+                        )}
                         <button
                           onClick={handleStar}
                           style={{
-                            background: starInfo.starred
-                              ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)`
-                              : "transparent",
+                            background: starInfo.starred ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "transparent",
                             border: `1.5px solid ${starInfo.starred ? th.accentBg : th.inputB}`,
-                            borderRadius: 10,
-                            padding: "6px 10px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 5,
+                            borderRadius: 10, padding: "6px 10px", cursor: "pointer",
+                            display: "flex", alignItems: "center", gap: 5,
                             transition: "background .18s, border-color .18s",
                             WebkitTapHighlightColor: "transparent",
                           }}
