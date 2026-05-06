@@ -2105,7 +2105,7 @@ import "./styles.css";
     return onSnapshot(
       collection(fbDb, "comments", postId, "messages"),
       snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.ts - b.ts)),
-      () => cb([])
+      err => { console.warn("fsListenComments:", err.code, err.message); cb([], err); }
     );
   }
 
@@ -6616,10 +6616,14 @@ import "./styles.css";
       (c.toUid === user.id   && c.fromUid === friend.uid)
     ) || null;
 
+    const isFinished = comp?.status === "finished";
     const isPending  = comp?.status === "pending";
     const isActive   = comp?.status === "active";
     const isIncoming = isPending && comp?.toUid === user.id;
     const isOutgoing = isPending && comp?.fromUid === user.id;
+
+    // Show challenge interface if finished or no competition
+    const showChallenge = !comp || isFinished;
 
     // Normalize Firestore Timestamps or plain numbers to ms
     const toMs = (v) => {
@@ -6915,7 +6919,7 @@ import "./styles.css";
                   >END COMPETITION</button>
                 </>
               )}
-              {!comp && (
+              {showChallenge && (
                 <>
                   {sentOk ? (
                     <div style={{ textAlign:"center", padding:"40px 0", animation:"compSentIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
@@ -7293,15 +7297,24 @@ import "./styles.css";
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
     const [closing, setClosing] = useState(false);
+    const [permError, setPermError] = useState(false);
     const listRef = useRef(null);
     const close = () => { setClosing(true); setTimeout(onClose, 300); };
 
     useEffect(() => {
-      const unsub = fsListenComments(postId, c => {
-        setComments(c);
-        setTimeout(() => listRef.current?.scrollTo({ top: 99999, behavior:"smooth" }), 80);
-      });
-      return () => unsub();
+      let unsub = () => {};
+      try {
+        unsub = fsListenComments(postId, (c, err) => {
+          if (err) { setPermError(true); return; }
+          setComments(c);
+          setPermError(false);
+          setTimeout(() => listRef.current?.scrollTo({ top: 99999, behavior:"smooth" }), 80);
+        });
+      } catch (e) {
+        console.warn("CommentsSheet listener error:", e);
+        setPermError(true);
+      }
+      return () => { try { unsub(); } catch {} };
     }, [postId]);
 
     const send = async () => {
@@ -7341,7 +7354,16 @@ import "./styles.css";
             </div>
             {/* Comment list */}
             <div ref={listRef} style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"12px 18px" }}>
-              {comments.length === 0 ? (
+              {permError ? (
+                <div style={{ textAlign:"center", padding:"24px 0" }}>
+                  <div style={{ fontSize:24, marginBottom:8 }}>🔒</div>
+                  <div style={{ color:th.muted, fontSize:14, marginBottom:8 }}>Comments need a Firebase rule.</div>
+                  <div style={{ color:th.dim, fontSize:11, lineHeight:1.6 }}>
+                    Add this rule in Firebase Console → Firestore → Rules:<br/>
+                    <code style={{ background:th.sect, padding:"2px 6px", borderRadius:4, fontSize:10 }}>match /comments/&#123;p&#125;/messages/&#123;m&#125; {'{'} allow read, write: if request.auth != null; {'}'}</code>
+                  </div>
+                </div>
+              ) : comments.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"28px 0", color:th.dim, fontSize:14 }}>No comments yet. Be the first!</div>
               ) : comments.map(c => {
                 const ini = (c.authorName||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -7535,10 +7557,10 @@ import "./styles.css";
         results.forEach(({ uid, sessions }) => { map[uid] = sessions || []; });
         setFeedData(map);
         setFeedLoading(false);
-        // Load reaction counts for all sessions in view
-        const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        // Load reaction counts for all sessions in view (30 days to match feed)
+        const W30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
         results.forEach(({ uid, sessions }) => {
-          (sessions || []).filter(s => (s.startTime||0) >= W7).forEach(s => {
+          (sessions || []).filter(s => (s.startTime||0) >= W30).forEach(s => {
             const sid = s.id || s.startTime;
             if (!sid) return;
             fsGetReactions(uid, sid).then(rxns => {
@@ -7584,8 +7606,8 @@ import "./styles.css";
       return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
-    // Build feed items: last 7 days only, sort newest first
-    const W7 = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    // Build feed items: last 30 days, sort newest first
+    const W7 = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const sessionFeedItems = friends.flatMap(f => {
       const sessions = feedData[f.uid] || [];
       return sessions
@@ -7922,8 +7944,8 @@ import "./styles.css";
           </button>
         ) : null}
 
-        {/* ── Invite popup modal ── */}
-        {showInvitePanel && (
+        {/* ── Invite popup modal — portalled to body so backdrop covers full screen including header ── */}
+        {showInvitePanel && createPortal(
           <>
             <style>{`
               @keyframes inviteModalIn  { from{opacity:0;transform:scale(0.94) translateY(12px)} to{opacity:1;transform:scale(1) translateY(0)} }
@@ -8018,7 +8040,8 @@ import "./styles.css";
               )}
             </div>
             </div>
-          </>
+          </>,
+          document.body
         )}
 
         {/* ── Sent invitations awaiting response ── */}
@@ -11466,6 +11489,79 @@ import "./styles.css";
               {editMode ? "Cancel" : "Edit"}
             </button>
           </div>
+          {/* ── Awards section ── */}
+          {(() => {
+            const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+            const uniqueDays = daySet.size;
+
+            // Compute current active streak (consecutive days ending today/yesterday)
+            const sortedDays = [...daySet].sort((a,b) => b-a);
+            let streak = 0;
+            let expected = new Date(); expected.setHours(0,0,0,0);
+            // Allow yesterday as the start (don't punish for not training today yet)
+            if (sortedDays.length && sortedDays[0] < expected.getTime() - 86400000*2) {
+              streak = 0; // gap > 1 day
+            } else {
+              for (const day of sortedDays) {
+                if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
+                else break;
+              }
+            }
+
+            const awards = [
+              { id:"streak7",  icon:"🔥", label:"7-Day Streak",  desc:"Train 7 days in a row", earned: streak >= 7 },
+              { id:"streak14", icon:"⚡", label:"14-Day Streak", desc:"Train 14 days in a row", earned: streak >= 14 },
+              { id:"streak21", icon:"💎", label:"21-Day Streak", desc:"Train 21 days in a row", earned: streak >= 21 },
+              { id:"streak30", icon:"👑", label:"1-Month Streak", desc:"Train 30 days in a row", earned: streak >= 30 },
+              { id:"comp",     icon:"🏆", label:"Competition Winner", desc:"Win a 7-day challenge vs a friend", earned: (user._awardsWon || 0) >= 1 },
+            ];
+            const earned = awards.filter(a => a.earned);
+            const locked = awards.filter(a => !a.earned);
+            const all = [...earned, ...locked];
+
+            return (
+              <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                  <div style={{ ...S.label, textAlign:"left" }}>AWARDS</div>
+                  <div style={{ fontSize:12, color:th.dim }}>{earned.length}/{all.length} earned</div>
+                </div>
+                {/* Grid — 3 per row */}
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
+                  {all.map(a => (
+                    <div key={a.id} style={{
+                      display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
+                      background: a.earned
+                        ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`
+                        : th.sect,
+                      borderRadius:12,
+                      border: a.earned
+                        ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)`
+                        : `1.5px solid ${th.border}`,
+                      opacity: a.earned ? 1 : 0.38,
+                    }}>
+                      <div style={{
+                        width:46, height:46, borderRadius:12,
+                        background: a.earned
+                          ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.card})`
+                          : th.row,
+                        display:"flex", alignItems:"center", justifyContent:"center",
+                        fontSize:24,
+                        boxShadow: a.earned ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none",
+                      }}>{a.icon}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color: a.earned ? th.text : th.dim, textAlign:"center", lineHeight:1.3 }}>
+                        {a.label}
+                      </div>
+                      <div style={{ fontSize:10, color:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
+                    </div>
+                  ))}
+                </div>
+                {earned.length === 0 && (
+                  <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginTop:8 }}>Keep training to earn awards</div>
+                )}
+              </div>
+            );
+          })()}
+
           <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
               <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>DISPLAY NAME</div>
