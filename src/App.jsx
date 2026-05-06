@@ -7803,12 +7803,13 @@ import "./styles.css";
       if (!ts) return "";
       const diff = Date.now() - ts;
       const m = Math.floor(diff / 60000);
+      if (m < 1) return "just now";
       if (m < 60) return `${m}m ago`;
       const h = Math.floor(diff / 3600000);
       if (h < 24) return `${h}h ago`;
-      // For anything older than 24h show the actual day name + date so two different
-      // days never show the same string (e.g. "Mon 21 Apr" vs "Tue 22 Apr")
-      return new Date(ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+      const d = Math.floor(diff / 86400000);
+      if (d === 1) return "1 day ago";
+      return `${d} days ago`;
     };
 
     return (
@@ -13624,10 +13625,12 @@ import "./styles.css";
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
 
       // Listen for star reactions on user's sessions
+      const notifCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
       const unsubReactions = onSnapshot(
         query(collection(fbDb, "reactions"), where("ownerUid", "==", user.id)),
         snap => {
           const rxns = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .filter(r => (r.ts || 0) >= notifCutoff)
             .sort((a, b) => (b.ts || 0) - (a.ts || 0));
           setStarNotifications(prev => {
             // Merge with social notifications (dedupe by id)
@@ -13647,6 +13650,7 @@ import "./styles.css";
         query(collection(fbDb, "notifications"), where("toUid", "==", user.id)),
         snap => {
           const notifs = snap.docs.map(d => ({ id: d.id, ...d.data(), _type: "social" }))
+            .filter(n => (n.ts || 0) >= notifCutoff)
             .sort((a, b) => (b.ts || 0) - (a.ts || 0));
           setStarNotifications(prev => {
             const stars = prev.filter(n => n._type === "star");
@@ -15245,9 +15249,12 @@ import "./styles.css";
                 {starNotifications.map((n, i) => {
                   const diff = Date.now() - (n.ts || 0);
                   const m = Math.floor(diff / 60000);
-                  const timeStr = m < 60 ? `${m}m ago`
+                  const d = Math.floor(diff / 86400000);
+                  const timeStr = m < 1 ? "just now"
+                    : m < 60 ? `${m}m ago`
                     : diff < 86400000 ? `${Math.floor(diff/3600000)}h ago`
-                    : new Date(n.ts).toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+                    : d === 1 ? "1 day ago"
+                    : `${d} days ago`;
                   const iconBg = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? "rgba(212,175,55,0.18)"
                     : n.type === "friend_accepted"
