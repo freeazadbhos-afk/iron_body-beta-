@@ -7529,12 +7529,18 @@ import "./styles.css";
         });
     }, [user.id, friends.map(f=>f.uid).join(",")]);
 
-    const entries = [
+    const rawEntries = [
       { uid:user.id, name:"You", photoURL:user.photoURL, isMe:true },
       ...friends.map(f => ({ uid:f.uid, name:f.name, photoURL:f.photoURL, isMe:false })),
     ].map(e => ({ ...e, score: boardScores[e.uid] ?? null }))
      .filter(e => e.score !== null)
      .sort((a,b) => b.score - a.score);
+
+    // Always pad to at least 3 entries with empty placeholder slots
+    const entries = [...rawEntries];
+    while (entries.length < 3) {
+      entries.push({ uid:`empty-${entries.length}`, name:"", photoURL:null, isMe:false, score:0, isEmpty:true });
+    }
 
     const medals = ["🥇","🥈","🥉"];
 
@@ -7543,12 +7549,10 @@ import "./styles.css";
         <div style={{ ...S.label, marginBottom:12, textAlign:"left" }}>{monthName.toUpperCase()} LEADERBOARD</div>
         {loading ? (
           <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading scores…</div>
-        ) : entries.length === 0 ? (
-          <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.muted, fontSize:14 }}>Add friends to see the leaderboard.</div>
         ) : entries.map((e, i) => {
-          // For medal positions (top 3): if score is 0, render an empty placeholder slot
+          // Empty placeholder: explicitly marked, or medal slot with 0 score
           const isMedalSlot = i < 3;
-          const isEmpty = isMedalSlot && e.score === 0;
+          const isEmpty = e.isEmpty || (isMedalSlot && e.score === 0);
 
           if (isEmpty) {
             return (
