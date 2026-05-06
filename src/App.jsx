@@ -7616,7 +7616,6 @@ import "./styles.css";
       return () => unsub();
     }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
-    // Build feed items: last 30 days, sort newest first
     const W7 = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const sessionFeedItems = friends.flatMap(f => {
       const sessions = feedData[f.uid] || [];
@@ -7643,6 +7642,21 @@ import "./styles.css";
     ];
     const feedItems = [...sessionFeedItems, ...sharedProgFeedItems]
       .sort((a, b) => b.ts - a.ts);
+
+    // Load comment counts for all visible feed items
+    useEffect(() => {
+      if (!feedItems.length) return;
+      const unsubList = feedItems.map(item => {
+        const postId = item.type === "sharedProg"
+          ? `program_${item.sp.id}`
+          : `session_${item.friend?.uid}_${item.session?.id || item.session?.startTime}`;
+        if (!postId || postId.endsWith("_undefined")) return null;
+        return fsListenComments(postId, (comments) => {
+          setCommentCounts(prev => ({ ...prev, [postId]: comments.length }));
+        });
+      }).filter(Boolean);
+      return () => unsubList.forEach(u => { try { u(); } catch {} });
+    }, [feedItems.map(i => i.type === "sharedProg" ? i.sp?.id : (i.session?.id || i.session?.startTime)).join(",")]); 
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -8092,7 +8106,8 @@ import "./styles.css";
                 const sPhoto = sp.fromPhotoURL || null;
                 const sName = sp.fromName || "Unknown";
                 const sInitials = sName.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-                const recipName = sp.toName || "Friend";
+                const recipFriend = friends.find(f => f.uid === sp.toUid);
+                const recipName = sp.toName || recipFriend?.name || "Friend";
                 return (
                   <div key={`sp-${sp.id}-${direction}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                     {/* Sender row — identical for both sender and receiver */}
@@ -10996,6 +11011,69 @@ import "./styles.css";
     );
   }
 
+  function AwardsDashboard({ sessions, user }) {
+    const th = useTheme();
+    const S = useS();
+    const [aPage, setAPage] = useState(0);
+
+    const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+    const sortedDays = [...daySet].sort((a,b) => b-a);
+    let streak = 0;
+    let expected = new Date(); expected.setHours(0,0,0,0);
+    if (!sortedDays.length || sortedDays[0] < expected.getTime() - 86400000*2) {
+      streak = 0;
+    } else {
+      for (const day of sortedDays) {
+        if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
+        else break;
+      }
+    }
+    const awards = [
+      { id:"streak7",  icon:"🔥", label:"7-Day Streak",    desc:"Train 7 days in a row",    earned: streak >= 7 },
+      { id:"streak14", icon:"⚡", label:"14-Day Streak",   desc:"Train 14 days in a row",   earned: streak >= 14 },
+      { id:"streak21", icon:"💎", label:"21-Day Streak",   desc:"Train 21 days in a row",   earned: streak >= 21 },
+      { id:"streak30", icon:"👑", label:"1-Month Streak",  desc:"Train 30 days in a row",   earned: streak >= 30 },
+      { id:"comp",     icon:"🏆", label:"Competition Win", desc:"Win a 7-day challenge",    earned: (user._awardsWon || 0) >= 1 },
+    ];
+    const PAGE = 3;
+    const totalPages = Math.ceil(awards.length / PAGE);
+    const slice = awards.slice(aPage * PAGE, aPage * PAGE + PAGE);
+    const earnedCount = awards.filter(a => a.earned).length;
+
+    return (
+      <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
+        <style>{`@keyframes awSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes awSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+          <div style={{ ...S.label, textAlign:"left" }}>AWARDS</div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <span style={{ fontSize:12, color:th.dim }}>{earnedCount}/{awards.length}</span>
+            {totalPages > 1 && (<>
+              <button onClick={() => setAPage(p => Math.max(0, p-1))} disabled={aPage===0}
+                style={{ background:"none", border:"none", color: aPage===0 ? th.inputB : th.accentFg, fontSize:28, cursor: aPage===0?"default":"pointer", padding:"0 4px", lineHeight:1 }}>‹</button>
+              <button onClick={() => setAPage(p => Math.min(totalPages-1, p+1))} disabled={aPage===totalPages-1}
+                style={{ background:"none", border:"none", color: aPage===totalPages-1 ? th.inputB : th.accentFg, fontSize:28, cursor: aPage===totalPages-1?"default":"pointer", padding:"0 4px", lineHeight:1 }}>›</button>
+            </>)}
+          </div>
+        </div>
+        <div key={aPage} style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, animation:"awSlideL 0.22s ease-out" }}>
+          {slice.map(a => (
+            <div key={a.id} style={{
+              display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
+              background: a.earned ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})` : th.sect,
+              borderRadius:12,
+              border: a.earned ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)` : `1.5px solid ${th.border}`,
+              opacity: a.earned ? 1 : 0.38,
+            }}>
+              <div style={{ width:46, height:46, borderRadius:12, background: a.earned ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.card})` : th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, boxShadow: a.earned ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none" }}>{a.icon}</div>
+              <div style={{ fontSize:11, fontWeight:700, color: a.earned ? th.text : th.dim, textAlign:"center", lineHeight:1.3 }}>{a.label}</div>
+              <div style={{ fontSize:10, color:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function ProfileView({
     user,
     sessions,
@@ -11500,77 +11578,7 @@ import "./styles.css";
             </button>
           </div>
           {/* ── Awards section ── */}
-          {(() => {
-            const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
-            const uniqueDays = daySet.size;
-
-            // Compute current active streak (consecutive days ending today/yesterday)
-            const sortedDays = [...daySet].sort((a,b) => b-a);
-            let streak = 0;
-            let expected = new Date(); expected.setHours(0,0,0,0);
-            // Allow yesterday as the start (don't punish for not training today yet)
-            if (sortedDays.length && sortedDays[0] < expected.getTime() - 86400000*2) {
-              streak = 0; // gap > 1 day
-            } else {
-              for (const day of sortedDays) {
-                if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
-                else break;
-              }
-            }
-
-            const awards = [
-              { id:"streak7",  icon:"🔥", label:"7-Day Streak",  desc:"Train 7 days in a row", earned: streak >= 7 },
-              { id:"streak14", icon:"⚡", label:"14-Day Streak", desc:"Train 14 days in a row", earned: streak >= 14 },
-              { id:"streak21", icon:"💎", label:"21-Day Streak", desc:"Train 21 days in a row", earned: streak >= 21 },
-              { id:"streak30", icon:"👑", label:"1-Month Streak", desc:"Train 30 days in a row", earned: streak >= 30 },
-              { id:"comp",     icon:"🏆", label:"Competition Winner", desc:"Win a 7-day challenge vs a friend", earned: (user._awardsWon || 0) >= 1 },
-            ];
-            const earned = awards.filter(a => a.earned);
-            const locked = awards.filter(a => !a.earned);
-            const all = [...earned, ...locked];
-
-            return (
-              <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-                  <div style={{ ...S.label, textAlign:"left" }}>AWARDS</div>
-                  <div style={{ fontSize:12, color:th.dim }}>{earned.length}/{all.length} earned</div>
-                </div>
-                {/* Grid — 3 per row */}
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10 }}>
-                  {all.map(a => (
-                    <div key={a.id} style={{
-                      display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
-                      background: a.earned
-                        ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})`
-                        : th.sect,
-                      borderRadius:12,
-                      border: a.earned
-                        ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)`
-                        : `1.5px solid ${th.border}`,
-                      opacity: a.earned ? 1 : 0.38,
-                    }}>
-                      <div style={{
-                        width:46, height:46, borderRadius:12,
-                        background: a.earned
-                          ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.card})`
-                          : th.row,
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        fontSize:24,
-                        boxShadow: a.earned ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none",
-                      }}>{a.icon}</div>
-                      <div style={{ fontSize:11, fontWeight:700, color: a.earned ? th.text : th.dim, textAlign:"center", lineHeight:1.3 }}>
-                        {a.label}
-                      </div>
-                      <div style={{ fontSize:10, color:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
-                    </div>
-                  ))}
-                </div>
-                {earned.length === 0 && (
-                  <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginTop:8 }}>Keep training to earn awards</div>
-                )}
-              </div>
-            );
-          })()}
+          <AwardsDashboard sessions={sessions} user={user} />
 
           <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
