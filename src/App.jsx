@@ -11055,7 +11055,7 @@ import "./styles.css";
             </>)}
           </div>
         </div>
-        <div key={aPage} style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, animation:"awSlideL 0.22s ease-out" }}>
+        <div key={aPage} style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, animation:"awSlideL 0.22s ease-out", minHeight:142 }}>
           {slice.map(a => (
             <div key={a.id} style={{
               display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
@@ -11577,8 +11577,7 @@ import "./styles.css";
               {editMode ? "Cancel" : "Edit"}
             </button>
           </div>
-          {/* ── Awards section ── */}
-          <AwardsDashboard sessions={sessions} user={user} />
+          {/* name/email/edit row ends above */}
 
           <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
@@ -11869,6 +11868,10 @@ import "./styles.css";
             </div>
           </ProfileSection>
         </div>{/* end profile card */}
+
+        {/* ── Awards card — separate from profile info ── */}
+        <AwardsDashboard sessions={sessions} user={user} />
+
         {/* Body measurements card */}
         <div
           style={{ ...S.card, padding: 0, marginBottom: 12, overflow: "hidden", textAlign: "left", }}
