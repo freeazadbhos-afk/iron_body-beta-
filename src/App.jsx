@@ -7486,6 +7486,118 @@ import "./styles.css";
     );
   }
 
+  // ── IronBoard ──────────────────────────────────────────────────────────────
+  function IronBoard({ user, friends, mySessions, onGetFriendSessions, boardScores, setBoardScores }) {
+    const th = useTheme();
+    const S = useS();
+    const [loading, setLoading] = useState(true);
+    const [friendSessions, setFriendSessions] = useState({});
+
+    // Month window
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const monthName = now.toLocaleString("en-US", { month:"long" });
+
+    const calcScore = (sessions) => {
+      if (!sessions?.length) return 0;
+      const relevant = sessions.filter(s => (s.startTime||0) >= monthStart);
+      if (!relevant.length) return 0;
+      const withInt   = relevant.filter(s => (s.intensity||0) > 0);
+      const intensAvg = withInt.length ? withInt.reduce((a,s)=>a+s.intensity,0)/withInt.length : 0;
+      const intensScore = (intensAvg/10)*10*0.30;
+      const avgCals = relevant.reduce((a,s)=>a+(s.calories||0),0)/relevant.length;
+      const calScore = Math.min(avgCals/500,1)*10*0.30;
+      const trainedDays = new Set(relevant.map(s=>{ const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })).size;
+      const consistScore = Math.min(trainedDays/20,1)*10*0.20;
+      const totalVol = relevant.reduce((a,s)=> a+(s.exercises||[]).reduce((b,ex)=>(ex.sets||[]).filter(st=>st.done!==false).reduce((c,st)=>c+(st.weight||0)*(st.reps||0),0)+b,0),0);
+      const actScore = Math.min(totalVol/50000,1)*10*0.20;
+      return Math.round((intensScore+calScore+consistScore+actScore)*10)/10;
+    };
+
+    useEffect(() => {
+      setLoading(true);
+      const myScore = calcScore(mySessions);
+      const initial = { [user.id]: myScore };
+      setBoardScores(initial);
+      if (!friends.length) { setLoading(false); return; }
+      Promise.all(friends.map(f => onGetFriendSessions(f.uid).then(s => ({ uid:f.uid, s }))))
+        .then(results => {
+          const scores = { [user.id]: myScore };
+          results.forEach(({ uid, s }) => { scores[uid] = calcScore(s); setFriendSessions(prev => ({...prev, [uid]:s})); });
+          setBoardScores(scores);
+          setLoading(false);
+        });
+    }, [user.id, friends.map(f=>f.uid).join(",")]);
+
+    const entries = [
+      { uid:user.id, name:"You", photoURL:user.photoURL, isMe:true },
+      ...friends.map(f => ({ uid:f.uid, name:f.name, photoURL:f.photoURL, isMe:false })),
+    ].map(e => ({ ...e, score: boardScores[e.uid] ?? null }))
+     .filter(e => e.score !== null)
+     .sort((a,b) => b.score - a.score);
+
+    const medals = ["🥇","🥈","🥉"];
+
+    return (
+      <div style={{ marginBottom:20 }}>
+        <div style={{ ...S.label, marginBottom:12, textAlign:"left" }}>{monthName.toUpperCase()} LEADERBOARD</div>
+        {loading ? (
+          <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading scores…</div>
+        ) : entries.length === 0 ? (
+          <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.muted, fontSize:14 }}>Add friends to see the leaderboard.</div>
+        ) : entries.map((e, i) => {
+          // For medal positions (top 3): if score is 0, render an empty placeholder slot
+          const isMedalSlot = i < 3;
+          const isEmpty = isMedalSlot && e.score === 0;
+
+          if (isEmpty) {
+            return (
+              <div key={e.uid} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12, opacity:0.45 }}>
+                <div style={{ width:28, textAlign:"center", fontSize:20, flexShrink:0 }}>{medals[i]}</div>
+                <div style={{ width:40, height:40, borderRadius:"50%", background:th.row, border:`1.5px dashed ${th.border}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="8" r="4" stroke={th.dim} strokeWidth="1.8"/>
+                    <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke={th.dim} strokeWidth="1.8" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, color:th.dim, fontStyle:"italic" }}>—</div>
+                </div>
+              </div>
+            );
+          }
+
+          const initials = (e.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+          const isTop = i === 0 && e.score > 0;
+          return (
+            <div key={e.uid} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12,
+              background: e.isMe ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.card})` : th.card,
+              border: e.isMe ? `1.5px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)` : `1.5px solid ${th.border}`,
+            }}>
+              <div style={{ width:28, textAlign:"center", fontSize:isTop?20:14, fontWeight:700, color: isMedalSlot && e.score>0 ? "#D4AF37" : th.dim, flexShrink:0 }}>
+                {isMedalSlot && e.score > 0 ? medals[i] : `#${i+1}`}
+              </div>
+              {e.photoURL ? (
+                <img src={e.photoURL} alt={e.name} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+              ) : (
+                <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
+              )}
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:700, fontSize:15, color: e.isMe ? th.accentFg : th.text }}>{e.isMe ? "You" : e.name.split(" ")[0]}</div>
+                <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>{monthName}</div>
+              </div>
+              <div style={{ textAlign:"right", flexShrink:0 }}>
+                <div className="bebas" style={{ fontSize:22, letterSpacing:1, color: isTop ? "#D4AF37" : e.isMe ? th.accentFg : th.text, lineHeight:1 }}>{e.score}</div>
+                <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.5px" }}>PTS</div>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ fontSize:11, color:th.dim, textAlign:"center", marginTop:4 }}>Scored on intensity · calories · consistency · volume</div>
+      </div>
+    );
+  }
+
   function SuggestSendBtn({ user, suggested, alreadySent }) {
     const th = useTheme();
     const [state, setState] = useState(alreadySent ? "sent" : "idle");
@@ -7531,6 +7643,8 @@ import "./styles.css";
     const [inviteStatus, setInviteStatus] = useState("idle");
     const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
+    const [sharingTab, setSharingTab] = useState("feed"); // "feed" | "friends"
+    const [boardScores, setBoardScores] = useState({}); // { uid: score }
     const [inviteClosing, setInviteClosing] = useState(false);
     const closeInvitePanel = () => {
       setInviteClosing(true);
@@ -7777,8 +7891,24 @@ import "./styles.css";
           );
         })}
 
+        {/* ── Tab switcher: FEED | FRIENDS ── */}
+        <div style={{ display:"flex", gap:6, marginBottom:16, padding:"2px", background:th.row, borderRadius:14 }}>
+          {["feed","friends"].map(t => (
+            <button key={t} onClick={() => setSharingTab(t)} style={{
+              flex:1, padding:"8px 0", border:"none", cursor:"pointer",
+              borderRadius:12, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+              letterSpacing:"0.5px",
+              background: sharingTab === t ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
+              color: sharingTab === t ? th.accentT : th.dim,
+              transition:"background .18s, color .18s",
+            }}>
+              {t === "feed" ? "FEED" : "FRIENDS"}
+            </button>
+          ))}
+        </div>
+
         {/* ── Horizontal friends bubble row ── */}
-        {friends.length > 0 && (
+        {sharingTab === "friends" && friends.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
               <div style={S.label}>FRIENDS ({friends.length})</div>
@@ -7954,8 +8084,13 @@ import "./styles.css";
           </div>
         )}
 
+        {/* ── Iron Board leaderboard under friends tab ── */}
+        {sharingTab === "friends" && friends.length > 0 && (
+          <IronBoard user={user} friends={friends} mySessions={mySessions} onGetFriendSessions={onGetFriendSessions} boardScores={boardScores} setBoardScores={setBoardScores} />
+        )}
+
         {/* ── Invite button / panel — only shown when no friends yet ── */}
-        {!showInvitePanel && friends.length === 0 ? (
+        {sharingTab === "friends" && (!showInvitePanel && friends.length === 0 ? (
           <button onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
             style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}>
             <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
@@ -7966,7 +8101,7 @@ import "./styles.css";
             </svg>
             INVITE A FRIEND
           </button>
-        ) : null}
+        ) : null)}
 
         {/* ── Invite popup modal — portalled to body so backdrop covers full screen including header ── */}
         {showInvitePanel && createPortal(
@@ -8090,10 +8225,15 @@ import "./styles.css";
         )}
 
         {/* ── Activity Feed ── */}
-        {friends.length > 0 && (
+        {sharingTab === "feed" && (
           <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom: 12,textAlign: "left" }}>FEED</div>
-            {feedLoading ? (
+            {friends.length === 0 ? (
+              <div style={{ ...S.card, padding:"28px 16px", textAlign:"center" }}>
+                <div style={{ fontSize:28, marginBottom:10 }}>👥</div>
+                <div style={{ color:th.text, fontWeight:700, fontSize:15, marginBottom:6 }}>No friends yet</div>
+                <div style={{ color:th.muted, fontSize:13 }}>Add friends in the Friends tab to see their activity here.</div>
+              </div>
+            ) : feedLoading ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading activity…</div>
             ) : feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
@@ -11028,12 +11168,33 @@ import "./styles.css";
         else break;
       }
     }
+
+    // Monthly challenge: ≥20 workout days in current calendar month
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const monthName = now.toLocaleString("en-US", { month:"long" });
+    const daysThisMonth = new Set(
+      sessions.filter(s => (s.startTime||0) >= monthStart)
+        .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
+    ).size;
+
+    // Weekly challenge: ≥5 workout days in current ISO week (Mon–Sun)
+    const dayOfWeek = (now.getDay() + 6) % 7; // 0=Mon
+    const weekStart = new Date(now); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - dayOfWeek);
+    const daysThisWeek = new Set(
+      sessions.filter(s => (s.startTime||0) >= weekStart.getTime())
+        .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
+    ).size;
+    const weekLabel = `Week ${Math.ceil(now.getDate()/7)} Challenge`;
+
     const awards = [
-      { id:"streak7",  icon:"🔥", label:"7-Day Streak",    desc:"Train 7 days in a row",    earned: streak >= 7 },
-      { id:"streak14", icon:"⚡", label:"14-Day Streak",   desc:"Train 14 days in a row",   earned: streak >= 14 },
-      { id:"streak21", icon:"💎", label:"21-Day Streak",   desc:"Train 21 days in a row",   earned: streak >= 21 },
-      { id:"streak30", icon:"👑", label:"1-Month Streak",  desc:"Train 30 days in a row",   earned: streak >= 30 },
-      { id:"comp",     icon:"🏆", label:"Competition Win", desc:"Win a 7-day challenge",    earned: (user._awardsWon || 0) >= 1 },
+      { id:"streak7",  icon:"🔥", label:"7-Day Streak",    desc:"Train 7 days in a row",         earned: streak >= 7 },
+      { id:"streak14", icon:"⚡", label:"14-Day Streak",   desc:"Train 14 days in a row",         earned: streak >= 14 },
+      { id:"streak21", icon:"💎", label:"21-Day Streak",   desc:"Train 21 days in a row",         earned: streak >= 21 },
+      { id:"streak30", icon:"👑", label:"1-Month Streak",  desc:"Train 30 days in a row",         earned: streak >= 30 },
+      { id:"comp",     icon:"🏆", label:"Competition Win", desc:"Win a 7-day challenge",          earned: (user._awardsWon || 0) >= 1 },
+      { id:"monthly",  icon:"📅", label:`${monthName} Challenge`, desc:`20 workouts in ${monthName}`, earned: daysThisMonth >= 20 },
+      { id:"weekly",   icon:"🗓️", label:weekLabel,          desc:"5 workouts this week",           earned: daysThisWeek >= 5 },
     ];
     const PAGE = 3;
     const totalPages = Math.ceil(awards.length / PAGE);
