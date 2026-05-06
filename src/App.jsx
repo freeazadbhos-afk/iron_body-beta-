@@ -7264,7 +7264,7 @@ import "./styles.css";
 
             {/* Save button — mirrors ExercisePicker confirm button, receiver only */}
             {isReceiver && (
-              <div style={{ padding:"12px 18px 20px", borderTop:`1px solid ${th.border}` }}>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 20px", zIndex: 10 }}>
                 <button
                   onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
                   style={{
@@ -7457,7 +7457,7 @@ import "./styles.css";
           }}>
             <div style={{ padding:"12px 18px 10px", borderBottom:`1px solid ${th.border}`, flexShrink:0, position:"relative" }}>
               <div style={{ display:"flex",justifyContent:"center",marginBottom:8 }}><div style={{ width:36,height:4,borderRadius:2,background:th.inputB }} /></div>
-              <div style={{ fontWeight:700,fontSize:16,color:th.text,textAlign:"center" }}>Starred by</div>
+              <div style={{ fontWeight:700,fontSize:16,color:th.text,textAlign:"left" }}>Starred by</div>
               <button onClick={close} style={{ position:"absolute",right:18,top:20,background:"none",border:"none",color:th.muted,fontSize:20,cursor:"pointer",lineHeight:1 }}>✕</button>
             </div>
             <div style={{ overflowY:"auto", padding:"8px 18px calc(16px + env(safe-area-inset-bottom,0px))" }}>
@@ -7879,18 +7879,18 @@ import "./styles.css";
                   </div>
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{c.fromName}</div>
-                  <div style={{ fontSize:13, color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
+                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
+                  <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
                 </div>
               </div>
-              <div style={{ fontSize:13, color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>
                 Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
                   style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT ✔</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
               </div>
             </div>
           );
@@ -11231,8 +11231,8 @@ import "./styles.css";
               opacity: a.earned ? 1 : 0.38,
             }}>
               <div style={{ width:46, height:46, borderRadius:12, background: a.earned ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.card})` : th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, boxShadow: a.earned ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none" }}>{a.icon}</div>
-              <div style={{ fontSize:11, fontWeight:700, color: a.earned ? th.text : th.dim, textAlign:"center", lineHeight:1.3 }}>{a.label}</div>
-              <div style={{ fontSize:10, color:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
+              <div style={{ fontSize:11, fontWeight:700, color: a.earned ? th.accentBg : th.dim, textAlign:"center", lineHeight:1.3 }}>{a.label}</div>
+              <div style={{ fontSize:10, color:th.text, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
             </div>
           ))}
         </div>
@@ -15448,7 +15448,7 @@ import "./styles.css";
                     <ProgramIcon name={shareProgTarget.name} size={32} />
                     <div>
                       <div style={{ fontWeight:700, fontSize:14, color:th.text }}>{shareProgTarget.name}</div>
-                      <div style={{ fontSize:11, color:th.muted }}>{(shareProgTarget.exs||[]).length} exercises</div>
+                      <div style={{ fontSize:11, textAlign:"left", color:th.muted }}>{(shareProgTarget.exs||[]).length} exercises</div>
                     </div>
                   </div>
                 )}
@@ -15463,7 +15463,7 @@ import "./styles.css";
                   const state = sharingSending[f.uid] || "idle";
                   const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
                   return (
-                    <div key={f.uid} style={{ display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${th.border}` }}>
+                    <div key={f.uid} style={{ display:"flex", textAlign:"left",alignItems:"center", gap:12, padding:"10px 0", borderBottom:`1px solid ${th.border}` }}>
                       {f.photoURL ? (
                         <img src={f.photoURL} alt={f.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
                       ) : (
