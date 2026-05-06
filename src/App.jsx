@@ -7301,6 +7301,16 @@ import "./styles.css";
     const listRef = useRef(null);
     const close = () => { setClosing(true); setTimeout(onClose, 300); };
 
+    const fmtAgo = (ts) => {
+      if (!ts) return "";
+      const d = Math.floor((Date.now() - ts) / 60000);
+      if (d < 1) return "just now";
+      if (d < 60) return `${d}m ago`;
+      const h = Math.floor(d / 60);
+      if (h < 24) return `${h}h ago`;
+      return new Date(ts).toLocaleDateString("en-GB", { day:"numeric", month:"short" });
+    };
+
     useEffect(() => {
       let unsub = () => {};
       try {
@@ -7378,7 +7388,7 @@ import "./styles.css";
                     <div style={{ flex:1 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
                         <span style={{ fontWeight:700, fontSize:13, color:th.text }}>{c.authorName?.split(" ")[0]}</span>
-                        <span style={{ fontSize:11, color:th.dim }}>{fmtTimeAgo(c.ts)}</span>
+                        <span style={{ fontSize:11, color:th.dim }}>{fmtAgo(c.ts)}</span>
                         {isOwn && (
                           <button onClick={() => fsDeleteComment(postId, c.id)}
                             style={{ marginLeft:"auto", background:"none",border:"none",color:th.dim,fontSize:11,cursor:"pointer",padding:0 }}>Delete</button>
