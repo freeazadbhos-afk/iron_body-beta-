@@ -7834,8 +7834,9 @@ import "./styles.css";
         `}</style>
 
         {/* ── Sharing onboarding guide ── */}
-        {!settings?.hasSharingOnboarded && (
-          <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true })} />
+        {/* Show onboarding if user hasn't seen v2 of the sharing guide */}
+        {!settings?.hasSharingOnboardedV2 && (
+          <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true, hasSharingOnboardedV2: true })} />
         )}
 
         {/* ── Pending invitations received ── */}
@@ -7897,44 +7898,35 @@ import "./styles.css";
           );
         })}
 
-        {/* ── Tab switcher: FEED | FRIENDS — animated jelly pill ── */}
+        {/* ── Tab switcher: FEED | FRIENDS — Apple-style liquid bar ── */}
         {(() => {
           const tabs = ["feed","friends"];
           const idx = tabs.indexOf(sharingTab);
           return (
-            <div style={{ display:"flex", position:"relative", marginBottom:16, padding:"3px", background:th.row, borderRadius:14 }}>
-              <style>{`
-                @keyframes jellyPill {
-                  0%   { transform:scaleX(1) scaleY(1); }
-                  30%  { transform:scaleX(1.08) scaleY(0.88); }
-                  55%  { transform:scaleX(0.95) scaleY(1.06); }
-                  75%  { transform:scaleX(1.02) scaleY(0.97); }
-                  100% { transform:scaleX(1) scaleY(1); }
-                }
-              `}</style>
-              {/* Sliding background pill */}
-              <div style={{
-                position:"absolute", top:3, bottom:3,
-                width:`calc(50% - 3px)`,
-                left: idx === 0 ? 3 : "calc(50%)",
-                background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                borderRadius:11,
-                transition:"left 0.32s cubic-bezier(0.34,1.56,0.64,1)",
-                transformOrigin:"center",
-                animation: "jellyPill 0.42s cubic-bezier(0.34,1.56,0.64,1)",
-                animationFillMode:"both",
-              }} />
+            <div style={{ display:"flex", position:"relative", marginBottom:16 }}>
               {tabs.map((t, ti) => (
                 <button key={t} onClick={() => setSharingTab(t)} style={{
-                  flex:1, padding:"9px 0", border:"none", cursor:"pointer",
-                  borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                  letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
-                  color: sharingTab === t ? th.accentT : th.dim,
-                  transition:"color 0.2s",
+                  flex:1, padding:"9px 0 10px", border:"none", cursor:"pointer",
+                  background:"transparent", position:"relative",
+                  fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+                  letterSpacing:"0.5px",
+                  color: sharingTab === t ? th.accentFg : th.dim,
+                  transition:"color 0.22s ease",
                 }}>
                   {t === "feed" ? "FEED" : "FRIENDS"}
                 </button>
               ))}
+              {/* Liquid sliding accent bar */}
+              <div style={{
+                position:"absolute", bottom:0, height:2.5, borderRadius:2,
+                background: th.accentFg,
+                width:`50%`,
+                left: idx === 0 ? "0%" : "50%",
+                transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
+                boxShadow:`0 0 8px color-mix(in srgb, ${th.accentFg} 60%, transparent)`,
+              }} />
+              {/* Full-width base track line */}
+              <div style={{ position:"absolute", bottom:0, left:0, right:0, height:1, background:th.border, borderRadius:1, zIndex:-1 }} />
             </div>
           );
         })()}
@@ -8043,7 +8035,7 @@ import "./styles.css";
 
 
         {/* ── Friend dashboard sheet ── */}
-        {dashFriend && (
+        {dashFriend && createPortal(
           <FriendDashboardSheet
             friend={dashFriend}
             user={user}
@@ -8051,7 +8043,8 @@ import "./styles.css";
             onClose={() => setDashFriend(null)}
             onGetFriendSessions={onGetFriendSessions}
             onCompete={() => { setDashFriend(null); setTimeout(() => setCompeteFriend(dashFriend), 360); }}
-          />
+          />,
+          document.body
         )}
 
         {/* ── Shared program detail sheet ── */}
@@ -8326,11 +8319,21 @@ import "./styles.css";
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
                       <button
                         onClick={() => setOpenComments({ postId: `program_${sp.id}` })}
-                        style={{ background:"none",border:"none",display:"flex",alignItems:"center",gap:5,cursor:"pointer",padding:"4px 0",color:th.dim }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        style={{
+                          background:"transparent",
+                          border:`1.5px solid ${th.inputB}`,
+                          borderRadius:10, padding:"6px 10px", cursor:"pointer",
+                          display:"flex", alignItems:"center", gap:5,
+                          transition:"background .18s, border-color .18s",
+                          WebkitTapHighlightColor:"transparent",
+                          color:th.dim,
+                        }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <span style={{ fontSize:13, color:th.accentBg, fontWeight:600 }}>{commentCounts[`program_${sp.id}`] || ""}</span>
+                        {commentCounts[`program_${sp.id}`] > 0 && (
+                          <span style={{ fontSize:13, fontWeight:600, color:th.dim }}>{commentCounts[`program_${sp.id}`]}</span>
+                        )}
                       </button>
                       <div style={{ display:"flex",alignItems:"center",gap:6 }}>
                         {(() => {
@@ -8447,14 +8450,24 @@ import "./styles.css";
                     )}
                     {/* Interaction row: star + comments */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
-                      {/* Comment button */}
+                      {/* Comment button — same style as star button */}
                       <button
                         onClick={() => setOpenComments({ postId: `session_${f.uid}_${sid}` })}
-                        style={{ background:"none", border:"none", display:"flex", alignItems:"center", gap:5, cursor:"pointer", padding:"4px 0", color:th.dim }}>
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        style={{
+                          background:"transparent",
+                          border:`1.5px solid ${th.inputB}`,
+                          borderRadius:10, padding:"6px 10px", cursor:"pointer",
+                          display:"flex", alignItems:"center", gap:5,
+                          transition:"background .18s, border-color .18s",
+                          WebkitTapHighlightColor:"transparent",
+                          color:th.dim,
+                        }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
-                        <span style={{ fontSize:13, fontWeight:600 }}>{commentCounts[`session_${f.uid}_${sid}`] || ""}</span>
+                        {commentCounts[`session_${f.uid}_${sid}`] > 0 && (
+                          <span style={{ fontSize:13, fontWeight:600, color:th.dim }}>{commentCounts[`session_${f.uid}_${sid}`]}</span>
+                        )}
                       </button>
                       {/* Star + count */}
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
