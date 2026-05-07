@@ -1440,7 +1440,7 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false };
   const ALL_DASHBOARDS = [
     { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
     { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
@@ -8074,7 +8074,7 @@ import "./styles.css";
         )}
 
         {/* ── Competition sheet ── */}
-        {competeFriend && (
+        {competeFriend && createPortal(
           <CompetitionSheet
             user={user}
             friend={competeFriend}
@@ -8086,7 +8086,8 @@ import "./styles.css";
             onAcceptCompeteInvite={onAcceptCompeteInvite}
             onDeclineCompeteInvite={onDeclineCompeteInvite}
             onWithdrawCompeteInvite={onWithdrawCompeteInvite}
-          />
+          />,
+          document.body
         )}
 
         {/* ── Empty state (no friends yet) ── */}
@@ -13635,7 +13636,7 @@ import "./styles.css";
               }
               // Onboarding flags are sticky — once dismissed locally, never revert
               // even if a stale snapshot still has the old false value
-              ["hasDashOnboarded", "hasProgramOnboarded", "hasProgramBuildOnboarded", "hasSharingOnboarded"].forEach(k => {
+              ["hasDashOnboarded", "hasProgramOnboarded", "hasProgramBuildOnboarded", "hasSharingOnboarded", "hasSharingOnboardedV2"].forEach(k => {
                 if (prev[k] === true) merged[k] = true;
               });
               const changed =
@@ -13644,7 +13645,8 @@ import "./styles.css";
                 merged.hasDashOnboarded         !== prev.hasDashOnboarded         ||
                 merged.hasProgramOnboarded      !== prev.hasProgramOnboarded      ||
                 merged.hasProgramBuildOnboarded !== prev.hasProgramBuildOnboarded ||
-                merged.hasSharingOnboarded      !== prev.hasSharingOnboarded;
+                merged.hasSharingOnboarded      !== prev.hasSharingOnboarded ||
+                merged.hasSharingOnboardedV2    !== prev.hasSharingOnboardedV2;
               if (changed) {
                 lsSet(uKey(user.id, "settings"), merged);
                 return merged;
