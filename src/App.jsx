@@ -6997,35 +6997,46 @@ import "./styles.css";
       {
         icon: (
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <rect x="2" y="3" width="18" height="5" rx="2.5" stroke={th.accentFg} strokeWidth="1.8"/>
+            <line x1="7" y1="5.5" x2="15" y2="5.5" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+          </svg>
+        ),
+        title: "Feed & Friends Tabs",
+        body: "The Sharing tab has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections and the monthly Iron Board leaderboard.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
             <circle cx="9" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2"/>
             <path d="M1 19.5c0-4.418 3.582-8 8-8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
             <line x1="17" y1="11" x2="17" y2="19" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
             <line x1="13" y1="15" x2="21" y2="15" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
           </svg>
         ),
-        title: "Invite Friends",
-        body: "Tap INVITE A FRIEND and enter their email address. They'll get an invitation in their Sharing tab. Once they accept, you're connected.",
+        title: "Add Friends",
+        body: "Tap the + bubble or INVITE A FRIEND to connect. Suggested users from the app appear automatically. Once accepted, you'll see each other's workouts in your feeds.",
       },
       {
         icon: (
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-            <circle cx="7" cy="7" r="2.8" stroke={th.accentFg} strokeWidth="1.8"/>
-            <path d="M1 19c0-3.314 2.686-6 6-6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
-            <circle cx="15" cy="7" r="2.8" stroke={th.accentFg} strokeWidth="1.8"/>
-            <path d="M21 19c0-3.314-2.686-6-6-6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+            <rect x="3" y="3" width="6" height="6" rx="1.5" stroke={th.accentFg} strokeWidth="1.8"/>
+            <rect x="13" y="3" width="6" height="6" rx="1.5" stroke={th.accentFg} strokeWidth="1.8"/>
+            <rect x="3" y="13" width="6" height="6" rx="1.5" stroke={th.accentFg} strokeWidth="1.8"/>
+            <path d="M13 16h6M16 13v6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
         ),
-        title: "Friends List",
-        body: "Accepted friends appear as circular bubbles at the top. Tap any bubble to open their full dashboard — streak, volume, muscles trained, and more.",
+        title: "Share Workouts",
+        body: "Inside any program in the Workouts tab, tap the share icon to send it to a friend. They'll see it in their Feed and can save it to their own Workouts with one tap.",
       },
       {
         icon: (
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
             <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round" transform="translate(0 0) scale(0.55) translate(10 16)"/>
           </svg>
         ),
-        title: "React to Workouts",
-        body: "Completed workouts from friends appear in your Feed. Tap the star button on any session to react. Your friend gets notified right away.",
+        title: "React & Comment",
+        body: "Tap the ★ on any feed post to react — your friend gets notified. Tap the comment bubble to leave a message. Tap a star count to see who reacted.",
       },
       {
         icon: (
@@ -7033,18 +7044,8 @@ import "./styles.css";
             <path d="M11 2l2.4 6.8H20l-5.5 4 2.1 6.8L11 15.6l-5.6 4 2.1-6.8L2 8.8h6.6z" stroke="#D4AF37" strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         ),
-        title: "Compete",
-        body: "Open a friend's dashboard and tap COMPETE to send a 7-day challenge. Scores are based on intensity, calories, consistency and activity. The bell icon notifies you of all competition events.",
-      },
-      {
-        icon: (
-          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-            <path d="M4 4h14v10a4 4 0 01-4 4H8a4 4 0 01-4-4V4z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
-            <path d="M8 18v2M14 18v2M6 20h10" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
-          </svg>
-        ),
-        title: "Notifications",
-        body: "Tap the bell icon at the top right of Sharing to see all your notifications — friend requests accepted, competition invites, and workout reactions.",
+        title: "Iron Board & Compete",
+        body: "Switch to Friends tab to see the monthly Iron Board — a live leaderboard ranking you and friends by intensity, calories, consistency and volume. Tap a friend bubble to open their dashboard and send a 7-day challenge.",
       },
     ];
 
@@ -7146,7 +7147,8 @@ import "./styles.css";
     const prog = sp.program || {};
     const isReceiver = sp.toUid === user?.id;
     const senderName = sp.fromName || "Someone";
-    const recipName  = sp.toName   || "Friend";
+    const recipientFriend = sp.toUid ? (typeof friends !== "undefined" ? (friends||[]).find(f=>f.uid===sp.toUid) : null) : null;
+    const recipName  = sp.toName || recipientFriend?.name || "Friend";
     const closeMe = () => { setSpClosing(true); setTimeout(onClose, 300); };
 
     return (
@@ -7726,8 +7728,7 @@ import "./styles.css";
         const filtered = all
           .filter(u => u.uid && u.uid !== user.id && u.name && u.email
             && !friendUidSet.has(u.uid)
-            && !pendingEmails.has((u.email||"").toLowerCase()))
-          .slice(0, 3);
+            && !pendingEmails.has((u.email||"").toLowerCase()));
         setSuggestedUsers(filtered);
         setSuggestLoading(false);
       });
@@ -7896,21 +7897,47 @@ import "./styles.css";
           );
         })}
 
-        {/* ── Tab switcher: FEED | FRIENDS ── */}
-        <div style={{ display:"flex", gap:6, marginBottom:16, padding:"2px", background:th.row, borderRadius:14 }}>
-          {["feed","friends"].map(t => (
-            <button key={t} onClick={() => setSharingTab(t)} style={{
-              flex:1, padding:"8px 0", border:"none", cursor:"pointer",
-              borderRadius:12, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-              letterSpacing:"0.5px",
-              background: sharingTab === t ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
-              color: sharingTab === t ? th.accentT : th.dim,
-              transition:"background .18s, color .18s",
-            }}>
-              {t === "feed" ? "FEED" : "FRIENDS"}
-            </button>
-          ))}
-        </div>
+        {/* ── Tab switcher: FEED | FRIENDS — animated jelly pill ── */}
+        {(() => {
+          const tabs = ["feed","friends"];
+          const idx = tabs.indexOf(sharingTab);
+          return (
+            <div style={{ display:"flex", position:"relative", marginBottom:16, padding:"3px", background:th.row, borderRadius:14 }}>
+              <style>{`
+                @keyframes jellyPill {
+                  0%   { transform:scaleX(1) scaleY(1); }
+                  30%  { transform:scaleX(1.08) scaleY(0.88); }
+                  55%  { transform:scaleX(0.95) scaleY(1.06); }
+                  75%  { transform:scaleX(1.02) scaleY(0.97); }
+                  100% { transform:scaleX(1) scaleY(1); }
+                }
+              `}</style>
+              {/* Sliding background pill */}
+              <div style={{
+                position:"absolute", top:3, bottom:3,
+                width:`calc(50% - 3px)`,
+                left: idx === 0 ? 3 : "calc(50%)",
+                background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                borderRadius:11,
+                transition:"left 0.32s cubic-bezier(0.34,1.56,0.64,1)",
+                transformOrigin:"center",
+                animation: "jellyPill 0.42s cubic-bezier(0.34,1.56,0.64,1)",
+                animationFillMode:"both",
+              }} />
+              {tabs.map((t, ti) => (
+                <button key={t} onClick={() => setSharingTab(t)} style={{
+                  flex:1, padding:"9px 0", border:"none", cursor:"pointer",
+                  borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                  letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
+                  color: sharingTab === t ? th.accentT : th.dim,
+                  transition:"color 0.2s",
+                }}>
+                  {t === "feed" ? "FEED" : "FRIENDS"}
+                </button>
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── Horizontal friends bubble row ── */}
         {sharingTab === "friends" && friends.length > 0 && (
@@ -8257,11 +8284,15 @@ import "./styles.css";
                   <div key={`sp-${sp.id}-${direction}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                     {/* Sender row — identical for both sender and receiver */}
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                      {sPhoto ? (
-                        <img src={sPhoto} alt={sName} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                      ) : (
-                        <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{sInitials}</div>
-                      )}
+                      {(() => {
+                        const senderFriend = friends.find(f => f.uid === sp.fromUid);
+                        const handleAvatarTap = senderFriend ? () => setDashFriend(senderFriend) : undefined;
+                        return sPhoto ? (
+                          <img src={sPhoto} alt={sName} onClick={handleAvatarTap} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0, cursor: handleAvatarTap ? "pointer" : "default" }} />
+                        ) : (
+                          <div onClick={handleAvatarTap} style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0, cursor: handleAvatarTap ? "pointer" : "default" }}>{sInitials}</div>
+                        );
+                      })()}
                       <div style={{ flex:1 }}>
                         <span style={{ fontWeight:700, fontSize:14, color:th.text }}>
                           {direction === "received" ? sName.split(" ")[0] : "You"}
@@ -8374,15 +8405,17 @@ import "./styles.css";
 
               return (
                 <div key={`${f.uid}-${sid || i}`} style={{ ...S.card, textAlign: "left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
-                  {/* Friend row */}
+                  {/* Friend row — tap avatar to open dashboard */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                    <div onClick={() => setDashFriend(f)} style={{ cursor:"pointer", flexShrink:0 }}>
                     {f.photoURL ? (
-                      <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                      <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", display:"block" }} />
                     ) : (
-                      <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                      <div style={{ width:36, height:36, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg }}>
                         {initials}
                       </div>
                     )}
+                    </div>
                     <div style={{ flex:1 }}>
                       <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name.split(" ")[0]}</span>
                       <span style={{ fontSize:13, color:th.muted }}> completed a workout</span>
