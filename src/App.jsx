@@ -4097,9 +4097,9 @@ import "./styles.css";
           @keyframes tabSlideIn { from{opacity:0;transform:translateX(10px)} to{opacity:1;transform:translateX(0)} }
           @keyframes tabSlideOut { from{opacity:1} to{opacity:0} }
         `}</style>
-        <div key={range} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:7, animation:"tabSlideIn 0.2s ease-out" }}>
+        <div key={range} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gridTemplateRows:"1fr 1fr", gap:7, animation:"tabSlideIn 0.2s ease-out", minHeight:130 }}>
           {tiles.map(s => (
-            <div key={s.l} style={{ background:`color-mix(in srgb, ${th.sect} 60%, transparent)`, backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
+            <div key={s.l} style={{ background:`color-mix(in srgb, ${th.sect} 60%, transparent)`, backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", borderRadius:10, padding:"12px 8px", textAlign:"center", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
               <div className="bebas" style={{ fontSize:22, color:s.col, lineHeight:1, letterSpacing:0.5 }}>{s.v}</div>
               <div style={{ fontSize:9, color:th.dim, letterSpacing:"1.2px", marginTop:3 }}>{s.l}</div>
             </div>
@@ -7272,13 +7272,13 @@ import "./styles.css";
                   style={{
                     width:"100%",
                     background: saved
-                      ? `color-mix(in srgb, #1db954 25%, transparent)`
+                      ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
                       : `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
                     backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
                     border:"none", borderRadius:13, padding:"14px",
                     cursor: saved ? "default" : "pointer",
                     fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
-                    letterSpacing:0.5, color: saved ? "#1db954" : th.accentT,
+                    letterSpacing:0.5, color: saved ? th.accentFg : th.accentT,
                     transition:"background .2s, color .2s",
                   }}
                 >{saved ? "✓ SAVED TO MY WORKOUTS" : "SAVE TO MY WORKOUTS"}</button>
@@ -7630,11 +7630,11 @@ import "./styles.css";
           }}
           style={{
             background: state === "sent"
-              ? `color-mix(in srgb, #1db954 20%, transparent)`
+              ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)`
               : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
             border:"none", borderRadius:20, padding:"4px 10px", cursor: state === "sent" ? "default" : "pointer",
             fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
-            color: state === "sent" ? "#1db954" : th.accentT,
+            color: state === "sent" ? th.accentFg : th.accentT,
             transition:"background .2s, color .2s", whiteSpace:"nowrap",
           }}
         >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "+ Add"}</button>
@@ -13733,12 +13733,14 @@ import "./styles.css";
         const secs = Math.floor(raw / 1000);
         elRef.current = secs;
         setElapsed(secs);
-      }, 500); // poll every 500 ms — fast enough, won't drift
+      }, 500);
     }, []);
 
     const stopTimer = useCallback(() => {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }, []);
 
     // Recalculate elapsed when page becomes visible again (phone unlocked)
@@ -13746,33 +13748,52 @@ import "./styles.css";
       const onVisible = () => {
         if (active && !paused) {
           const raw = Date.now() - startTsRef.current - totalPausedRef.current;
-          const secs = Math.floor(raw / 1000);
-          elRef.current = secs;
-          setElapsed(secs);
+          setElapsed(Math.floor(raw / 1000));
         }
       };
       document.addEventListener("visibilitychange", onVisible);
       return () => document.removeEventListener("visibilitychange", onVisible);
     }, [active, paused]);
 
-    // Timer runs whenever a workout is active and not paused — even when minimized
+    // Single effect that owns the interval — runs when paused/active changes
     useEffect(() => {
-      if (active && !paused) {
-        // Resuming from pause — account for time spent paused
-        if (pauseStartRef.current) {
-          totalPausedRef.current += Date.now() - pauseStartRef.current;
-          pauseStartRef.current = null;
-        }
-        startTimer();
-      } else {
-        stopTimer();
-        // Record when pause started
-        if (active && paused && !pauseStartRef.current) {
+      // Always kill existing interval first — guaranteed clean slate
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      if (!active) return; // not in a workout
+
+      if (paused) {
+        // Record pause start (only once)
+        if (!pauseStartRef.current) {
           pauseStartRef.current = Date.now();
         }
+        return; // don't start interval
       }
-      return stopTimer;
-    }, [active, paused, startTimer, stopTimer]);
+
+      // Resuming: bank paused time
+      if (pauseStartRef.current) {
+        totalPausedRef.current += Date.now() - pauseStartRef.current;
+        pauseStartRef.current = null;
+      }
+
+      // Start fresh interval
+      timerRef.current = setInterval(() => {
+        const raw = Date.now() - startTsRef.current - totalPausedRef.current;
+        const secs = Math.floor(raw / 1000);
+        elRef.current = secs;
+        setElapsed(secs);
+      }, 500);
+
+      return () => {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+      };
+    }, [active, paused]); // deliberately exclude startTimer/stopTimer to avoid any re-creation issues
 
     if (authLoading)
       return (
@@ -15529,13 +15550,13 @@ import "./styles.css";
                         }}
                         style={{
                           background: state === "sent"
-                            ? `color-mix(in srgb, #1db954 20%, transparent)`
+                            ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)`
                             : `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
                           backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
                           border:"none", borderRadius:10,
                           padding:"7px 16px", cursor: state === "sent" ? "default" : "pointer",
                           fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
-                          color: state === "sent" ? "#1db954" : th.accentT,
+                          color: state === "sent" ? th.accentFg : th.accentT,
                           letterSpacing:"0.5px", transition:"background .2s, color .2s", flexShrink:0,
                         }}
                       >{state === "sending" ? "…" : state === "sent" ? "✓ Sent" : "Send"}</button>
