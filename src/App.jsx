@@ -7140,7 +7140,7 @@ import "./styles.css";
     );
   }
 
-  function SharedProgramSheet({ sp, user, onClose, onSave }) {
+  function SharedProgramSheet({ sp, user, friends, onClose, onSave }) {
     const th = useTheme();
     const S = useS();
     const [spClosing, setSpClosing] = useState(false);
@@ -7148,7 +7148,7 @@ import "./styles.css";
     const prog = sp.program || {};
     const isReceiver = sp.toUid === user?.id;
     const senderName = sp.fromName || "Someone";
-    const recipientFriend = sp.toUid ? (typeof friends !== "undefined" ? (friends||[]).find(f=>f.uid===sp.toUid) : null) : null;
+    const recipientFriend = sp.toUid ? (friends || []).find(f => f.uid === sp.toUid) : null;
     const recipName  = sp.toName || recipientFriend?.name || "Friend";
     const closeMe = () => { setSpClosing(true); setTimeout(onClose, 300); };
 
@@ -8051,6 +8051,7 @@ import "./styles.css";
           <SharedProgramSheet
             sp={openSharedProg}
             user={user}
+            friends={friends}
             onClose={() => setOpenSharedProg(null)}
             onSave={(prog) => {
               onSaveSharedProgram && onSaveSharedProgram(prog);
@@ -13770,6 +13771,10 @@ import "./styles.css";
         if (!pauseStartRef.current) {
           pauseStartRef.current = Date.now();
         }
+        // Freeze the displayed time at the current value (don't keep updating)
+        const frozenSecs = Math.floor((Date.now() - startTsRef.current - totalPausedRef.current) / 1000);
+        elRef.current = frozenSecs;
+        setElapsed(frozenSecs);
         return; // don't start interval
       }
 
@@ -13781,6 +13786,12 @@ import "./styles.css";
 
       // Start fresh interval
       timerRef.current = setInterval(() => {
+        // Double-check we should still be running — bail out defensively
+        if (pauseStartRef.current !== null) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+          return;
+        }
         const raw = Date.now() - startTsRef.current - totalPausedRef.current;
         const secs = Math.floor(raw / 1000);
         elRef.current = secs;
@@ -13793,7 +13804,7 @@ import "./styles.css";
           timerRef.current = null;
         }
       };
-    }, [active, paused]); // deliberately exclude startTimer/stopTimer to avoid any re-creation issues
+    }, [active, paused]);
 
     if (authLoading)
       return (
