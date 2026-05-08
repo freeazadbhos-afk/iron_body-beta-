@@ -13727,76 +13727,59 @@ import "./styles.css";
     const totalPausedRef = useRef(0); // ms paused so far this session
     const startTsRef = useRef(0); // Date.now() when workout started
 
-    const startTimer = useCallback(() => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      timerRef.current = setInterval(() => {
-        const raw = Date.now() - startTsRef.current - totalPausedRef.current;
-        const secs = Math.floor(raw / 1000);
-        elRef.current = secs;
-        setElapsed(secs);
-      }, 500);
-    }, []);
-
-    const stopTimer = useCallback(() => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }, []);
+    // Keep a fresh ref of `paused` so the interval callback always sees the latest value
+    const pausedRef = useRef(paused);
+    pausedRef.current = paused;
 
     // Recalculate elapsed when page becomes visible again (phone unlocked)
     useEffect(() => {
       const onVisible = () => {
-        if (active && !paused) {
+        if (active && !pausedRef.current) {
           const raw = Date.now() - startTsRef.current - totalPausedRef.current;
           setElapsed(Math.floor(raw / 1000));
         }
       };
       document.addEventListener("visibilitychange", onVisible);
       return () => document.removeEventListener("visibilitychange", onVisible);
-    }, [active, paused]);
+    }, [active]);
 
-    // Single effect that owns the interval — runs when paused/active changes
+    // Single continuous interval — checks pausedRef each tick instead of being created/destroyed
     useEffect(() => {
-      // Always kill existing interval first — guaranteed clean slate
+      if (!active) {
+        if (timerRef.current) {
+          clearInterval(timerRef.current);
+          timerRef.current = null;
+        }
+        return;
+      }
+
+      // Clean any existing interval before creating new
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
 
-      if (!active) return; // not in a workout
-
-      if (paused) {
-        // Record pause start (only once)
-        if (!pauseStartRef.current) {
-          pauseStartRef.current = Date.now();
-        }
-        // Freeze the displayed time at the current value (don't keep updating)
-        const frozenSecs = Math.floor((Date.now() - startTsRef.current - totalPausedRef.current) / 1000);
-        elRef.current = frozenSecs;
-        setElapsed(frozenSecs);
-        return; // don't start interval
-      }
-
-      // Resuming: bank paused time
-      if (pauseStartRef.current) {
-        totalPausedRef.current += Date.now() - pauseStartRef.current;
-        pauseStartRef.current = null;
-      }
-
-      // Start fresh interval
       timerRef.current = setInterval(() => {
-        // Double-check we should still be running — bail out defensively
-        if (pauseStartRef.current !== null) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          return;
+        if (pausedRef.current) {
+          // Just entered pause — capture the moment once
+          if (!pauseStartRef.current) {
+            pauseStartRef.current = Date.now();
+          }
+          return; // don't update display
         }
+
+        // Just resumed from pause — bank paused time
+        if (pauseStartRef.current) {
+          totalPausedRef.current += Date.now() - pauseStartRef.current;
+          pauseStartRef.current = null;
+        }
+
+        // Update display
         const raw = Date.now() - startTsRef.current - totalPausedRef.current;
         const secs = Math.floor(raw / 1000);
         elRef.current = secs;
         setElapsed(secs);
-      }, 500);
+      }, 250);
 
       return () => {
         if (timerRef.current) {
@@ -13804,7 +13787,29 @@ import "./styles.css";
           timerRef.current = null;
         }
       };
+    }, [active]);
+
+    // When pause state flips to true, immediately freeze the displayed value
+    // (next interval tick would freeze it anyway, but this avoids a brief flicker)
+    useEffect(() => {
+      if (active && paused) {
+        if (!pauseStartRef.current) {
+          pauseStartRef.current = Date.now();
+        }
+        const frozenSecs = Math.floor((Date.now() - startTsRef.current - totalPausedRef.current) / 1000);
+        elRef.current = frozenSecs;
+        setElapsed(frozenSecs);
+      }
     }, [active, paused]);
+
+    // No-op shims for any leftover callers (handleFinishWorkout etc.)
+    const startTimer = useCallback(() => {}, []);
+    const stopTimer = useCallback(() => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }, []);
 
     if (authLoading)
       return (
