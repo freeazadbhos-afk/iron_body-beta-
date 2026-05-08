@@ -7200,7 +7200,19 @@ import "./styles.css";
                       </div>
                     )}
                     <span style={{ fontSize:13, color:th.muted }}>
-                      {isReceiver ? `${senderName.split(" ")[0]} shared this with you` : `You shared with ${recipName.split(" ")[0]}`}
+                      {isReceiver ? (
+                        <>
+                          <span style={{ fontWeight:700, color:th.text }}>{senderName}</span>
+                          <span> shared this with </span>
+                          <span style={{ fontWeight:700, color:th.text }}>you</span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ fontWeight:700, color:th.text }}>You</span>
+                          <span> shared with </span>
+                          <span style={{ fontWeight:700, color:th.text }}>{recipName}</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
@@ -7590,8 +7602,7 @@ import "./styles.css";
                 <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>{initials}</div>
               )}
               <div style={{ flex:1 }}>
-                <div style={{ fontWeight:700, fontSize:15, color: e.isMe ? th.accentFg : th.text }}>{e.isMe ? "You" : e.name.split(" ")[0]}</div>
-                <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>{monthName}</div>
+                <div style={{ fontWeight:700, fontSize:15, textAlign:"left", color: e.isMe ? th.accentFg : th.text }}>{e.isMe ? "You" : e.name.split(" ")[0]}</div>
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:1, color: isTop ? "#D4AF37" : e.isMe ? th.accentFg : th.text, lineHeight:1 }}>{e.score}</div>
@@ -8289,13 +8300,19 @@ import "./styles.css";
                       })()}
                       <div style={{ flex:1 }}>
                         <span style={{ fontWeight:700, fontSize:14, color:th.text }}>
-                          {direction === "received" ? sName.split(" ")[0] : "You"}
+                          {direction === "received" ? sName : "You"}
                         </span>
-                        <span style={{ fontSize:13, color:th.muted }}>
-                          {direction === "received"
-                            ? " shared a program with you"
-                            : ` shared a program with ${recipName.split(" ")[0]}`}
-                        </span>
+                        {direction === "received" ? (
+                          <>
+                            <span style={{ fontSize:13, color:th.muted }}> shared a program with </span>
+                            <span style={{ fontWeight:700, fontSize:14, color:th.text }}>you</span>
+                          </>
+                        ) : (
+                          <>
+                            <span style={{ fontSize:13, color:th.muted }}> shared a program with </span>
+                            <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{recipName}</span>
+                          </>
+                        )}
                       </div>
                       <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
                     </div>
@@ -8421,7 +8438,7 @@ import "./styles.css";
                     )}
                     </div>
                     <div style={{ flex:1 }}>
-                      <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name.split(" ")[0]}</span>
+                      <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name}</span>
                       <span style={{ fontSize:13, color:th.muted }}> completed a workout</span>
                     </div>
                     <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
@@ -13572,12 +13589,27 @@ import "./styles.css";
       const a = ls(uKey(user.id, "active"), null);
       if (a) {
         setActive(a);
-        const elapsed = Math.floor((Date.now() - a.startTime) / 1000);
-        elRef.current = elapsed;
-        setElapsed(elapsed);
-        startTsRef.current = a.startTime;
-        totalPausedRef.current = 0;
-        pauseStartRef.current = null;
+        const timer = a.timer || null;
+        const restoredPaused = !!timer?.paused;
+        let restoredElapsed = 0;
+
+        if (timer && typeof timer.elapsedSeconds === "number") {
+          elapsedBeforeRunRef.current = timer.elapsedSeconds || 0;
+          runStartedAtRef.current = restoredPaused ? null : (timer.runStartedAt || Date.now());
+          restoredElapsed = restoredPaused
+            ? elapsedBeforeRunRef.current
+            : elapsedBeforeRunRef.current + Math.floor((Date.now() - runStartedAtRef.current) / 1000);
+        } else {
+          // Legacy active workouts only stored startTime.
+          elapsedBeforeRunRef.current = 0;
+          runStartedAtRef.current = a.startTime || Date.now();
+          restoredElapsed = Math.floor((Date.now() - runStartedAtRef.current) / 1000);
+        }
+
+        pausedRef.current = restoredPaused;
+        setPaused(restoredPaused);
+        elRef.current = Math.max(0, restoredElapsed);
+        setElapsed(Math.max(0, restoredElapsed));
         // Only auto-jump to workout view on the FIRST mount of this user session.
         // Subsequent user updates (profile sync, photo change, etc.) must NOT
         // hijack navigation while the user is browsing other tabs in PiP mode.
@@ -13717,99 +13749,142 @@ import "./styles.css";
 
       return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); };
     }, [user?.id, user?.email]);
-    const saveActive = (a) => {
-      setActive(a);
-      lsSet(uKey(user.id, "active"), a);
-    };
-
-    // ── Timer: timestamp-based so it survives lock screen / tab switch ──────────
-    const pauseStartRef = useRef(null); // when current pause began
-    const totalPausedRef = useRef(0); // ms paused so far this session
-    const startTsRef = useRef(0); // Date.now() when workout started
-
-    // Keep a fresh ref of `paused` so the interval callback always sees the latest value
+    // ── Timer: accumulator-based so pause is a hard freeze ──────────────────────
+    const elapsedBeforeRunRef = useRef(0); // whole seconds accumulated before current run segment
+    const runStartedAtRef = useRef(null); // Date.now() for the current run segment, null while paused
     const pausedRef = useRef(paused);
-    pausedRef.current = paused;
 
-    // Recalculate elapsed when page becomes visible again (phone unlocked)
     useEffect(() => {
-      const onVisible = () => {
-        if (active && !pausedRef.current) {
-          const raw = Date.now() - startTsRef.current - totalPausedRef.current;
-          setElapsed(Math.floor(raw / 1000));
-        }
-      };
-      document.addEventListener("visibilitychange", onVisible);
-      return () => document.removeEventListener("visibilitychange", onVisible);
-    }, [active]);
+      pausedRef.current = paused;
+    }, [paused]);
 
-    // Single continuous interval — checks pausedRef each tick instead of being created/destroyed
-    useEffect(() => {
-      if (!active) {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-        return;
-      }
-
-      // Clean any existing interval before creating new
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-
-      timerRef.current = setInterval(() => {
-        if (pausedRef.current) {
-          // Just entered pause — capture the moment once
-          if (!pauseStartRef.current) {
-            pauseStartRef.current = Date.now();
-          }
-          return; // don't update display
-        }
-
-        // Just resumed from pause — bank paused time
-        if (pauseStartRef.current) {
-          totalPausedRef.current += Date.now() - pauseStartRef.current;
-          pauseStartRef.current = null;
-        }
-
-        // Update display
-        const raw = Date.now() - startTsRef.current - totalPausedRef.current;
-        const secs = Math.floor(raw / 1000);
-        elRef.current = secs;
-        setElapsed(secs);
-      }, 250);
-
-      return () => {
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      };
-    }, [active]);
-
-    // When pause state flips to true, immediately freeze the displayed value
-    // (next interval tick would freeze it anyway, but this avoids a brief flicker)
-    useEffect(() => {
-      if (active && paused) {
-        if (!pauseStartRef.current) {
-          pauseStartRef.current = Date.now();
-        }
-        const frozenSecs = Math.floor((Date.now() - startTsRef.current - totalPausedRef.current) / 1000);
-        elRef.current = frozenSecs;
-        setElapsed(frozenSecs);
-      }
-    }, [active, paused]);
-
-    // No-op shims for any leftover callers (handleFinishWorkout etc.)
-    const startTimer = useCallback(() => {}, []);
-    const stopTimer = useCallback(() => {
+    const clearWorkoutInterval = useCallback(() => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
     }, []);
+
+    const readElapsedSeconds = useCallback(() => {
+      const base = elapsedBeforeRunRef.current || 0;
+      if (pausedRef.current || !runStartedAtRef.current) return base;
+      return Math.max(0, base + Math.floor((Date.now() - runStartedAtRef.current) / 1000));
+    }, []);
+
+    const syncElapsedFromClock = useCallback(() => {
+      const secs = readElapsedSeconds();
+      elRef.current = secs;
+      setElapsed(secs);
+    }, [readElapsedSeconds]);
+
+    const timerSnapshot = useCallback((isPaused = pausedRef.current) => {
+      const elapsedSeconds = isPaused ? readElapsedSeconds() : (elapsedBeforeRunRef.current || 0);
+      return {
+        paused: isPaused,
+        elapsedSeconds,
+        runStartedAt: isPaused ? null : runStartedAtRef.current,
+      };
+    }, [readElapsedSeconds]);
+    const userId = user?.id;
+
+    const saveActive = (a) => {
+      if (!userId) return;
+      const next = a
+        ? { ...a, timer: a.timer || timerSnapshot() }
+        : a;
+      setActive(next);
+      lsSet(uKey(userId, "active"), next);
+    };
+
+    const persistActiveTimer = useCallback((isPaused, elapsedSeconds, runStartedAt) => {
+      if (!active || !userId) return;
+      const next = {
+        ...active,
+        timer: { paused: isPaused, elapsedSeconds, runStartedAt },
+      };
+      setActive(next);
+      lsSet(uKey(userId, "active"), next);
+    }, [active, userId]);
+
+    const pauseWorkoutTimer = useCallback(() => {
+      if (!active || pausedRef.current) return;
+      const frozenSecs = readElapsedSeconds();
+      clearWorkoutInterval();
+      elapsedBeforeRunRef.current = frozenSecs;
+      runStartedAtRef.current = null;
+      pausedRef.current = true;
+      elRef.current = frozenSecs;
+      setElapsed(frozenSecs);
+      setPaused(true);
+      persistActiveTimer(true, frozenSecs, null);
+    }, [active, clearWorkoutInterval, persistActiveTimer, readElapsedSeconds]);
+
+    const resumeWorkoutTimer = useCallback(() => {
+      if (!active || !pausedRef.current) return;
+      const resumedAt = Date.now();
+      elapsedBeforeRunRef.current = elRef.current || elapsedBeforeRunRef.current || 0;
+      runStartedAtRef.current = resumedAt;
+      pausedRef.current = false;
+      setPaused(false);
+      persistActiveTimer(false, elapsedBeforeRunRef.current, resumedAt);
+    }, [active, persistActiveTimer]);
+
+    const toggleWorkoutPause = useCallback(() => {
+      if (pausedRef.current) {
+        resumeWorkoutTimer();
+      } else {
+        pauseWorkoutTimer();
+      }
+    }, [pauseWorkoutTimer, resumeWorkoutTimer]);
+
+    const resetWorkoutTimerState = useCallback(() => {
+      clearWorkoutInterval();
+      elapsedBeforeRunRef.current = 0;
+      runStartedAtRef.current = null;
+      pausedRef.current = false;
+      elRef.current = 0;
+      setElapsed(0);
+      setPaused(false);
+    }, [clearWorkoutInterval]);
+    const activeWorkoutId = active?.id;
+
+    // Recalculate elapsed when page becomes visible again (phone unlocked)
+    useEffect(() => {
+      const onVisible = () => {
+        if (activeWorkoutId && !pausedRef.current) syncElapsedFromClock();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+      return () => document.removeEventListener("visibilitychange", onVisible);
+    }, [activeWorkoutId, syncElapsedFromClock]);
+
+    // Timer is created only while running. Set logging updates the active workout,
+    // but does not restart this interval because the dependency is active?.id.
+    useEffect(() => {
+      if (!activeWorkoutId) {
+        clearWorkoutInterval();
+        return;
+      }
+
+      if (paused) {
+        clearWorkoutInterval();
+        syncElapsedFromClock();
+        return;
+      }
+
+      if (!runStartedAtRef.current) {
+        runStartedAtRef.current = Date.now();
+      }
+
+      clearWorkoutInterval();
+      syncElapsedFromClock();
+      timerRef.current = setInterval(syncElapsedFromClock, 250);
+
+      return clearWorkoutInterval;
+    }, [activeWorkoutId, clearWorkoutInterval, paused, syncElapsedFromClock]);
+
+    // No-op shims for any leftover callers (handleFinishWorkout etc.)
+    const startTimer = useCallback(() => {}, []);
+    const stopTimer = clearWorkoutInterval;
 
     if (authLoading)
       return (
@@ -13920,14 +13995,19 @@ import "./styles.css";
         startTime: now,
         exercises: data.exercises,
         progId: data.progId || null,
+        timer: {
+          paused: false,
+          elapsedSeconds: 0,
+          runStartedAt: now,
+        },
       };
+      clearWorkoutInterval();
+      elapsedBeforeRunRef.current = 0;
+      runStartedAtRef.current = now;
+      pausedRef.current = false;
       elRef.current = 0;
       setElapsed(0);
       setPaused(false);
-      startTsRef.current = now;
-      totalPausedRef.current = 0;
-      pauseStartRef.current = null;
-      setActive(session);
       saveActive(session);
       setView("workout");
     };
@@ -13952,7 +14032,8 @@ import "./styles.css";
         (a, ex) => a + ex.sets.filter((s) => s.done).length,
         0
       );
-      setFinished({ ...active, exercises, totalSets: total, doneSets: done });
+      const { timer, ...activeSession } = active || {};
+      setFinished({ ...activeSession, exercises, totalSets: total, doneSets: done });
       stopTimer();
       setView("complete");
     };
@@ -14017,13 +14098,14 @@ import "./styles.css";
       lsDel(uKey(user.id, "active"));
       setActive(null);
       setFinished(null);
+      resetWorkoutTimerState();
       setView("home");
     };
     const handleAbandon = () => {
       if (!window.confirm("Abandon workout? Progress will be lost.")) return;
       lsDel(uKey(user.id, "active"));
       setActive(null);
-      stopTimer();
+      resetWorkoutTimerState();
       setView("home");
     };
     const handleLogout = async () => {
@@ -14033,6 +14115,7 @@ import "./styles.css";
       setSessions([]);
       setPrograms([]);
       setActive(null);
+      resetWorkoutTimerState();
     };
 
     const handleSync = async () => {
@@ -14270,9 +14353,9 @@ import "./styles.css";
                     flexShrink: 0,
                     marginLeft: 10,
                   }}
-                >
+                  >
                   <button
-                    onClick={() => setPaused((p) => !p)}
+                    onClick={toggleWorkoutPause}
                     style={{
                       background: paused ? th.pause : "transparent",
                       border: `1px solid ${paused ? th.pauseB : th.inputB}`,
@@ -14782,7 +14865,7 @@ import "./styles.css";
                 pct={wPct}
                 doneSets={wDoneSets}
                 totalSets={wTotalSets}
-                onTogglePause={() => setPaused((p) => !p)}
+                onTogglePause={toggleWorkoutPause}
                 onFinish={handleFinishWorkout}
                 onAbandon={handleAbandon}
                 onSaveActive={saveActive}
