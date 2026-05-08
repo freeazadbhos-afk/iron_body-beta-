@@ -6623,7 +6623,8 @@ import "./styles.css";
     const isOutgoing = isPending && comp?.fromUid === user.id;
 
     // Show challenge interface if finished or no competition
-    const showChallenge = !comp || isFinished;
+    const isDeclined = comp?.status === "declined";
+    const showChallenge = !comp || isFinished || isDeclined;
 
     // Normalize Firestore Timestamps or plain numbers to ms
     const toMs = (v) => {
@@ -7898,35 +7899,33 @@ import "./styles.css";
           );
         })}
 
-        {/* ── Tab switcher: FEED | FRIENDS — Apple-style liquid bar ── */}
+        {/* ── Tab switcher: FEED | FRIENDS — smooth sliding rounded pill ── */}
         {(() => {
           const tabs = ["feed","friends"];
           const idx = tabs.indexOf(sharingTab);
           return (
-            <div style={{ display:"flex", position:"relative", marginBottom:16 }}>
-              {tabs.map((t, ti) => (
+            <div style={{ display:"flex", position:"relative", marginBottom:16, padding:"3px", background:th.row, borderRadius:14 }}>
+              {/* Sliding pill */}
+              <div style={{
+                position:"absolute", top:3, bottom:3,
+                width:"calc(50% - 3px)",
+                left: idx === 0 ? 3 : "calc(50%)",
+                background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                borderRadius:11,
+                transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
+                pointerEvents:"none",
+              }} />
+              {tabs.map(t => (
                 <button key={t} onClick={() => setSharingTab(t)} style={{
-                  flex:1, padding:"9px 0 10px", border:"none", cursor:"pointer",
-                  background:"transparent", position:"relative",
-                  fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
-                  letterSpacing:"0.5px",
-                  color: sharingTab === t ? th.accentFg : th.dim,
+                  flex:1, padding:"9px 0", border:"none", cursor:"pointer",
+                  borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                  letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
+                  color: sharingTab === t ? th.accentT : th.dim,
                   transition:"color 0.22s ease",
                 }}>
                   {t === "feed" ? "FEED" : "FRIENDS"}
                 </button>
               ))}
-              {/* Liquid sliding accent bar */}
-              <div style={{
-                position:"absolute", bottom:0, height:2.5, borderRadius:2,
-                background: th.accentFg,
-                width:`50%`,
-                left: idx === 0 ? "0%" : "50%",
-                transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
-                boxShadow:`0 0 8px color-mix(in srgb, ${th.accentFg} 60%, transparent)`,
-              }} />
-              {/* Full-width base track line */}
-              <div style={{ position:"absolute", bottom:0, left:0, right:0, height:1, background:th.border, borderRadius:1, zIndex:-1 }} />
             </div>
           );
         })()}
@@ -8333,7 +8332,7 @@ import "./styles.css";
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                         {commentCounts[`program_${sp.id}`] > 0 && (
-                          <span style={{ fontSize:13, fontWeight:600, color:th.dim }}>{commentCounts[`program_${sp.id}`]}</span>
+                          <span style={{ fontSize:13, fontWeight:700, color:th.accentFg }}>{commentCounts[`program_${sp.id}`]}</span>
                         )}
                       </button>
                       <div style={{ display:"flex",alignItems:"center",gap:6 }}>
@@ -8467,7 +8466,7 @@ import "./styles.css";
                           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                         {commentCounts[`session_${f.uid}_${sid}`] > 0 && (
-                          <span style={{ fontSize:13, fontWeight:600, color:th.dim }}>{commentCounts[`session_${f.uid}_${sid}`]}</span>
+                          <span style={{ fontSize:13, fontWeight:700, color:th.accentFg }}>{commentCounts[`session_${f.uid}_${sid}`]}</span>
                         )}
                       </button>
                       {/* Star + count */}
@@ -13446,6 +13445,7 @@ import "./styles.css";
     const [starNotifications, setStarNotifications]   = useState([]); // reactions on own sessions
     const [unreadStars, setUnreadStars]               = useState(0);
     const [notifOpen, setNotifOpen]                   = useState(false);
+    const [bellRipple, setBellRipple]                 = useState(false);
     const [notifClosing, setNotifClosing]             = useState(false);
     const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
     const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
@@ -14438,6 +14438,7 @@ import "./styles.css";
               {view === "sharing" && (
                 <button
                   onClick={() => {
+                    setBellRipple(true); setTimeout(() => setBellRipple(false), 500);
                     if (notifOpen) { closeNotif(); } else { setNotifOpen(true); }
                     if (unreadStars > 0) {
                       const now = Date.now();
@@ -14466,11 +14467,17 @@ import "./styles.css";
                     border: `1.5px solid ${th.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     position: "relative",
+                    overflow: "hidden",
+                    transition: "background 0.2s",
                   }}>
+                    <style>{`@keyframes bellRipple{0%{transform:scale(0);opacity:0.35}100%{transform:scale(3.5);opacity:0}}`}</style>
                     <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
                       <path d="M11 2C7.686 2 5 4.686 5 8v5l-2 2v1h16v-1l-2-2V8c0-3.314-2.686-6-6-6z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
                       <path d="M9 18a2 2 0 004 0" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
+                    {bellRipple && (
+                      <div style={{ position:"absolute", width:44, height:44, borderRadius:"50%", background:th.accentFg, animation:"bellRipple 0.5s ease-out forwards", pointerEvents:"none" }} />
+                    )}
                     {unreadStars > 0 && (
                       <div style={{
                         position: "absolute", top: 2, right: 2,
