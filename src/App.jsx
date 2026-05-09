@@ -2187,6 +2187,13 @@ import "./styles.css";
     } catch (e) { console.error("fsWithdrawCoachRequest:", e); return false; }
   }
 
+  async function fsStopCoaching(requestId) {
+    try {
+      await deleteDoc(doc(fbDb, "coachRequests", requestId));
+      return true;
+    } catch (e) { console.error("fsStopCoaching:", e); return false; }
+  }
+
   // Sent requests where user is the coach (fromUid) with status=pending
   function fsListenSentCoachRequests(uid, cb) {
     const q = query(collection(fbDb, "coachRequests"), where("fromUid","==",uid), where("status","==","pending"));
@@ -6591,18 +6598,22 @@ import "./styles.css";
     );
   }
 
-  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
+  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
     const th = useTheme();
     const S = useS();
-    const [sessions, setSessions]             = useState(null);
-    const [loading, setLoading]               = useState(true);
-    const [closing, setClosing]               = useState(false);
-    const [innerTab, setInnerTab]             = useState("dashboards"); // "dashboards"|"workouts"|"history"
-    const [friendPrograms, setFriendPrograms] = useState(null);
-    const [progsLoading, setProgsLoading]     = useState(false);
-    const [editingProgId, setEditingProgId]   = useState(null);
-    const [coachBtnState, setCoachBtnState]   = useState("idle"); // idle|sending|pending|active
-    const [selHistSession, setSelHistSession] = useState(null);
+    const [sessions, setSessions]               = useState(null);
+    const [loading, setLoading]                 = useState(true);
+    const [closing, setClosing]                 = useState(false);
+    const [innerTab, setInnerTab]               = useState("dashboards");
+    const [friendPrograms, setFriendPrograms]   = useState(null);
+    const [progsLoading, setProgsLoading]       = useState(false);
+    const [editingProgId, setEditingProgId]     = useState(null);
+    const [creatingNewProg, setCreatingNewProg] = useState(false);
+    const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
+    const [selHistSession, setSelHistSession]   = useState(null);
+    const [showCoachRules, setShowCoachRules]   = useState(false);
+    const [showStopCoach, setShowStopCoach]     = useState(false);
+    const [stoppingCoach, setStoppingCoach]     = useState(false);
 
     // Determine coaching relationship state
     const coachRelation = coachRelations?.find(r =>
@@ -6647,19 +6658,42 @@ import "./styles.css";
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
 
-    const handleSendCoachRequest = async () => {
-      if (coachBtnState !== "idle") return;
+    const handleCoachBtnClick = () => {
+      if (coachBtnState === "idle")    { setShowCoachRules(true); return; }
+      if (coachBtnState === "active")  { setShowStopCoach(true);  return; }
+      if (coachBtnState === "pending") { setShowStopCoach(true);  return; }
+    };
+
+    const confirmSendCoachRequest = async () => {
+      setShowCoachRules(false);
       setCoachBtnState("sending");
       const result = await onSendCoachRequest(friend.uid, friend.email, friend.name);
       setCoachBtnState(result?.ok ? "pending" : "idle");
     };
 
+    const confirmStopCoaching = async () => {
+      setStoppingCoach(true);
+      if (coachRelation?.id) await onStopCoaching(coachRelation.id);
+      setStoppingCoach(false);
+      setShowStopCoach(false);
+      setCoachBtnState("idle");
+    };
+
     const saveProgram = async (updated) => {
-      const newList = (friendPrograms || []).map(p => p.id === updated.id ? updated : p);
+      const isNew = !updated.id || !(friendPrograms||[]).find(p => p.id === updated.id);
+      const prog  = isNew ? { ...updated, id: uid() } : updated;
+      const newList = isNew
+        ? [...(friendPrograms || []), prog]
+        : (friendPrograms || []).map(p => p.id === prog.id ? prog : p);
       await onSaveCoachPrograms(friend.uid, newList);
       setFriendPrograms(newList);
       setEditingProgId(null);
+      setCreatingNewProg(false);
     };
+
+    // ── Separate dashboard JSX for normal friendship vs coach view ──
+    // Normal friendship: streak calendar, calories, intensity, PRs, weekly volume only
+    // Coach view: all dashboards
 
     // ── Pre-compute competition label (stable, no inner component) ──
     const comp = competitions?.find(c =>
@@ -6671,14 +6705,18 @@ import "./styles.css";
       : comp?.status === "pending" ? "PENDING" : "COMPETE";
 
     // ── Inline JSX vars — NOT inner components (avoids React remount on every render) ──
-    const dashboardsJSX = loading ? (
+    // Shared data for both dashboard views
+    const noSessionsJSX = loading ? (
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
     ) : !sessions || sessions.length === 0 ? (
       <div style={{ textAlign:"center", padding:"48px 0" }}>
         <div style={{ fontSize:32, marginBottom:12 }}>🏋️</div>
         <div style={{ color:th.muted, fontSize:14 }}>No workout history yet.</div>
       </div>
-    ) : (() => {
+    ) : null;
+
+    // Compute shared stats once (avoids duplicate heavy computation)
+    const dashStats = (!loading && sessions && sessions.length > 0) ? (() => {
       const todayMs = new Date(); todayMs.setHours(0,0,0,0);
       const sessionDays = new Set(sessions.map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
       let streak=0; for(let i=0;i<=365;i++){const d=new Date(todayMs);d.setDate(d.getDate()-i);if(sessionDays.has(d.getTime()))streak++;else if(i>0)break;}
@@ -6687,7 +6725,34 @@ import "./styles.css";
       const thisMonth = sessions.filter(s=>(s.startTime||0)>=monthStart).length;
       const prMap={};
       sessions.forEach(s=>(s.exercises||[]).forEach(ex=>{const id=ex.id||ex.exId;if(!id)return;(ex.sets||[]).filter(st=>st.done&&(st.weight||0)>0).forEach(st=>{if(!prMap[id]||st.weight>prMap[id].w){const dbEx=DB.find(d=>d.id===id);prMap[id]={w:st.weight,reps:st.reps,name:dbEx?.name||ex.name||id,t:s.startTime||0,muscle:dbEx?.muscle};}});} ));
-      const allPrs=Object.values(prMap).sort((a,b)=>b.w-a.w);
+      return { streak, last7, thisMonth, allPrs: Object.values(prMap).sort((a,b)=>b.w-a.w) };
+    })() : null;
+
+    // ── Normal friendship: streak calendar, calories, intensity, PRs, weekly volume ──
+    const dashboardsJSX = noSessionsJSX || (() => {
+      const { streak, last7, thisMonth, allPrs } = dashStats;
+      return (
+        <>
+          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+            {[{ label:"STREAK", value: streak ? `${streak}d` : "—" }, { label:"LAST 7 DAYS", value: last7 }, { label:"THIS MONTH", value: thisMonth }].map(({label,value}) => (
+              <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
+                <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <StreakDashboard sessions={sessions} />
+          <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
+          <CaloriesDashboard sessions={sessions} />
+          <WeeklyVolumeDashboard sessions={sessions} sessionVol={sessionVol} />
+          {allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null}
+        </>
+      );
+    })();
+
+    // ── Coach view: all dashboards ──
+    const coachDashboardsJSX = noSessionsJSX || (() => {
+      const { streak, last7, thisMonth, allPrs } = dashStats;
       return (
         <>
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
@@ -6713,14 +6778,17 @@ import "./styles.css";
 
     const workoutsJSX = progsLoading ? (
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading programs…</div>
-    ) : !friendPrograms || friendPrograms.length === 0 ? (
-      <div style={{ textAlign:"center", padding:"48px 0" }}>
-        <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
-        <div style={{ color:th.muted, fontSize:14 }}>{friend.name.split(" ")[0]} has no programs yet.</div>
-      </div>
     ) : (
       <>
-        {friendPrograms.map(p => (
+        {/* ── Existing programs ── */}
+        {(friendPrograms || []).length === 0 && !creatingNewProg && (
+          <div style={{ textAlign:"center", padding:"32px 0 20px" }}>
+            <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
+            <div style={{ color:th.muted, fontSize:14 }}>{friend.name.split(" ")[0]} has no programs yet.</div>
+            <div style={{ color:th.dim, fontSize:12, marginTop:6 }}>Create one below to get started.</div>
+          </div>
+        )}
+        {(friendPrograms || []).map(p => (
           <div key={p.id} style={{ ...S.card, marginBottom:10, overflow:"visible" }}>
             <div style={{ padding:"14px 16px" }}>
               <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -6735,7 +6803,7 @@ import "./styles.css";
                   </div>
                 </div>
                 <button
-                  onClick={() => setEditingProgId(editingProgId === p.id ? null : p.id)}
+                  onClick={() => { setEditingProgId(editingProgId === p.id ? null : p.id); setCreatingNewProg(false); }}
                   style={{
                     background: editingProgId === p.id ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
                     backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
@@ -6753,6 +6821,37 @@ import "./styles.css";
             </div>
           </div>
         ))}
+
+        {/* ── New program creation panel ── */}
+        {creatingNewProg ? (
+          <div style={{ ...S.card, padding:"16px", marginBottom:10, overflow:"visible" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
+              <div style={{ width:10, height:10, borderRadius:"50%", background:"#5B9CF6", flexShrink:0 }} />
+              <div style={{ fontSize:12, color:"#5B9CF6", fontWeight:700, letterSpacing:"1px" }}>NEW PROGRAM FOR {friend.name.split(" ")[0].toUpperCase()}</div>
+            </div>
+            <CoachProgramEditor
+              program={{ id: null, name: "", exs: [] }}
+              onSave={saveProgram}
+              onCancel={() => setCreatingNewProg(false)}
+            />
+          </div>
+        ) : (
+          <button
+            onClick={() => { setCreatingNewProg(true); setEditingProgId(null); }}
+            style={{
+              width:"100%", background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:`1.5px dashed rgba(91,156,246,0.4)`,
+              borderRadius:14, padding:"14px 0", cursor:"pointer",
+              fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+              color:"#5B9CF6", letterSpacing:"0.5px", marginTop:4,
+              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+            CREATE NEW PROGRAM
+          </button>
+        )}
       </>
     );
 
@@ -6874,13 +6973,11 @@ import "./styles.css";
                 {/* COACH REQUEST — hidden if this user is already the athlete */}
                 {!(coachRelation && coachRelation.fromUid === friend.uid) && (
                   <button
-                    onClick={handleSendCoachRequest}
-                    disabled={coachBtnState !== "idle"}
+                    onClick={handleCoachBtnClick}
+                    disabled={coachBtnState === "sending"}
                     style={{
                       flex:1,
-                      background: coachBtnState === "active"
-                        ? `rgba(91,156,246,0.15)`
-                        : `rgba(91,156,246,0.15)`,
+                      background:`rgba(91,156,246,0.15)`,
                       backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
                       border: coachBtnState === "active"
                         ? `1.5px solid rgba(91,156,246,0.55)`
@@ -6888,7 +6985,7 @@ import "./styles.css";
                         ? `1.5px solid rgba(91,156,246,0.3)`
                         : `1.5px solid rgba(91,156,246,0.5)`,
                       borderRadius:11, padding:"9px 0",
-                      cursor: coachBtnState !== "idle" ? "default" : "pointer",
+                      cursor: coachBtnState === "sending" ? "default" : "pointer",
                       fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
                       color: coachBtnState === "pending" ? `rgba(91,156,246,0.55)` : "#5B9CF6",
                       letterSpacing:"0.5px", transition:"all .2s",
@@ -6939,7 +7036,7 @@ import "./styles.css";
             <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px calc(88px + env(safe-area-inset-bottom, 0px))" }}>
               {isCoachingActive && iAmCoach ? (
                 <>
-                  {innerTab === "dashboards" && dashboardsJSX}
+                  {innerTab === "dashboards" && coachDashboardsJSX}
                   {innerTab === "workouts"   && workoutsJSX}
                   {innerTab === "history"    && historyJSX}
                 </>
@@ -6949,6 +7046,98 @@ import "./styles.css";
             </div>
           </div>
         </div>
+
+        {/* ── Coaching Rules Popup ─────────────────────────────────────────── */}
+        {showCoachRules && (
+          <div onClick={() => setShowCoachRules(false)} style={{
+            position:"fixed", inset:0, zIndex:80,
+            background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+            display:"flex", alignItems:"flex-end", justifyContent:"center",
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:"100%", maxWidth:480,
+              background:th.card, borderRadius:"24px 24px 0 0",
+              borderTop:`1px solid ${th.border}`,
+              padding:"20px 20px calc(32px + env(safe-area-inset-bottom,0px))",
+              animation:"fdSheetIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+            }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ textAlign:"center", marginBottom:20 }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>🎓</div>
+                <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>REQUEST COACHING</div>
+                <div style={{ fontSize:13, color:th.muted, lineHeight:1.65, maxWidth:290, margin:"0 auto" }}>
+                  Send a coaching request to <strong style={{ color:th.sub }}>{friend.name.split(" ")[0]}</strong>. Once they accept, you'll unlock full access to guide their training.
+                </div>
+              </div>
+              <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
+                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACH ACCESS INCLUDES</div>
+                {[
+                  { icon:"📊", label:"All Dashboards",   desc:"Full analytics: volume, density, pace, muscles trained, PRs and more" },
+                  { icon:"📋", label:"Workout Programs", desc:"View, edit and create training programs directly for your athlete" },
+                  { icon:"📅", label:"Session History",  desc:"Browse every logged session with full exercise and set details" },
+                ].map(({ icon, label, desc }) => (
+                  <div key={label} style={{ display:"flex", gap:12, marginBottom:10, alignItems:"flex-start" }}>
+                    <div style={{ fontSize:18, flexShrink:0, lineHeight:1.3 }}>{icon}</div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:th.text, textAlign:"left" }}>{label}</div>
+                      <div style={{ fontSize:11, color:th.muted, marginTop:2, textAlign:"left", lineHeight:1.45 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginBottom:18, lineHeight:1.5 }}>
+                {friend.name.split(" ")[0]} will receive a notification and must <strong>accept</strong> before you gain any access.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => setShowCoachRules(false)}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>CANCEL</button>
+                <button onClick={confirmSendCoachRequest}
+                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
+                  SEND REQUEST TO {friend.name.split(" ")[0].toUpperCase()}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Stop Coaching Confirmation Popup ─────────────────────────────── */}
+        {showStopCoach && (
+          <div onClick={() => setShowStopCoach(false)} style={{
+            position:"fixed", inset:0, zIndex:80,
+            background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+            display:"flex", alignItems:"center", justifyContent:"center", padding:"0 20px",
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:"100%", maxWidth:380,
+              background:th.card, borderRadius:20,
+              border:`1px solid ${th.border}`,
+              padding:"28px 22px 22px",
+              animation:"notifPop 0.3s cubic-bezier(0.34,1.4,0.64,1) forwards",
+            }}>
+              <div style={{ textAlign:"center", marginBottom:18 }}>
+                <div style={{ fontSize:32, marginBottom:10 }}>🎓</div>
+                <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
+                  {coachBtnState === "active" ? "STOP COACHING?" : "WITHDRAW REQUEST?"}
+                </div>
+                <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
+                  {coachBtnState === "active"
+                    ? `You'll lose access to ${friend.name.split(" ")[0]}'s programs, dashboards and history. This can be requested again later.`
+                    : `Withdraw your coaching request to ${friend.name.split(" ")[0]}?`}
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => setShowStopCoach(false)}
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, border:`1px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+                <button onClick={confirmStopCoaching} disabled={stoppingCoach}
+                  style={{ flex:1, background:"rgba(220,50,50,0.75)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", opacity:stoppingCoach?0.5:1 }}>
+                  {stoppingCoach ? "…" : coachBtnState === "active" ? "STOP COACHING" : "WITHDRAW"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </>
     );
   }
@@ -8053,7 +8242,7 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -8250,103 +8439,107 @@ import "./styles.css";
           <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true, hasSharingOnboardedV2: true })} />
         )}
 
-        {/* ── Pending invitations received ── */}
-        {pendingInvitations.length > 0 && (
-          <div style={{ marginBottom: 20,textAlign:"left", animation: "sharingFadeUp 0.3s ease both" }}>
-            <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
-            {pendingInvitations.map(inv => (
-              <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
-                    {(inv.fromName||"?")[0].toUpperCase()}
+        {/* ── Pending invitations received + sent + coach requests — FRIENDS TAB ONLY ── */}
+        {sharingTab === "friends" && (
+          <>
+            {/* Pending friend invitations received */}
+            {pendingInvitations.length > 0 && (
+              <div style={{ marginBottom: 20,textAlign:"left", animation: "sharingFadeUp 0.3s ease both" }}>
+                <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
+                {pendingInvitations.map(inv => (
+                  <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                      <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                        {(inv.fromName||"?")[0].toUpperCase()}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
+                        <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
+                        <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
+                      </div>
+                      <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
+                        style={{ background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
+                      <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
+                        style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                    </div>
                   </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
-                    <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
-                    <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
-                  </div>
-                  {/* X decline */}
-                  <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                    style={{ background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
-                  {/* Accept */}
-                  <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Pending competition invitations received */}
+            {competitions.filter(c => c.toUid === user.id && c.status === "pending").map(c => {
+              const f = friends.find(fr => fr.uid === c.fromUid);
+              const initials = (c.fromName||"?")[0].toUpperCase();
+              return (
+                <div key={c.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                    {f?.photoURL ? (
+                      <img src={f.photoURL} alt={c.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, #E8612C 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#E8612C", flexShrink:0 }}>
+                        {initials}
+                      </div>
+                    )}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
+                      <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>
+                    Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
+                  </div>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
+                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
+                    <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
+                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Pending coaching requests received */}
+            {(pendingCoachRequests || []).map(req => {
+              const f = friends.find(fr => fr.uid === req.fromUid);
+              const initials = (req.fromName||"?")[0].toUpperCase();
+              return (
+                <div key={req.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both", borderColor:`rgba(91,156,246,0.35)` }}>
+                  <div style={{ height:3, background:"#5B9CF6", borderRadius:"4px 4px 0 0", margin:"-14px -16px 12px" }} />
+                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
+                    {(req.fromPhotoURL || f?.photoURL) ? (
+                      <img src={req.fromPhotoURL || f.photoURL} alt={req.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:40, height:40, borderRadius:"50%", background:`rgba(91,156,246,0.15)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
+                        {initials}
+                      </div>
+                    )}
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
+                      <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
+                        COACHING REQUEST
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
+                    <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach — they'll have access to your workout programs, all dashboards, and session history to guide your progress.
+                  </div>
+                  <div style={{ display:"flex", gap:8 }}>
+                    <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
+                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                    <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
+                      style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Sent friend invitations awaiting response — moved to below tab switcher */}
+
+            {/* Sent coaching requests awaiting response — moved to below tab switcher */}
+          </>
         )}
-
-        {/* ── Pending competition invitations received ── */}
-        {competitions.filter(c => c.toUid === user.id && c.status === "pending").map(c => {
-          const f = friends.find(fr => fr.uid === c.fromUid);
-          const initials = (c.fromName||"?")[0].toUpperCase();
-          return (
-            <div key={c.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
-                {f?.photoURL ? (
-                  <img src={f.photoURL} alt={c.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                ) : (
-                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, #E8612C 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#E8612C", flexShrink:0 }}>
-                    {initials}
-                  </div>
-                )}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
-                  <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
-                </div>
-              </div>
-              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>
-                Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
-                <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* ── Pending coaching requests received ── */}
-        {(pendingCoachRequests || []).map(req => {
-          const f = friends.find(fr => fr.uid === req.fromUid);
-          const initials = (req.fromName||"?")[0].toUpperCase();
-          return (
-            <div key={req.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both", borderColor:`rgba(91,156,246,0.35)` }}>
-              {/* Blue top accent bar */}
-              <div style={{ height:3, background:"#5B9CF6", borderRadius:"4px 4px 0 0", margin:"-14px -16px 12px" }} />
-              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
-                {(req.fromPhotoURL || f?.photoURL) ? (
-                  <img src={req.fromPhotoURL || f.photoURL} alt={req.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                ) : (
-                  <div style={{ width:40, height:40, borderRadius:"50%", background:`rgba(91,156,246,0.15)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
-                    {initials}
-                  </div>
-                )}
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
-                  <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
-                    COACHING REQUEST
-                  </div>
-                </div>
-              </div>
-              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
-                <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach — they'll have access to your workout programs, all dashboards, and session history to guide your progress.
-              </div>
-              <div style={{ display:"flex", gap:8 }}>
-                <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
-                <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
-                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
-              </div>
-            </div>
-          );
-        })}
-
-        {/* ── Tab switcher: FEED | FRIENDS — smooth sliding rounded pill ── */}
         {(() => {
           const tabs = ["feed","friends"];
           const idx = tabs.indexOf(sharingTab);
@@ -8378,6 +8571,31 @@ import "./styles.css";
         })()}
 
         {/* ── Horizontal friends bubble row ── */}
+        {sharingTab === "friends" && (
+          <>
+            {/* Sent friend invitations awaiting response */}
+            {sentInvitations.length > 0 && (
+              <div style={{ marginBottom:16 }}>
+                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>AWAITING RESPONSE</div>
+                {sentInvitations.map(inv => (
+                  <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
+                    <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:th.dim }}>⏳</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
+                      <div style={{ fontSize:13, color:th.dim, marginTop:1 }}>Invitation pending</div>
+                    </div>
+                    <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
+                      style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
+                    >✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+          </>
+        )}
+
+        {/* ── Horizontal friends bubble row (existing friends only) ── */}
         {sharingTab === "friends" && friends.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
@@ -8495,6 +8713,7 @@ import "./styles.css";
             }
             onGetFriendPrograms={onGetFriendPrograms}
             onSaveCoachPrograms={onSaveCoachPrograms}
+            onStopCoaching={onStopCoaching}
           />,
           document.body
         )}
@@ -8560,6 +8779,38 @@ import "./styles.css";
             <div style={{ fontSize:15, color:th.muted, lineHeight:1.6, maxWidth:280, marginBottom:28 }}>
               Invite friends to share progress, celebrate wins, and compete on workouts.
             </div>
+          </div>
+        )}
+
+        {/* ── Coaching requests sent — before leaderboard ── */}
+        {sharingTab === "friends" && (sentCoachRequests||[]).length > 0 && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS SENT</div>
+            {(sentCoachRequests||[]).map(req => {
+              const f = friends.find(fr => fr.uid === req.toUid);
+              const initials = (req.toName||"?")[0].toUpperCase();
+              return (
+                <div key={req.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
+                  {(f?.photoURL) ? (
+                    <img src={f.photoURL} alt={req.toName} style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                  ) : (
+                    <div style={{ width:34, height:34, borderRadius:"50%", background:`rgba(91,156,246,0.12)`, border:`1px solid rgba(91,156,246,0.25)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{req.toName || req.toEmail}</div>
+                    <div style={{ fontSize:12, color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
+                      <span style={{ width:5, height:5, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", opacity:0.7 }} />
+                      Coach request pending
+                    </div>
+                  </div>
+                  <button onClick={async () => { await fsWithdrawCoachRequest(req.id); }}
+                    style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0 }}
+                  >✕</button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -8682,61 +8933,7 @@ import "./styles.css";
           document.body
         )}
 
-        {/* ── Sent invitations awaiting response ── */}
-        {sentInvitations.length > 0 && (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>AWAITING RESPONSE</div>
-            {sentInvitations.map(inv => (
-              <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
-                <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:th.dim }}>⏳</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
-                  <div style={{ fontSize:13, color:th.dim, marginTop:1 }}>Invitation pending</div>
-                </div>
-                <button
-                  onClick={() => handleAction(inv.id, inv, "decline")}
-                  disabled={actioning[inv.id]}
-                  style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
-                >✕</button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* ── Sent coach requests awaiting response ── */}
-        {(sentCoachRequests||[]).length > 0 && (
-          <div style={{ marginBottom:20 }}>
-            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS SENT</div>
-            {(sentCoachRequests||[]).map(req => {
-              const f = friends.find(fr => fr.uid === req.toUid);
-              const initials = (req.toName||"?")[0].toUpperCase();
-              return (
-                <div key={req.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
-                  {(f?.photoURL) ? (
-                    <img src={f.photoURL} alt={req.toName} style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                  ) : (
-                    <div style={{ width:34, height:34, borderRadius:"50%", background:`rgba(91,156,246,0.12)`, border:`1px solid rgba(91,156,246,0.25)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
-                      {initials}
-                    </div>
-                  )}
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{req.toName || req.toEmail}</div>
-                    <div style={{ fontSize:12, color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
-                      <span style={{ width:5, height:5, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", opacity:0.7 }} />
-                      Coach request pending
-                    </div>
-                  </div>
-                  <button
-                    onClick={async () => { await fsWithdrawCoachRequest(req.id); }}
-                    style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0 }}
-                  >✕</button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* ── Activity Feed ── */}
+        {/* ── Tab switcher: FEED | FRIENDS — smooth sliding rounded pill ── */}
         {sharingTab === "feed" && (
           <div style={{ marginBottom: 20 }}>
             {friends.length === 0 ? (
@@ -15518,6 +15715,7 @@ import "./styles.css";
                 }
                 onGetFriendPrograms={fsGetFriendPrograms}
                 onSaveCoachPrograms={fsSaveCoachPrograms}
+                onStopCoaching={fsStopCoaching}
               />
             )}
           </div>
