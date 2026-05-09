@@ -2187,6 +2187,12 @@ import "./styles.css";
     } catch (e) { console.error("fsWithdrawCoachRequest:", e); return false; }
   }
 
+  // Sent requests where user is the coach (fromUid) with status=pending
+  function fsListenSentCoachRequests(uid, cb) {
+    const q = query(collection(fbDb, "coachRequests"), where("fromUid","==",uid), where("status","==","pending"));
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => cb([]));
+  }
+
   // Incoming requests where user is the athlete (toUid) with status=pending
   function fsListenIncomingCoachRequests(uid, cb) {
     const q = query(collection(fbDb, "coachRequests"), where("toUid","==",uid), where("status","==","pending"));
@@ -6873,22 +6879,21 @@ import "./styles.css";
                     style={{
                       flex:1,
                       background: coachBtnState === "active"
-                        ? `rgba(91,156,246,0.12)`
-                        : coachBtnState === "pending"
-                        ? `color-mix(in srgb, ${th.accentBg} 8%, transparent)`
-                        : `rgba(91,156,246,0.85)`,
-                      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                        ? `rgba(91,156,246,0.15)`
+                        : `rgba(91,156,246,0.15)`,
+                      backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
                       border: coachBtnState === "active"
-                        ? `1.5px solid rgba(91,156,246,0.45)`
+                        ? `1.5px solid rgba(91,156,246,0.55)`
                         : coachBtnState === "pending"
-                        ? `1px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)`
-                        : "none",
+                        ? `1.5px solid rgba(91,156,246,0.3)`
+                        : `1.5px solid rgba(91,156,246,0.5)`,
                       borderRadius:11, padding:"9px 0",
                       cursor: coachBtnState !== "idle" ? "default" : "pointer",
                       fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                      color: coachBtnState === "active" ? "#5B9CF6" : coachBtnState === "pending" ? th.accentFg : "#fff",
+                      color: coachBtnState === "pending" ? `rgba(91,156,246,0.55)` : "#5B9CF6",
                       letterSpacing:"0.5px", transition:"all .2s",
                       display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                      opacity: coachBtnState === "pending" ? 0.7 : 1,
                     }}
                   >
                     {coachBtnState === "sending" ? "…"
@@ -8048,7 +8053,7 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -8695,6 +8700,39 @@ import "./styles.css";
                 >✕</button>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* ── Sent coach requests awaiting response ── */}
+        {(sentCoachRequests||[]).length > 0 && (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS SENT</div>
+            {(sentCoachRequests||[]).map(req => {
+              const f = friends.find(fr => fr.uid === req.toUid);
+              const initials = (req.toName||"?")[0].toUpperCase();
+              return (
+                <div key={req.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
+                  {(f?.photoURL) ? (
+                    <img src={f.photoURL} alt={req.toName} style={{ width:34, height:34, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                  ) : (
+                    <div style={{ width:34, height:34, borderRadius:"50%", background:`rgba(91,156,246,0.12)`, border:`1px solid rgba(91,156,246,0.25)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
+                      {initials}
+                    </div>
+                  )}
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{req.toName || req.toEmail}</div>
+                    <div style={{ fontSize:12, color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
+                      <span style={{ width:5, height:5, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", opacity:0.7 }} />
+                      Coach request pending
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => { await fsWithdrawCoachRequest(req.id); }}
+                    style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0 }}
+                  >✕</button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -13921,6 +13959,7 @@ import "./styles.css";
     const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
     const [competitions, setCompetitions]             = useState([]);
     const [pendingCoachRequests, setPendingCoachRequests] = useState([]); // incoming coach requests (user is athlete)
+    const [sentCoachRequests, setSentCoachRequests]       = useState([]); // outgoing coach requests (user is coach, pending)
     const [coachRelations, setCoachRelations]             = useState([]);  // accepted coach/athlete pairs
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
@@ -14158,8 +14197,9 @@ import "./styles.css";
         .then(() => console.log("Public profile registered for", user.email))
         .catch(e => console.warn("Profile register failed:", e));
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
-      const unsubCoachReqs = fsListenIncomingCoachRequests(user.id, setPendingCoachRequests);
-      const unsubCoachRels = fsListenCoachRelations(user.id, setCoachRelations);
+      const unsubCoachReqs  = fsListenIncomingCoachRequests(user.id, setPendingCoachRequests);
+      const unsubCoachSent  = fsListenSentCoachRequests(user.id, setSentCoachRequests);
+      const unsubCoachRels  = fsListenCoachRelations(user.id, setCoachRelations);
 
       // Listen for star reactions on user's sessions
       const notifCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -14203,7 +14243,7 @@ import "./styles.css";
         }
       );
 
-      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); unsubCoachReqs(); unsubCoachRels(); };
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); unsubCoachReqs(); unsubCoachSent(); unsubCoachRels(); };
     }, [user?.id, user?.email]);
     // ── Timer: accumulator-based so pause is a hard freeze ──────────────────────
     const elapsedBeforeRunRef = useRef(0); // whole seconds accumulated before current run segment
@@ -15469,6 +15509,7 @@ import "./styles.css";
                   savePrograms(updated);
                 }}
                 pendingCoachRequests={pendingCoachRequests}
+                sentCoachRequests={sentCoachRequests}
                 coachRelations={coachRelations}
                 onAcceptCoachRequest={fsAcceptCoachRequest}
                 onDeclineCoachRequest={fsDeclineCoachRequest}
