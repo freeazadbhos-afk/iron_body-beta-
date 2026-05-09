@@ -2147,13 +2147,24 @@ import "./styles.css";
   /* ─── Coaching ──────────────────────────────────────────────────────────────── */
   async function fsSendCoachRequest(fromUid, fromName, fromPhotoURL, toUid, toEmail, toName) {
     try {
-      // Check for existing pending/accepted request in either direction
-      const checks = await Promise.all([
-        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",fromUid), where("toUid","==",toUid), where("status","in",["pending","accepted"]))),
-        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",toUid), where("toUid","==",fromUid), where("status","in",["pending","accepted"]))),
+      // Deterministic ID: "{coachUid}_{athleteUid}" — required so Firestore rules can
+      // verify coach access via exists(/coachRequests/$(coachUid + "_" + athleteUid))
+      const docId = `${fromUid}_${toUid}`;
+      const reverseId = `${toUid}_${fromUid}`;
+
+      // Check both directions for an existing active/pending relationship
+      const [fwd, rev] = await Promise.all([
+        getDoc(doc(fbDb, "coachRequests", docId)),
+        getDoc(doc(fbDb, "coachRequests", reverseId)),
       ]);
-      if (checks.some(s => !s.empty)) return { ok: false, reason: "already_exists" };
-      await addDoc(collection(fbDb, "coachRequests"), {
+      const fwdData  = fwd.exists()  ? fwd.data()  : null;
+      const revData  = rev.exists()  ? rev.data()  : null;
+      if (
+        (fwdData && ["pending","accepted"].includes(fwdData.status)) ||
+        (revData && ["pending","accepted"].includes(revData.status))
+      ) return { ok: false, reason: "already_exists" };
+
+      await setDoc(doc(fbDb, "coachRequests", docId), {
         fromUid, fromName, fromPhotoURL: fromPhotoURL || null,
         toUid, toEmail, toName: toName || "",
         status: "pending",
