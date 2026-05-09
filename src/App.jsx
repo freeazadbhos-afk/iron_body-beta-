@@ -13097,7 +13097,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.7.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.0 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
