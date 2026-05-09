@@ -6605,8 +6605,10 @@ import "./styles.css";
     const [loading, setLoading]                 = useState(true);
     const [closing, setClosing]                 = useState(false);
     const [innerTab, setInnerTab]               = useState("dashboards");
-    const [friendPrograms, setFriendPrograms]   = useState(null);
-    const [progsLoading, setProgsLoading]       = useState(false);
+    const [friendPrograms, setFriendPrograms]     = useState(null);
+    const [progsLoading, setProgsLoading]         = useState(false);
+    const [progsLoaded, setProgsLoaded]           = useState(false);   // true once fetch attempted
+    const [friendMeasurements, setFriendMeasurements] = useState(null); // friend body measurements
     const [editingProgId, setEditingProgId]     = useState(null);
     const [creatingNewProg, setCreatingNewProg] = useState(false);
     const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
@@ -6647,13 +6649,27 @@ import "./styles.css";
     // Load friend programs when coaching active + workouts tab
     useEffect(() => {
       if (!isCoachingActive || !iAmCoach || innerTab !== "workouts") return;
-      if (friendPrograms !== null) return;
+      if (progsLoaded) return; // already attempted (success or fail)
       setProgsLoading(true);
       onGetFriendPrograms(friend.uid).then(list => {
-        setFriendPrograms(list || []);
+        setFriendPrograms(Array.isArray(list) ? list : (list ?? []));
+        setProgsLoaded(true);
+        setProgsLoading(false);
+      }).catch(() => {
+        setFriendPrograms([]);
+        setProgsLoaded(true);
         setProgsLoading(false);
       });
-    }, [isCoachingActive, iAmCoach, innerTab, friend.uid]);
+    }, [isCoachingActive, iAmCoach, innerTab, friend.uid, progsLoaded]);
+
+    // Load friend measurements when coaching active (needed for body comp / trends / relative strength)
+    useEffect(() => {
+      if (!isCoachingActive || !iAmCoach) return;
+      if (friendMeasurements !== null) return;
+      fsGetMeasurements(friend.uid).then(meas => {
+        setFriendMeasurements(Array.isArray(meas) ? meas : []);
+      }).catch(() => setFriendMeasurements([]));
+    }, [isCoachingActive, iAmCoach, friend.uid]);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -6753,8 +6769,11 @@ import "./styles.css";
     // ── Coach view: all dashboards ──
     const coachDashboardsJSX = noSessionsJSX || (() => {
       const { streak, last7, thisMonth, allPrs } = dashStats;
+      const fm = Array.isArray(friendMeasurements) ? friendMeasurements : [];
+      const hasMeas = fm.length > 0;
       return (
         <>
+          {/* ── Quick summary tiles ── */}
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
             {[{ label:"STREAK", value: streak ? `${streak}d` : "—" }, { label:"LAST 7 DAYS", value: last7 }, { label:"THIS MONTH", value: thisMonth }].map(({label,value}) => (
               <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
@@ -6763,13 +6782,109 @@ import "./styles.css";
               </div>
             ))}
           </div>
+
+          {/* ── Streak & training frequency ── */}
           <StreakDashboard sessions={sessions} />
           <MusclesTrainedDashboard sessions={sessions} />
           <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
           <CaloriesDashboard sessions={sessions} />
           <WeeklyVolumeDashboard sessions={sessions} sessionVol={sessionVol} />
           {allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null}
+
+          {/* ── Body composition (needs measurements) ── */}
+          {hasMeas && (() => {
+            const latest = fm[0];
+            const prev = fm[1] || null;
+            const delta = (f) => {
+              if (!prev || prev[f] == null || latest[f] == null) return null;
+              const d = (latest[f] - prev[f]).toFixed(1);
+              return { d, sign: d > 0 ? "+" : "", col: f === "fat" ? (d < 0 ? "#1db954" : "#CC1F42") : (d > 0 ? "#1db954" : "#CC1F42") };
+            };
+            return (
+              <div style={{ ...S.card, padding:16, marginBottom:10, textAlign:"left" }}>
+                <div style={{ ...S.label, marginBottom:12 }}>BODY COMPOSITION</div>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8 }}>
+                  {[{ f:"weight", l:"WEIGHT", unit:"kg" }, { f:"muscle", l:"MUSCLE", unit:"%" }, { f:"fat", l:"BODY FAT", unit:"%" }].map(m => {
+                    const val = latest[m.f]; const d = delta(m.f);
+                    return (
+                      <div key={m.f} style={{ background:th.sect, borderRadius:10, padding:"12px 8px", textAlign:"center" }}>
+                        <div className="bebas" style={{ fontSize:22, color:th.accentFg, lineHeight:1 }}>{val != null ? val + m.unit : "—"}</div>
+                        <div style={{ fontSize:10, color:th.dim, letterSpacing:"1.5px", marginTop:2 }}>{m.l}</div>
+                        {d && <div style={{ fontSize:11, color:d.col, fontWeight:700, marginTop:3 }}>{d.sign}{d.d}{m.unit}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Body trends chart ── */}
+          {hasMeas && (
+            <div style={{ ...S.card, padding:16, marginBottom:10, textAlign:"left" }}>
+              <div style={{ ...S.label, marginBottom:12 }}>BODY TRENDS</div>
+              <BodyTrendChart measurements={fm} />
+            </div>
+          )}
+
+          {/* ── Muscle recovery ── */}
+          {sessions.length > 0 && (() => {
+            const now = Date.now();
+            const muscleData = {};
+            ALL_MUSCLES.forEach(m => { muscleData[m] = { lastMs:0, vol72h:0 }; });
+            sessions.forEach(s => {
+              const sTime = s.startTime || 0;
+              const hoursAgo = (now - sTime) / 3600000;
+              (s.exercises||[]).forEach(ex => {
+                if (!ex.muscle || !muscleData[ex.muscle]) return;
+                const md = muscleData[ex.muscle];
+                if (sTime > md.lastMs) md.lastMs = sTime;
+                if (hoursAgo <= 72) (ex.sets||[]).filter(st=>st.done).forEach(st => { md.vol72h += (st.reps||0) * Math.max(st.weight||1,1); });
+              });
+            });
+            const maxVol = Math.max(...Object.values(muscleData).map(d => d.vol72h), 1);
+            const scored = ALL_MUSCLES.map(m => {
+              const { lastMs, vol72h } = muscleData[m];
+              if (!lastMs) return { m, score:0 };
+              const hoursAgo = (now - lastMs) / 3600000;
+              const score = Math.min(1, Math.max(0, 1 - hoursAgo/72)*0.6 + (vol72h/maxVol)*0.4);
+              return { m, score, hoursAgo };
+            });
+            const trained = scored.filter(s => s.hoursAgo != null);
+            if (!trained.length) return null;
+            const getColor = (score) => {
+              if (score >= 0.7)  return { bg:"#CC1F4222", border:"#CC1F42", text:"#CC1F42" };
+              if (score >= 0.35) return { bg:"#E8612C22", border:"#E8612C", text:"#E8612C" };
+              if (score > 0)     return { bg:`${th.accentBg}18`, border:th.accentBg, text:th.accentFg };
+              return { bg:"transparent", border:"transparent", text:th.dim };
+            };
+            return (
+              <div style={{ ...S.card, padding:16, marginBottom:10, textAlign:"left" }}>
+                <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                  <div style={{ ...S.label }}>MUSCLE RECOVERY</div>
+                  <div style={{ fontSize:11, color:th.dim }}>72h window</div>
+                </div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:3 }}>
+                  {scored.map(({ m, score, hoursAgo }) => {
+                    const c = getColor(score);
+                    if (!hoursAgo || score === 0) return <div key={m} style={{ padding:"3px 7px", borderRadius:6, fontSize:11, color:th.dim }}>{m}</div>;
+                    return <div key={m} style={{ padding:"3px 7px", borderRadius:6, fontSize:11, fontWeight:700, border:`1px solid ${c.border}`, color:c.text, background:c.bg }}>{m}</div>;
+                  })}
+                </div>
+                <div style={{ display:"flex", gap:12, marginTop:10, flexWrap:"wrap" }}>
+                  {[{ label:"High fatigue", col:"#CC1F42" }, { label:"Recovering", col:"#E8612C" }, { label:"Low fatigue", col:th.accentBg }, { label:"Rested", col:th.dim }].map(({label,col}) => (
+                    <div key={label} style={{ display:"flex", alignItems:"center", gap:5 }}><div style={{ width:7, height:7, borderRadius:"50%", background:col }} /><span style={{ fontSize:10, color:th.dim }}>{label}</span></div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Strength & volume analysis ── */}
+          <StrengthProgression sessions={sessions} />
           <SetsByMuscleGroup sessions={sessions} />
+          <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />
+          <RelativeStrengthDashboard sessions={sessions} measurements={fm} />
           <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />
           <SessionPaceDashboard sessions={sessions} sessionVol={sessionVol} />
         </>
@@ -6778,6 +6893,8 @@ import "./styles.css";
 
     const workoutsJSX = progsLoading ? (
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading programs…</div>
+    ) : !progsLoaded ? (
+      <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Switch to the Workouts tab to load programs.</div>
     ) : (
       <>
         {/* ── Existing programs ── */}
