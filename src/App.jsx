@@ -2143,6 +2143,90 @@ import "./styles.css";
       return [];
     }
   }
+
+  /* ─── Coaching ──────────────────────────────────────────────────────────────── */
+  async function fsSendCoachRequest(fromUid, fromName, fromPhotoURL, toUid, toEmail, toName) {
+    try {
+      // Check for existing pending/accepted request in either direction
+      const checks = await Promise.all([
+        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",fromUid), where("toUid","==",toUid), where("status","in",["pending","accepted"]))),
+        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",toUid), where("toUid","==",fromUid), where("status","in",["pending","accepted"]))),
+      ]);
+      if (checks.some(s => !s.empty)) return { ok: false, reason: "already_exists" };
+      await addDoc(collection(fbDb, "coachRequests"), {
+        fromUid, fromName, fromPhotoURL: fromPhotoURL || null,
+        toUid, toEmail, toName: toName || "",
+        status: "pending",
+        createdAt: Date.now(),
+      });
+      return { ok: true };
+    } catch (e) {
+      console.error("fsSendCoachRequest:", e);
+      return { ok: false };
+    }
+  }
+
+  async function fsAcceptCoachRequest(requestId) {
+    try {
+      await updateDoc(doc(fbDb, "coachRequests", requestId), { status: "accepted" });
+      return true;
+    } catch (e) { console.error("fsAcceptCoachRequest:", e); return false; }
+  }
+
+  async function fsDeclineCoachRequest(requestId) {
+    try {
+      await updateDoc(doc(fbDb, "coachRequests", requestId), { status: "declined" });
+      return true;
+    } catch (e) { console.error("fsDeclineCoachRequest:", e); return false; }
+  }
+
+  async function fsWithdrawCoachRequest(requestId) {
+    try {
+      await deleteDoc(doc(fbDb, "coachRequests", requestId));
+      return true;
+    } catch (e) { console.error("fsWithdrawCoachRequest:", e); return false; }
+  }
+
+  // Incoming requests where user is the athlete (toUid) with status=pending
+  function fsListenIncomingCoachRequests(uid, cb) {
+    const q = query(collection(fbDb, "coachRequests"), where("toUid","==",uid), where("status","==","pending"));
+    return onSnapshot(q, snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => cb([]));
+  }
+
+  // All accepted coaching relations involving this user (as coach or athlete)
+  function fsListenCoachRelations(uid, cb) {
+    let asCoach = [], asAthlete = [];
+    const merge = () => cb([...asCoach, ...asAthlete]);
+    const u1 = onSnapshot(
+      query(collection(fbDb, "coachRequests"), where("fromUid","==",uid), where("status","==","accepted")),
+      snap => { asCoach = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); }, () => {}
+    );
+    const u2 = onSnapshot(
+      query(collection(fbDb, "coachRequests"), where("toUid","==",uid), where("status","==","accepted")),
+      snap => { asAthlete = snap.docs.map(d => ({ id: d.id, ...d.data() })); merge(); }, () => {}
+    );
+    return () => { u1(); u2(); };
+  }
+
+  // Get all coach requests involving two specific users (any direction, any status)
+  async function fsGetCoachRequestBetween(uid1, uid2) {
+    try {
+      const [s1, s2] = await Promise.all([
+        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",uid1), where("toUid","==",uid2))),
+        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",uid2), where("toUid","==",uid1))),
+      ]);
+      return [...s1.docs, ...s2.docs].map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { return []; }
+  }
+
+  async function fsGetFriendPrograms(friendUid) {
+    return fsGetPrograms(friendUid);
+  }
+
+  async function fsSaveCoachPrograms(athleteUid, list) {
+    return fsSavePrograms(athleteUid, list);
+  }
+
   function fsListenInvitationsReceived(userEmail, cb) {
     const q = query(
       collection(fbDb, "invitations"),
@@ -6399,13 +6483,130 @@ import "./styles.css";
   }
 
   /* ─── Friend Dashboard Sheet ─────────────────────────────────────────────────── */
-  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete }) {
+  /* ─── Coach: inline program editor inside FriendDashboardSheet ─────────────── */
+  function CoachProgramEditor({ program, onSave, onCancel }) {
     const th = useTheme();
     const S = useS();
-    const [sessions, setSessions] = useState(null);
-    const [loading, setLoading]   = useState(true);
-    const [closing, setClosing]   = useState(false);
+    const [name, setName]       = useState(program.name || "");
+    const [exs, setExs]         = useState(() =>
+      (program.exs || []).map(e => e.sets ? e : e.type === "cardio" ? e : { ...e, sets: Array.from({ length: e.s || 4 }, () => ({ reps: e.r||10, weight: e.w||20 })) })
+    );
+    const [showPicker, setShowPicker] = useState(false);
+    const [expandedEx, setExpandedEx] = useState(null);
+    const [saving, setSaving]   = useState(false);
 
+    const addEx = (dbId) => {
+      const db = DB.find(e => e.id === dbId);
+      setExs(p => [...p, db?.type === "cardio"
+        ? { id: dbId, type: "cardio", duration: 0, calories: 0, intensity: 0 }
+        : { id: dbId, sets: Array.from({ length: 4 }, () => ({ reps: 10, weight: 20 })) }
+      ]);
+    };
+    const removeEx = id => setExs(p => p.filter(e => e.id !== id));
+    const updateSet = (id, si, f, v) => setExs(p => p.map(e => e.id !== id ? e : { ...e, sets: e.sets.map((s, i) => i !== si ? s : { ...s, [f]: Math.max(0, parseFloat(v)||0) }) }));
+    const updateNumSets = (id, delta) => setExs(p => p.map(e => {
+      if (e.id !== id || !e.sets) return e;
+      const n = Math.max(1, Math.min(10, e.sets.length + delta));
+      const last = e.sets[e.sets.length-1] || { reps:10, weight:20 };
+      return { ...e, sets: n > e.sets.length ? [...e.sets, ...Array.from({length:n-e.sets.length},()=>({reps:last.reps,weight:last.weight}))] : e.sets.slice(0,n) };
+    }));
+
+    const doSave = async () => {
+      setSaving(true);
+      await onSave({ ...program, name: name.trim() || program.name, exs });
+      setSaving(false);
+    };
+
+    return (
+      <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:16, marginTop:4 }}>
+        <div style={{ marginBottom:12 }}>
+          <div style={{ fontSize:11, color:th.muted, letterSpacing:"1.5px", fontWeight:700, marginBottom:6 }}>PROGRAM NAME</div>
+          <input value={name} onChange={e => setName(e.target.value)} style={{ ...S.input, fontSize:14 }} placeholder="Program name" />
+        </div>
+        <div style={{ fontSize:11, color:th.muted, letterSpacing:"1.5px", fontWeight:700, marginBottom:8 }}>EXERCISES ({exs.length})</div>
+        {exs.map((ex, i) => {
+          const dbEx = DB.find(d => d.id === ex.id);
+          const isExp = expandedEx === ex.id;
+          return (
+            <div key={`${ex.id}-${i}`} style={{ ...S.card, marginBottom:6, overflow:"visible" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", cursor:"pointer" }} onClick={() => setExpandedEx(isExp ? null : ex.id)}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:700, fontSize:13, color:th.text, textAlign:"left" }}>{dbEx?.name || ex.id}</div>
+                  {dbEx?.muscle && <div style={{ fontSize:11, color:th.dim, textAlign:"left" }}>{dbEx.muscle}</div>}
+                </div>
+                {ex.sets && <div style={{ fontSize:11, color:th.accentFg, fontWeight:700 }}>{ex.sets.length} sets</div>}
+                <div style={{ color:th.muted, fontSize:14, transition:"transform .2s", transform: isExp ? "rotate(180deg)" : "none" }}>▾</div>
+                <button onClick={e => { e.stopPropagation(); removeEx(ex.id); }}
+                  style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:6, width:24, height:24, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11 }}>✕</button>
+              </div>
+              {isExp && ex.sets && (
+                <div style={{ padding:"0 12px 12px", borderTop:`1px solid ${th.border}` }}>
+                  <div style={{ display:"flex", gap:8, marginBottom:6, marginTop:10 }}>
+                    {["REPS","KG"].map(h => (
+                      <div key={h} style={{ flex:1, fontSize:10, color:th.dim, letterSpacing:"1px", fontWeight:700, textAlign:"center" }}>{h}</div>
+                    ))}
+                  </div>
+                  {ex.sets.map((s, si) => (
+                    <div key={si} style={{ display:"flex", gap:8, marginBottom:6, alignItems:"center" }}>
+                      <div style={{ fontSize:10, color:th.dim, width:20, textAlign:"center", flexShrink:0 }}>{si+1}</div>
+                      {["reps","weight"].map(f => (
+                        <input key={f} type="number" value={s[f] ?? ""} onChange={e => updateSet(ex.id, si, f, e.target.value)}
+                          style={{ ...S.input, flex:1, padding:"8px 10px", fontSize:14, textAlign:"center" }} />
+                      ))}
+                    </div>
+                  ))}
+                  <div style={{ display:"flex", gap:8, marginTop:8 }}>
+                    <button onClick={() => updateNumSets(ex.id, -1)} disabled={ex.sets.length<=1}
+                      style={{ flex:1, background:th.row, border:`1px solid ${th.border}`, borderRadius:8, padding:"6px 0", cursor:"pointer", color:th.muted, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12 }}>− SET</button>
+                    <button onClick={() => updateNumSets(ex.id, 1)} disabled={ex.sets.length>=10}
+                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 15%, transparent)`, border:`1px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)`, borderRadius:8, padding:"6px 0", cursor:"pointer", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12 }}>+ SET</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <button onClick={() => setShowPicker(true)}
+          style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 10%, transparent)`, border:`1px dashed color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"10px 0", cursor:"pointer", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, letterSpacing:"0.5px", marginBottom:14 }}>
+          + ADD EXERCISE
+        </button>
+        {showPicker && (
+          <ExercisePicker onAdd={id => { addEx(id); setShowPicker(false); }} onClose={() => setShowPicker(false)} />
+        )}
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={onCancel}
+            style={{ flex:1, background:th.row, border:`1px solid ${th.border}`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+          <button onClick={doSave} disabled={saving}
+            style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity:saving?0.6:1 }}>
+            {saving ? "SAVING…" : "SAVE CHANGES"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
+    const th = useTheme();
+    const S = useS();
+    const [sessions, setSessions]             = useState(null);
+    const [loading, setLoading]               = useState(true);
+    const [closing, setClosing]               = useState(false);
+    const [innerTab, setInnerTab]             = useState("dashboards"); // "dashboards"|"workouts"|"history"
+    const [friendPrograms, setFriendPrograms] = useState(null);
+    const [progsLoading, setProgsLoading]     = useState(false);
+    const [editingProgId, setEditingProgId]   = useState(null);
+    const [coachBtnState, setCoachBtnState]   = useState("idle"); // idle|sending|pending|active
+    const [selHistSession, setSelHistSession] = useState(null);
+
+    // Determine coaching relationship state
+    const coachRelation = coachRelations?.find(r =>
+      (r.fromUid === user?.id && r.toUid === friend.uid) ||
+      (r.fromUid === friend.uid && r.toUid === user?.id)
+    );
+    const isCoachingActive = !!coachRelation && coachRelation.status === "accepted";
+    const iAmCoach = isCoachingActive && coachRelation.fromUid === user?.id;
+
+    // Load sessions
     useEffect(() => {
       let cancelled = false;
       onGetFriendSessions(friend.uid).then(s => {
@@ -6414,8 +6615,172 @@ import "./styles.css";
       return () => { cancelled = true; };
     }, [friend.uid]);
 
+    // Set coachBtnState based on relations on mount
+    useEffect(() => {
+      if (!coachRelations) return;
+      const rel = coachRelations.find(r =>
+        (r.fromUid === user?.id && r.toUid === friend.uid) ||
+        (r.fromUid === friend.uid && r.toUid === user?.id)
+      );
+      if (rel?.status === "accepted") setCoachBtnState("active");
+      else if (rel?.status === "pending") setCoachBtnState("pending");
+      else setCoachBtnState("idle");
+    }, [coachRelations, friend.uid]);
+
+    // Load friend programs when coaching active + workouts tab
+    useEffect(() => {
+      if (!isCoachingActive || !iAmCoach || innerTab !== "workouts") return;
+      if (friendPrograms !== null) return;
+      setProgsLoading(true);
+      onGetFriendPrograms(friend.uid).then(list => {
+        setFriendPrograms(list || []);
+        setProgsLoading(false);
+      });
+    }, [isCoachingActive, iAmCoach, innerTab, friend.uid]);
+
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+    const handleSendCoachRequest = async () => {
+      if (coachBtnState !== "idle") return;
+      setCoachBtnState("sending");
+      const result = await onSendCoachRequest(friend.uid, friend.email, friend.name);
+      setCoachBtnState(result?.ok ? "pending" : "idle");
+    };
+
+    const saveProgram = async (updated) => {
+      const newList = (friendPrograms || []).map(p => p.id === updated.id ? updated : p);
+      await onSaveCoachPrograms(friend.uid, newList);
+      setFriendPrograms(newList);
+      setEditingProgId(null);
+    };
+
+    // ── Pre-compute competition label (stable, no inner component) ──
+    const comp = competitions?.find(c =>
+      (c.fromUid === user?.id && c.toUid === friend.uid) ||
+      (c.toUid === user?.id && c.fromUid === friend.uid)
+    );
+    const compLabel = comp?.status === "active"
+      ? <span style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ width:6, height:6, borderRadius:"50%", background:"#D4AF37", display:"inline-block", animation:"pulse 1.5s ease-in-out infinite" }} />COMPETING</span>
+      : comp?.status === "pending" ? "PENDING" : "COMPETE";
+
+    // ── Inline JSX vars — NOT inner components (avoids React remount on every render) ──
+    const dashboardsJSX = loading ? (
+      <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
+    ) : !sessions || sessions.length === 0 ? (
+      <div style={{ textAlign:"center", padding:"48px 0" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>🏋️</div>
+        <div style={{ color:th.muted, fontSize:14 }}>No workout history yet.</div>
+      </div>
+    ) : (() => {
+      const todayMs = new Date(); todayMs.setHours(0,0,0,0);
+      const sessionDays = new Set(sessions.map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+      let streak=0; for(let i=0;i<=365;i++){const d=new Date(todayMs);d.setDate(d.getDate()-i);if(sessionDays.has(d.getTime()))streak++;else if(i>0)break;}
+      const last7 = sessions.filter(s=>(s.startTime||0)>=Date.now()-7*864e5).length;
+      const now2 = new Date(); const monthStart = new Date(now2.getFullYear(),now2.getMonth(),1).getTime();
+      const thisMonth = sessions.filter(s=>(s.startTime||0)>=monthStart).length;
+      const prMap={};
+      sessions.forEach(s=>(s.exercises||[]).forEach(ex=>{const id=ex.id||ex.exId;if(!id)return;(ex.sets||[]).filter(st=>st.done&&(st.weight||0)>0).forEach(st=>{if(!prMap[id]||st.weight>prMap[id].w){const dbEx=DB.find(d=>d.id===id);prMap[id]={w:st.weight,reps:st.reps,name:dbEx?.name||ex.name||id,t:s.startTime||0,muscle:dbEx?.muscle};}});} ));
+      const allPrs=Object.values(prMap).sort((a,b)=>b.w-a.w);
+      return (
+        <>
+          <div style={{ display:"flex", gap:8, marginBottom:16 }}>
+            {[{ label:"STREAK", value: streak ? `${streak}d` : "—" }, { label:"LAST 7 DAYS", value: last7 }, { label:"THIS MONTH", value: thisMonth }].map(({label,value}) => (
+              <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
+                <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
+                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+          <StreakDashboard sessions={sessions} />
+          <MusclesTrainedDashboard sessions={sessions} />
+          <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
+          <CaloriesDashboard sessions={sessions} />
+          <WeeklyVolumeDashboard sessions={sessions} sessionVol={sessionVol} />
+          {allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null}
+          <SetsByMuscleGroup sessions={sessions} />
+          <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />
+          <SessionPaceDashboard sessions={sessions} sessionVol={sessionVol} />
+        </>
+      );
+    })();
+
+    const workoutsJSX = progsLoading ? (
+      <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading programs…</div>
+    ) : !friendPrograms || friendPrograms.length === 0 ? (
+      <div style={{ textAlign:"center", padding:"48px 0" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
+        <div style={{ color:th.muted, fontSize:14 }}>{friend.name.split(" ")[0]} has no programs yet.</div>
+      </div>
+    ) : (
+      <>
+        {friendPrograms.map(p => (
+          <div key={p.id} style={{ ...S.card, marginBottom:10, overflow:"visible" }}>
+            <div style={{ padding:"14px 16px" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                <ProgramIcon name={p.name} size={40} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, fontSize:15, color:th.text, textAlign:"left" }}>{p.name}</div>
+                  <div style={{ fontSize:11, color:th.muted, textAlign:"left" }}>{(p.exs||[]).length} exercises</div>
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:5 }}>
+                    {[...new Set((p.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,4).map(g => (
+                      <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setEditingProgId(editingProgId === p.id ? null : p.id)}
+                  style={{
+                    background: editingProgId === p.id ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
+                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                    border: editingProgId === p.id ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)` : `1px solid ${th.border}`,
+                    borderRadius:10, padding:"7px 14px", cursor:"pointer",
+                    fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                    color: editingProgId === p.id ? th.accentFg : th.muted,
+                    letterSpacing:"0.5px", flexShrink:0,
+                  }}
+                >{editingProgId === p.id ? "CANCEL" : "EDIT"}</button>
+              </div>
+              {editingProgId === p.id && (
+                <CoachProgramEditor program={p} onSave={saveProgram} onCancel={() => setEditingProgId(null)} />
+              )}
+            </div>
+          </div>
+        ))}
+      </>
+    );
+
+    const historyJSX = loading ? (
+      <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
+    ) : !sessions || sessions.length === 0 ? (
+      <div style={{ textAlign:"center", padding:"48px 0" }}>
+        <div style={{ fontSize:32, marginBottom:12 }}>🏋️</div>
+        <div style={{ color:th.muted, fontSize:14 }}>No sessions recorded yet.</div>
+      </div>
+    ) : (
+      <>
+        {sessions.map(s => {
+          const ic = intColor(s.intensity || 0, th);
+          return (
+            <div key={s.id || s.startTime} style={{ ...S.card, marginBottom:8, overflow:"hidden" }}>
+              <div style={{ padding:"13px 14px", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div style={{ flex:1, cursor:"pointer" }} onClick={() => setSelHistSession(s)}>
+                  <div style={{ fontWeight:700, fontSize:15, color:th.text, textAlign:"left", marginBottom:3 }}>{s.name}</div>
+                  <div style={{ fontSize:12, color:th.muted, textAlign:"left" }}>{fmtDate(s.startTime)} · {s.doneSets}/{s.totalSets} sets · {s.duration||"?"}min{s.calories ? ` · ${s.calories}kcal` : ""}</div>
+                  <div style={{ fontSize:11, color:th.accentFg, fontWeight:700, marginTop:2, textAlign:"left" }}>tap for details →</div>
+                </div>
+                {s.intensity != null && (
+                  <div style={{ background:th.sect, borderRadius:9, padding:"7px 11px", textAlign:"center", flexShrink:0, marginLeft:10 }}>
+                    <div className="bebas" style={{ fontSize:26, color:ic, lineHeight:1 }}>{s.intensity}</div>
+                    <div style={{ fontSize:8, color:th.dim, letterSpacing:"0.8px" }}>INTENSITY</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </>
+    );
 
     return (
       <>
@@ -6424,6 +6789,7 @@ import "./styles.css";
           @keyframes fdSheetOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
           @keyframes fdBdIn  { from{opacity:0} to{opacity:1} }
           @keyframes fdBdOut { from{opacity:1} to{opacity:0} }
+          @keyframes coachPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
         `}</style>
 
         {/* Backdrop */}
@@ -6432,6 +6798,19 @@ import "./styles.css";
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
           animation: closing ? "fdBdOut .34s ease forwards" : "fdBdIn .26s ease forwards",
         }} />
+
+        {/* Session detail overlay when in history tab */}
+        {selHistSession && (
+          <div style={{ position:"fixed", inset:0, zIndex:73, background:`color-mix(in srgb, ${th.card} 96%, transparent)`, backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", overflowY:"auto" }}>
+            <div style={{ padding:"16px 16px 8px", borderBottom:`1px solid ${th.border}`, display:"flex", alignItems:"center", gap:12 }}>
+              <button onClick={() => setSelHistSession(null)} style={{ background:"none", border:"none", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", padding:"4px 0" }}>← BACK</button>
+              <div className="bebas" style={{ fontSize:20, letterSpacing:1, color:th.text }}>{selHistSession.name}</div>
+            </div>
+            <div style={{ padding:"16px 16px calc(48px + env(safe-area-inset-bottom,0px))", flex:1 }}>
+              <SessionDetailView session={selHistSession} onBack={() => setSelHistSession(null)} onOrigin="coachHistory" />
+            </div>
+          </div>
+        )}
 
         {/* Sheet */}
         <div style={{
@@ -6449,104 +6828,118 @@ import "./styles.css";
             animation: closing ? "fdSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "fdSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
 
-            {/* Header */}
-            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"14px 16px 10px" }}>
-              {/* Pill */}
+            {/* ── Header ── */}
+            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"14px 16px 12px" }}>
+              {/* Pill handle */}
               <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
-              <div style={{ display:"flex", alignItems:"center", gap:14 }}>
+
+              {/* Friend identity row */}
+              <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                 {friend.photoURL ? (
-                  <img src={friend.photoURL} alt={friend.name} style={{ width:46, height:46, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                  <img src={friend.photoURL} alt={friend.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
                 ) : (
-                  <div style={{ width:46, height:46, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                  <div style={{ width:44, height:44, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
                     {initials}
                   </div>
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div className="bebas" style={{ fontSize:26, textAlign: "left",letterSpacing:2, color:th.text, lineHeight:1 }}>{friend.name}</div>
-                  <div style={{ fontSize:12, textAlign:"left", color:th.muted, marginTop:2 }}>{friend.email}</div>
+                  <div className="bebas" style={{ fontSize:24, textAlign:"left", letterSpacing:2, color:th.text, lineHeight:1 }}>{friend.name}</div>
+                  <div style={{ fontSize:11, textAlign:"left", color:th.muted, marginTop:2 }}>{friend.email}</div>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:8, flexShrink:0 }}>
-                  <button
-                    onClick={onCompete}
-                    style={{
-                      background:`color-mix(in srgb, rgba(212,175,55,0.2) 100%, transparent)`,
-                      backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                      border:`1.5px solid rgba(212,175,55,0.5)`,
-                      borderRadius:10, padding:"7px 12px", cursor:"pointer",
-                      fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                      color:"#D4AF37", letterSpacing:"0.5px",
-                      transition:"background .2s, color .2s",
-                    }}
-                  >{(() => {
-                    const comp = competitions && competitions.find(c =>
-                      (c.fromUid === user?.id && c.toUid === friend.uid) ||
-                      (c.toUid   === user?.id && c.fromUid === friend.uid)
-                    );
-                    if (comp?.status === "active") return (
-                      <span style={{ display:"flex", alignItems:"center", gap:6 }}>
-                        <span style={{ width:7, height:7, borderRadius:"50%", background:"#D4AF37", display:"inline-block", animation:"pulse 1.5s ease-in-out infinite", flexShrink:0 }} />
-                        COMPETING
-                      </span>
-                    );
-                    if (comp?.status === "pending") return "PENDING";
-                    return "COMPETE";
-                  })()}</button>
-                  <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:26, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
-                </div>
+                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:24, cursor:"pointer", lineHeight:1, padding:"4px 6px", flexShrink:0 }}>✕</button>
               </div>
+
+              {/* Action buttons row — COMPETE on left, COACH REQUEST on right */}
+              <div style={{ display:"flex", gap:8 }}>
+                {/* COMPETE */}
+                <button onClick={onCompete} style={{
+                  flex:1,
+                  background:`color-mix(in srgb, rgba(212,175,55,0.15) 100%, transparent)`,
+                  backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                  border:`1.5px solid rgba(212,175,55,0.45)`,
+                  borderRadius:11, padding:"9px 0", cursor:"pointer",
+                  fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                  color:"#D4AF37", letterSpacing:"0.5px",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                }}>{compLabel}</button>
+
+                {/* COACH REQUEST — hidden if this user is already the athlete */}
+                {!(coachRelation && coachRelation.fromUid === friend.uid) && (
+                  <button
+                    onClick={handleSendCoachRequest}
+                    disabled={coachBtnState !== "idle"}
+                    style={{
+                      flex:1,
+                      background: coachBtnState === "active"
+                        ? `rgba(91,156,246,0.12)`
+                        : coachBtnState === "pending"
+                        ? `color-mix(in srgb, ${th.accentBg} 8%, transparent)`
+                        : `rgba(91,156,246,0.85)`,
+                      backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                      border: coachBtnState === "active"
+                        ? `1.5px solid rgba(91,156,246,0.45)`
+                        : coachBtnState === "pending"
+                        ? `1px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)`
+                        : "none",
+                      borderRadius:11, padding:"9px 0",
+                      cursor: coachBtnState !== "idle" ? "default" : "pointer",
+                      fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                      color: coachBtnState === "active" ? "#5B9CF6" : coachBtnState === "pending" ? th.accentFg : "#fff",
+                      letterSpacing:"0.5px", transition:"all .2s",
+                      display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                    }}
+                  >
+                    {coachBtnState === "sending" ? "…"
+                      : coachBtnState === "pending" ? "REQUEST PENDING"
+                      : coachBtnState === "active"
+                        ? <><span style={{ width:6, height:6, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", animation:"coachPulse 2s ease-in-out infinite" }} />COACHING</>
+                        : "REQUEST COACHING"}
+                  </button>
+                )}
+              </div>
+
+              {/* ── Inner tabs (only when coaching is active and I am the coach) ── */}
+              {isCoachingActive && iAmCoach && (() => {
+                const tabs   = ["dashboards","workouts","history"];
+                const labels = ["DASHBOARDS","WORKOUTS","HISTORY"];
+                const idx    = tabs.indexOf(innerTab);
+                return (
+                  <div style={{ display:"flex", position:"relative", marginTop:10, padding:"3px", background:th.row, borderRadius:12 }}>
+                    <div style={{
+                      position:"absolute", top:3, bottom:3,
+                      width:`calc(${100/3}% - 2px)`,
+                      left: idx === 0 ? 3 : idx === 1 ? "calc(33.33%)" : "calc(66.66%)",
+                      background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                      borderRadius:9,
+                      transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
+                      pointerEvents:"none",
+                    }} />
+                    {tabs.map((t, i) => (
+                      <button key={t} onClick={() => setInnerTab(t)} style={{
+                        flex:1, padding:"8px 0", border:"none", cursor:"pointer",
+                        borderRadius:9, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:10,
+                        letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
+                        color: innerTab === t ? th.accentT : th.dim,
+                        transition:"color 0.22s ease",
+                      }}>{labels[i]}</button>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
 
-            {/* Scrollable body */}
+            {/* ── Body ── */}
             <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px calc(88px + env(safe-area-inset-bottom, 0px))" }}>
-              {loading ? (
-                <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
-              ) : !sessions || sessions.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"48px 0" }}>
-                  <div style={{ fontSize:32, marginBottom:12 }}>🏋️</div>
-                  <div style={{ color:th.muted, fontSize:14 }}>No workout history yet.</div>
-                </div>
-              ) : (
+              {isCoachingActive && iAmCoach ? (
                 <>
-                  {/* ── Quick summary tiles ── */}
-                  {(() => {
-                    const todayMs = new Date(); todayMs.setHours(0,0,0,0);
-                    const sessionDays = new Set(sessions.map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
-                    let streak=0; for(let i=0;i<=365;i++){const d=new Date(todayMs);d.setDate(d.getDate()-i);if(sessionDays.has(d.getTime()))streak++;else if(i>0)break;}
-                    const last7 = sessions.filter(s=>(s.startTime||0)>=Date.now()-7*864e5).length;
-                    const now = new Date(); const monthStart = new Date(now.getFullYear(),now.getMonth(),1).getTime();
-                    const thisMonth = sessions.filter(s=>(s.startTime||0)>=monthStart).length;
-                    return (
-                      <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-                        {[
-                          { label:"STREAK",       value: streak ? `${streak}d` : "—" },
-                          { label:"LAST 7 DAYS",  value: last7 },
-                          { label:"THIS MONTH",   value: thisMonth },
-                        ].map(({label,value}) => (
-                          <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
-                            <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                  <StreakDashboard sessions={sessions} />
-                  <MusclesTrainedDashboard sessions={sessions} />
-                  <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
-                  <CaloriesDashboard sessions={sessions} />
-                  <WeeklyVolumeDashboard sessions={sessions} sessionVol={sessionVol} />
-                  {(() => {
-                    const prMap={};
-                    sessions.forEach(s=>(s.exercises||[]).forEach(ex=>{const id=ex.id||ex.exId;if(!id)return;(ex.sets||[]).filter(st=>st.done&&(st.weight||0)>0).forEach(st=>{if(!prMap[id]||st.weight>prMap[id].w){const dbEx=DB.find(d=>d.id===id);prMap[id]={w:st.weight,reps:st.reps,name:dbEx?.name||ex.name||id,t:s.startTime||0,muscle:dbEx?.muscle};}});} ));
-                    const allPrs=Object.values(prMap).sort((a,b)=>b.w-a.w);
-                    return allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null;
-                  })()}
-                  <SetsByMuscleGroup sessions={sessions} />
-                  <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />
-                  <SessionPaceDashboard sessions={sessions} sessionVol={sessionVol} />
+                  {innerTab === "dashboards" && dashboardsJSX}
+                  {innerTab === "workouts"   && workoutsJSX}
+                  {innerTab === "history"    && historyJSX}
                 </>
+              ) : (
+                dashboardsJSX
               )}
             </div>
           </div>
@@ -7655,7 +8048,7 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms }) {
     const th = useTheme();
     const S = useS();
     const [inviteEmail, setInviteEmail] = useState("");
@@ -7911,6 +8304,43 @@ import "./styles.css";
           );
         })}
 
+        {/* ── Pending coaching requests received ── */}
+        {(pendingCoachRequests || []).map(req => {
+          const f = friends.find(fr => fr.uid === req.fromUid);
+          const initials = (req.fromName||"?")[0].toUpperCase();
+          return (
+            <div key={req.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both", borderColor:`rgba(91,156,246,0.35)` }}>
+              {/* Blue top accent bar */}
+              <div style={{ height:3, background:"#5B9CF6", borderRadius:"4px 4px 0 0", margin:"-14px -16px 12px" }} />
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
+                {(req.fromPhotoURL || f?.photoURL) ? (
+                  <img src={req.fromPhotoURL || f.photoURL} alt={req.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`rgba(91,156,246,0.15)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
+                    {initials}
+                  </div>
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
+                  <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
+                    COACHING REQUEST
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
+                <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach — they'll have access to your workout programs, all dashboards, and session history to guide your progress.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
+                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
+              </div>
+            </div>
+          );
+        })}
+
         {/* ── Tab switcher: FEED | FRIENDS — smooth sliding rounded pill ── */}
         {(() => {
           const tabs = ["feed","friends"];
@@ -8054,6 +8484,12 @@ import "./styles.css";
             onClose={() => setDashFriend(null)}
             onGetFriendSessions={onGetFriendSessions}
             onCompete={() => { setDashFriend(null); setTimeout(() => setCompeteFriend(dashFriend), 360); }}
+            coachRelations={coachRelations}
+            onSendCoachRequest={(friendUid, friendEmail, friendName) =>
+              onSendCoachRequest(friendUid, friendEmail, friendName)
+            }
+            onGetFriendPrograms={onGetFriendPrograms}
+            onSaveCoachPrograms={onSaveCoachPrograms}
           />,
           document.body
         )}
@@ -13484,6 +13920,8 @@ import "./styles.css";
     const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
     const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
     const [competitions, setCompetitions]             = useState([]);
+    const [pendingCoachRequests, setPendingCoachRequests] = useState([]); // incoming coach requests (user is athlete)
+    const [coachRelations, setCoachRelations]             = useState([]);  // accepted coach/athlete pairs
     const [sessions, setSessions] = useState([]);
     const [programs, setPrograms] = useState([]);
     const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -13720,6 +14158,8 @@ import "./styles.css";
         .then(() => console.log("Public profile registered for", user.email))
         .catch(e => console.warn("Profile register failed:", e));
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
+      const unsubCoachReqs = fsListenIncomingCoachRequests(user.id, setPendingCoachRequests);
+      const unsubCoachRels = fsListenCoachRelations(user.id, setCoachRelations);
 
       // Listen for star reactions on user's sessions
       const notifCutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -13763,7 +14203,7 @@ import "./styles.css";
         }
       );
 
-      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); };
+      return () => { unsubReceived(); unsubSent(); unsubFriends(); unsubCompete(); unsubReactions(); unsubNotifs(); unsubCoachReqs(); unsubCoachRels(); };
     }, [user?.id, user?.email]);
     // ── Timer: accumulator-based so pause is a hard freeze ──────────────────────
     const elapsedBeforeRunRef = useRef(0); // whole seconds accumulated before current run segment
@@ -15028,6 +15468,15 @@ import "./styles.css";
                   const updated = [...programs, newProg];
                   savePrograms(updated);
                 }}
+                pendingCoachRequests={pendingCoachRequests}
+                coachRelations={coachRelations}
+                onAcceptCoachRequest={fsAcceptCoachRequest}
+                onDeclineCoachRequest={fsDeclineCoachRequest}
+                onSendCoachRequest={(friendUid, friendEmail, friendName) =>
+                  fsSendCoachRequest(user.id, user.name || "Coach", user.photoURL || null, friendUid, friendEmail, friendName)
+                }
+                onGetFriendPrograms={fsGetFriendPrograms}
+                onSaveCoachPrograms={fsSaveCoachPrograms}
               />
             )}
           </div>
