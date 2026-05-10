@@ -2156,18 +2156,24 @@ import "./styles.css";
   /* ─── Coaching ──────────────────────────────────────────────────────────────── */
   async function fsSendCoachRequest(fromUid, fromName, fromPhotoURL, toUid, toEmail, toName) {
     try {
-      // Deterministic ID: "{coachUid}_{athleteUid}" — required so Firestore rules can
-      // verify coach access via exists(/coachRequests/$(coachUid + "_" + athleteUid))
-      const docId = `${fromUid}_${toUid}`;
+      const docId     = `${fromUid}_${toUid}`;
       const reverseId = `${toUid}_${fromUid}`;
 
-      // Check both directions for an existing active/pending relationship
-      const [fwd, rev] = await Promise.all([
-        getDoc(doc(fbDb, "coachRequests", docId)),
-        getDoc(doc(fbDb, "coachRequests", reverseId)),
-      ]);
-      const fwdData  = fwd.exists()  ? fwd.data()  : null;
-      const revData  = rev.exists()  ? rev.data()  : null;
+      // Firestore rules deny reads of non-existent documents (resource is null → rule error).
+      // Wrap each read individually — permission-denied on a non-existent doc = treat as absent.
+      const safeGet = async (id) => {
+        try {
+          const snap = await getDoc(doc(fbDb, "coachRequests", id));
+          return snap.exists() ? snap.data() : null;
+        } catch (e) {
+          // permission-denied here means the doc doesn't exist (null resource in rule)
+          // OR we genuinely can't read it — either way, not a blocking condition for creation
+          return null;
+        }
+      };
+
+      const [fwdData, revData] = await Promise.all([safeGet(docId), safeGet(reverseId)]);
+
       if (
         (fwdData && ["pending","accepted"].includes(fwdData.status)) ||
         (revData && ["pending","accepted"].includes(revData.status))
