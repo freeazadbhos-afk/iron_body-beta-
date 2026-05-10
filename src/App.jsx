@@ -6909,6 +6909,7 @@ import "./styles.css";
     const [openProgram, setOpenProgram]         = useState(null); // program open in CoachProgramSheet
     const [editingProgs, setEditingProgs]       = useState(false); // edit mode to remove programs
     const [creatingNewProg, setCreatingNewProg] = useState(false);
+    const [awardPage, setAwardPage]             = useState(0);    // pagination for friend awards
     const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
     const [selHistSession, setSelHistSession]   = useState(null);
     const [showCoachRules, setShowCoachRules]   = useState(false);
@@ -7409,6 +7410,73 @@ import "./styles.css";
       </>
     );
 
+    // ── Inline awards JSX for friend's history tab (NOT a component — avoids remount on every render) ──
+    // Uses awardPage state from the parent component for pagination.
+    const friendAwardsJSX = (() => {
+      if (!sessions || sessions.length === 0) return null;
+      const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+      const sortedDays = [...daySet].sort((a,b) => b-a);
+      let streak = 0;
+      let expected = new Date(); expected.setHours(0,0,0,0);
+      if (sortedDays.length && sortedDays[0] >= expected.getTime() - 86400000*2) {
+        for (const day of sortedDays) {
+          if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
+          else break;
+        }
+      }
+      const now2 = new Date();
+      const ms = new Date(now2.getFullYear(), now2.getMonth(), 1).getTime();
+      const mn = now2.toLocaleString("en-US", { month:"long" });
+      const daysMonth = new Set(sessions.filter(s=>(s.startTime||0)>=ms).map(s=>{const d=new Date(s.startTime||0);d.setHours(0,0,0,0);return d.getTime();})).size;
+      const dow = (now2.getDay()+6)%7;
+      const wkStart = new Date(now2); wkStart.setHours(0,0,0,0); wkStart.setDate(wkStart.getDate()-dow);
+      const daysWeek = new Set(sessions.filter(s=>(s.startTime||0)>=wkStart.getTime()).map(s=>{const d=new Date(s.startTime||0);d.setHours(0,0,0,0);return d.getTime();})).size;
+      const awards = [
+        { id:"streak7",  icon:"🔥", label:"7-Day Streak",    desc:"Train 7 days in a row",    earned: streak >= 7 },
+        { id:"streak14", icon:"⚡", label:"14-Day Streak",   desc:"Train 14 days in a row",   earned: streak >= 14 },
+        { id:"streak21", icon:"💎", label:"21-Day Streak",   desc:"Train 21 days in a row",   earned: streak >= 21 },
+        { id:"streak30", icon:"👑", label:"1-Month Streak",  desc:"Train 30 days in a row",   earned: streak >= 30 },
+        { id:"monthly",  icon:"📅", label:`${mn} Challenge`, desc:`20 workouts in ${mn}`,     earned: daysMonth >= 20 },
+        { id:"weekly",   icon:"🗓️", label:"Week Challenge",  desc:"5 workouts this week",     earned: daysWeek >= 5 },
+      ];
+      const PAGE = 3;
+      const totalPages = Math.ceil(awards.length / PAGE);
+      const slice = awards.slice(awardPage * PAGE, awardPage * PAGE + PAGE);
+      const earnedCount = awards.filter(a => a.earned).length;
+      return (
+        <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
+          <style>{`@keyframes awSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes awSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+            <div style={{ ...S.label, textAlign:"left" }}>AWARDS</div>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:12, color:th.dim }}>{earnedCount}/{awards.length}</span>
+              {totalPages > 1 && (<>
+                <button onClick={() => setAwardPage(p => Math.max(0, p-1))} disabled={awardPage === 0}
+                  style={{ background:"none", border:"none", color: awardPage===0 ? th.inputB : th.accentFg, fontSize:28, cursor: awardPage===0?"default":"pointer", padding:"0 4px", lineHeight:1 }}>‹</button>
+                <button onClick={() => setAwardPage(p => Math.min(totalPages-1, p+1))} disabled={awardPage === totalPages-1}
+                  style={{ background:"none", border:"none", color: awardPage===totalPages-1 ? th.inputB : th.accentFg, fontSize:28, cursor: awardPage===totalPages-1?"default":"pointer", padding:"0 4px", lineHeight:1 }}>›</button>
+              </>)}
+            </div>
+          </div>
+          <div key={awardPage} style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, animation:"awSlideL 0.22s ease-out", minHeight:142 }}>
+            {slice.map(a => (
+              <div key={a.id} style={{
+                display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
+                background: a.earned ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})` : th.sect,
+                borderRadius:12,
+                border: a.earned ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)` : `1.5px solid ${th.border}`,
+                opacity: a.earned ? 1 : 0.38,
+              }}>
+                <div style={{ width:46, height:46, borderRadius:12, background:a.earned?`color-mix(in srgb, ${th.accentBg} 18%, ${th.card})`:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, boxShadow:a.earned?`0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)`:"none" }}>{a.icon}</div>
+                <div style={{ fontSize:11, fontWeight:700, color:a.earned?th.accentBg:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.label}</div>
+                <div style={{ fontSize:10, color:th.text, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    })();
+
     const historyJSX = loading ? (
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
     ) : !sessions || sessions.length === 0 ? (
@@ -7418,6 +7486,7 @@ import "./styles.css";
       </div>
     ) : (
       <>
+        {friendAwardsJSX}
         {sessions.map(s => {
           const ic = intColor(s.intensity || 0, th);
           return (
@@ -14694,6 +14763,13 @@ import "./styles.css";
       return () => clearInterval(t);
     }, [themeAuto]);
 
+    // Splash: ensure the full animation sequence (last word appears at ~1.37s) always completes
+    // before the splash is dismissed, regardless of how fast Firebase auth resolves.
+    useEffect(() => {
+      const t = setTimeout(() => setSplashDone(true), 1650);
+      return () => clearTimeout(t);
+    }, []);
+
     useEffect(() => {
       document.body.style.background = th.bg;
     }, [th.bg]);
@@ -14723,6 +14799,7 @@ import "./styles.css";
 
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
+    const [splashDone, setSplashDone]   = useState(false); // true after animation minimum elapsed
 
     // Unread feedback count (admin only)
     const [unreadFeedback, setUnreadFeedback] = useState(0);
@@ -15266,7 +15343,7 @@ import "./styles.css";
     const startTimer = useCallback(() => {}, []);
     const stopTimer = clearWorkoutInterval;
 
-    if (authLoading)
+    if (authLoading || !splashDone)
       return (
         <ThemeCtx.Provider value={th}>
           <div style={{ position: "fixed", inset: 0, background: "#0a0a0c", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
@@ -15283,7 +15360,7 @@ import "./styles.css";
               background: "linear-gradient(to top, rgba(200,240,48,0.06), transparent)",
             }} />
             {/* Logo — identical to AuthView */}
-            <div style={{ position: "relative", textAlign: "left", padding: "0 28px", width: "100%", maxWidth: 360, animation: "splashIn 0.55s cubic-bezier(0.34,1.2,0.64,1) both" }}>
+            <div style={{ position: "relative", textAlign: "left", padding: "0 28px", width: "100%", maxWidth: 360 }}>
               <style>{`
                 @keyframes splashIn {
                   from { opacity: 0; transform: scale(0.88) translateY(20px); }
@@ -15293,12 +15370,30 @@ import "./styles.css";
                   from { opacity: 1; }
                   to   { opacity: 0; }
                 }
+                @keyframes ironBodyReveal {
+                  0%   { opacity: 0; filter: blur(18px); transform: scale(0.96) translateY(12px); }
+                  40%  { opacity: 1; filter: blur(4px);  transform: scale(1.01) translateY(0); }
+                  100% { opacity: 1; filter: blur(0px);  transform: scale(1) translateY(0); }
+                }
+                @keyframes wordFadeUp {
+                  from { opacity: 0; transform: translateY(10px); }
+                  to   { opacity: 1; transform: translateY(0); }
+                }
               `}</style>
-              <div className="bebas" style={{ fontSize: 70, color: "#c8f030", lineHeight: 0.85, marginBottom: 8 }}>
+              <div className="bebas" style={{
+                fontSize: 70, color: "#c8f030", lineHeight: 0.85, marginBottom: 8,
+                animation: "ironBodyReveal 0.9s cubic-bezier(0.22,1,0.36,1) 0.1s both",
+              }}>
                 IRON<br />BODY
               </div>
-              <div style={{ color: "rgba(255,255,255,0.45)", fontSize: 12, marginBottom: 0, letterSpacing: "3px", fontFamily: "'Outfit',sans-serif" }}>
-                TRACK · LIFT · PROGRESS
+              <div style={{ display:"flex", alignItems:"center", gap:0, fontFamily:"'Outfit',sans-serif", fontSize:12, letterSpacing:"3px", color:"rgba(255,255,255,0.45)" }}>
+                {["TRACK","·","LIFT","·","PROGRESS"].map((word, i) => (
+                  <span key={word + i} style={{
+                    display:"inline-block",
+                    marginRight: word === "·" ? 0 : 0,
+                    animation: `wordFadeUp 0.45s cubic-bezier(0.22,1,0.36,1) ${0.65 + i * 0.18}s both`,
+                  }}>{word}{i < 4 ? "\u00A0" : ""}</span>
+                ))}
               </div>
             </div>
           </div>
