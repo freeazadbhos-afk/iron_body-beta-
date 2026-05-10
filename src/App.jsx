@@ -6644,7 +6644,7 @@ import "./styles.css";
     );
   }
 
-  function CoachProgramSheet({ program, athleteName, onSave, onClose }) {
+  function CoachProgramSheet({ program, athleteName, onSave, onClose, isNew = false }) {
     const th = useTheme();
     const S = useS();
     const [name, setName]         = useState(program.name || "");
@@ -6732,7 +6732,7 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", alignItems:"center" }}>
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:11, color:th.dim, letterSpacing:"1.5px", fontWeight:700 }}>EDITING PROGRAM</div>
+                  <div style={{ fontSize:11, color:th.dim, letterSpacing:"1.5px", fontWeight:700 }}>{isNew ? "NEW PROGRAM" : "EDITING PROGRAM"}</div>
                   <div style={{ fontSize:13, color:th.muted, marginTop:2 }}>{athleteName}'s workout</div>
                 </div>
                 <button onClick={close} style={{
@@ -6826,19 +6826,28 @@ import "./styles.css";
                   transition:"all .2s",
                 }}
               >
-                {saving ? "SAVING…" : "SAVE CHANGES"}
+                {saving ? "SAVING…" : isNew ? "CREATE PROGRAM" : "SAVE CHANGES"}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Exercise picker portal */}
+        {/* Exercise picker — rendered at zIndex 82/83 to sit above CoachProgramSheet (78/79) */}
         {showPicker && createPortal(
-          <ExercisePicker
-            onAdd={id => { addEx(id); setShowPicker(false); }}
-            onClose={() => setShowPicker(false)}
-            added={exs.map(e => e.id)}
-          />,
+          <>
+            {/* Extra backdrop above the sheet */}
+            <div
+              onClick={() => setShowPicker(false)}
+              style={{ position:"fixed", inset:0, zIndex:82, background:"rgba(0,0,0,0.35)" }}
+            />
+            <div style={{ position:"fixed", inset:0, zIndex:83, pointerEvents:"none" }}>
+              <ExercisePicker
+                onAdd={id => { addEx(id); setShowPicker(false); }}
+                onClose={() => setShowPicker(false)}
+                added={exs.map(e => e.id)}
+              />
+            </div>
+          </>,
           document.body
         )}
       </>,
@@ -7314,20 +7323,22 @@ import "./styles.css";
           </div>
         ))}
 
-        {/* ── New program creation ── */}
-        {creatingNewProg ? (
-          <div style={{ ...S.card, padding:"16px", marginBottom:10, overflow:"visible" }}>
-            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
-              <div style={{ width:10, height:10, borderRadius:"50%", background:"#5B9CF6", flexShrink:0 }} />
-              <div style={{ fontSize:12, color:"#5B9CF6", fontWeight:700, letterSpacing:"1px" }}>NEW PROGRAM FOR {friend.name.split(" ")[0].toUpperCase()}</div>
-            </div>
-            <CoachProgramEditor
-              program={{ id: null, name: "", exs: [] }}
-              onSave={saveProgram}
-              onCancel={() => setCreatingNewProg(false)}
-            />
-          </div>
-        ) : (
+        {/* ── New program: opens as full CoachProgramSheet portal ── */}
+        {creatingNewProg && (
+          <CoachProgramSheet
+            program={{ id: null, name: "", exs: [] }}
+            athleteName={friend.name.split(" ")[0]}
+            isNew={true}
+            onSave={async (newProg) => {
+              await saveProgram(newProg);
+              setCreatingNewProg(false);
+            }}
+            onClose={() => setCreatingNewProg(false)}
+          />
+        )}
+
+        {/* CREATE NEW PROGRAM button */}
+        {!creatingNewProg && (
           <button
             onClick={() => setCreatingNewProg(true)}
             style={{
