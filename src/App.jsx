@@ -2420,10 +2420,14 @@ import "./styles.css";
   async function fsGetMeasurements(uid) {
     try {
       const snap = await getDoc(doc(fbDb, "users", uid, "data", "measurements"));
-      return snap.exists() ? snap.data().list : null;
+      return snap.exists() ? (snap.data().list || []) : [];
     } catch (e) {
-      console.error("fsGetMeasurements:", e.code, e.message);
-      return null;
+      if (e?.code !== "permission-denied") {
+        console.error("fsGetMeasurements:", e.code, e.message);
+      } else {
+        console.warn("fsGetMeasurements: permission denied for uid", uid, "— check Firestore rules for coach access to users/{uid}/data/measurements");
+      }
+      return null; // null = failed (vs [] = exists but empty)
     }
   }
   async function fsSaveMeasurements(uid, list) {
@@ -6620,6 +6624,7 @@ import "./styles.css";
     const [progsLoading, setProgsLoading]         = useState(false);
     const [progsLoaded, setProgsLoaded]           = useState(false);   // true once fetch attempted
     const [friendMeasurements, setFriendMeasurements] = useState(null); // friend body measurements
+    const [measLoading, setMeasLoading]             = useState(false);
     const [editingProgId, setEditingProgId]     = useState(null);
     const [creatingNewProg, setCreatingNewProg] = useState(false);
     const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
@@ -6677,9 +6682,11 @@ import "./styles.css";
     useEffect(() => {
       if (!isCoachingActive || !iAmCoach) return;
       if (friendMeasurements !== null) return;
+      setMeasLoading(true);
       fsGetMeasurements(friend.uid).then(meas => {
         setFriendMeasurements(Array.isArray(meas) ? meas : []);
-      }).catch(() => setFriendMeasurements([]));
+        setMeasLoading(false);
+      }).catch(() => { setFriendMeasurements([]); setMeasLoading(false); });
     }, [isCoachingActive, iAmCoach, friend.uid]);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
@@ -6782,6 +6789,7 @@ import "./styles.css";
       const { streak, last7, thisMonth, allPrs } = dashStats;
       const fm = Array.isArray(friendMeasurements) ? friendMeasurements : [];
       const hasMeas = fm.length > 0;
+      // measLoading: still waiting on Firebase read — show placeholder instead of hiding dashboards
       return (
         <>
           {/* ── Quick summary tiles ── */}
@@ -6803,7 +6811,21 @@ import "./styles.css";
           {allPrs.length ? <PRsDashboard allPrs={allPrs} /> : null}
 
           {/* ── Body composition (needs measurements) ── */}
-          {hasMeas && (() => {
+          {measLoading ? (
+            <div style={{ ...S.card, padding:"20px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:12 }}>
+              <div style={{ width:32, height:32, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, fontSize:16 }}>⚖️</div>
+              <div>
+                <div style={{ fontSize:13, color:th.text, fontWeight:700 }}>Body Composition</div>
+                <div style={{ fontSize:12, color:th.dim, marginTop:2 }}>Loading measurements…</div>
+              </div>
+            </div>
+          ) : !hasMeas ? (
+            <div style={{ ...S.card, padding:"16px", marginBottom:10, opacity:0.55 }}>
+              <div style={{ ...S.label, marginBottom:6 }}>BODY COMPOSITION & TRENDS</div>
+              <div style={{ fontSize:12, color:th.dim }}>{friend.name.split(" ")[0]} hasn't logged body measurements yet.</div>
+            </div>
+          ) : null}
+          {!measLoading && hasMeas && (() => {
             const latest = fm[0];
             const prev = fm[1] || null;
             const delta = (f) => {
@@ -6831,7 +6853,7 @@ import "./styles.css";
           })()}
 
           {/* ── Body trends chart ── */}
-          {hasMeas && (
+          {!measLoading && hasMeas && (
             <div style={{ ...S.card, padding:16, marginBottom:10, textAlign:"left" }}>
               <div style={{ ...S.label, marginBottom:12 }}>BODY TRENDS</div>
               <BodyTrendChart measurements={fm} />
@@ -6895,7 +6917,7 @@ import "./styles.css";
           <StrengthProgression sessions={sessions} />
           <SetsByMuscleGroup sessions={sessions} />
           <ACWRDashboard sessions={sessions} sessionVol={sessionVol} />
-          <RelativeStrengthDashboard sessions={sessions} measurements={fm} />
+          {!measLoading && <RelativeStrengthDashboard sessions={sessions} measurements={fm} />}
           <TrainingDensityDashboard sessions={sessions} sessionVol={sessionVol} />
           <SessionPaceDashboard sessions={sessions} sessionVol={sessionVol} />
         </>
@@ -14387,15 +14409,36 @@ import "./styles.css";
               gender: u.gender || fsSet.gender || null,
             } : u);
           }
-          // Measurements
-          const fsMeas = await fsGetMeasurements(user.id);
-          if (fsMeas && fsMeas.length > 0) {
-            setMeasurements(fsMeas);
-            saveMeasurementsLocal(user.id, fsMeas);
-          } else {
-            const localMeas = getMeasurements(user.id);
-            if (localMeas.length > 0)
-              await fsSaveMeasurements(user.id, localMeas);
+          // ── Measurements sync — merge local + Firebase, keep newest per date ──────
+          // This ensures Firebase always has the complete set so coaches can read it.
+          const [fsMeas, localMeas] = await Promise.all([
+            fsGetMeasurements(user.id),
+            Promise.resolve(getMeasurements(user.id)),
+          ]);
+
+          const fsArr    = Array.isArray(fsMeas)    ? fsMeas    : [];
+          const localArr = Array.isArray(localMeas) ? localMeas : [];
+
+          // Build a map keyed by date string, local entries take precedence when dates collide
+          const merged = new Map();
+          [...fsArr, ...localArr].forEach(m => {
+            if (m?.date) merged.set(m.date, m);
+          });
+          const mergedList = [...merged.values()].sort((a, b) =>
+            new Date(b.date) - new Date(a.date)
+          );
+
+          const needsFirebasePush =
+            mergedList.length > fsArr.length ||  // local has entries Firebase is missing
+            mergedList.length > 0 && fsArr.length === 0; // Firebase is empty
+
+          if (mergedList.length > 0) {
+            setMeasurements(mergedList);
+            saveMeasurementsLocal(user.id, mergedList);
+            // Always push the merged result to Firebase so it's up-to-date for coaches
+            if (needsFirebasePush || fsArr.length === 0) {
+              await fsSaveMeasurements(user.id, mergedList);
+            }
           }
         } catch (e) {
           console.error("Firestore sync error:", e.code, e.message);
@@ -14444,7 +14487,9 @@ import "./styles.css";
     const saveMeasurements = (data) => {
       setMeasurements(data);
       saveMeasurementsLocal(user.id, data);
-      fsSaveMeasurements(user.id, data);
+      fsSaveMeasurements(user.id, data).catch(e =>
+        console.error("saveMeasurements Firebase write failed:", e?.code, e?.message)
+      );
     };
 
     // saveSessions — updates local state + cache; individual session push done in handleSaveSession
