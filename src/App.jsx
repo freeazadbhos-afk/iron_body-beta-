@@ -6644,6 +6644,208 @@ import "./styles.css";
     );
   }
 
+  function CoachProgramSheet({ program, athleteName, onSave, onClose }) {
+    const th = useTheme();
+    const S = useS();
+    const [name, setName]         = useState(program.name || "");
+    const [exs, setExs]           = useState(() =>
+      (program.exs || []).map(e => {
+        if (e.sets || e.type === "cardio") return e;
+        return { ...e, sets: Array.from({ length: e.s || 4 }, () => ({ reps: e.r || 10, weight: e.w || 20 })) };
+      })
+    );
+    const [showPicker, setShowPicker] = useState(false);
+    const [expandedEx, setExpandedEx] = useState(null);
+    const [saving, setSaving]         = useState(false);
+    const [closing, setClosing]       = useState(false);
+    const listRef = useRef(null);
+    const { dragIdx, insertIdx, droppedIdx, dropDir, start: dragStart } = useDragSort(exs, setExs);
+
+    const close = () => { setClosing(true); setTimeout(onClose, 340); };
+
+    const addEx = (dbId) => {
+      const db = DB.find(e => e.id === dbId);
+      setExs(prev => [...prev, db?.type === "cardio"
+        ? { id: dbId, type: "cardio", duration: 0, calories: 0, intensity: 0 }
+        : { id: dbId, sets: Array.from({ length: 4 }, () => ({ reps: 10, weight: 20 })) }
+      ]);
+    };
+    const removeEx = (id) => setExs(prev => prev.filter(e => e.id !== id));
+    const updateSet = (id, sIdx, f, v) =>
+      setExs(prev => prev.map(e => e.id !== id ? e : {
+        ...e, sets: e.sets.map((s, i) => i !== sIdx ? s : { ...s, [f]: Math.max(0, parseFloat(v) || 0) })
+      }));
+    const updateNumSets = (id, delta) =>
+      setExs(prev => prev.map(e => {
+        if (e.id !== id || !e.sets) return e;
+        const n = Math.max(1, Math.min(10, e.sets.length + delta));
+        const last = e.sets[e.sets.length - 1] || { reps: 10, weight: 20 };
+        return { ...e, sets: n > e.sets.length
+          ? [...e.sets, ...Array.from({ length: n - e.sets.length }, () => ({ reps: last.reps, weight: last.weight }))]
+          : e.sets.slice(0, n) };
+      }));
+
+    const handleSave = async () => {
+      if (!name.trim() || exs.length === 0) return;
+      setSaving(true);
+      await onSave({ ...program, name: name.trim(), exs });
+      setSaving(false);
+      close();
+    };
+
+    return createPortal(
+      <>
+        <style>{`
+          @keyframes cpSheetIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes cpSheetOut { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
+          @keyframes cpBdIn  { from{opacity:0} to{opacity:1} }
+          @keyframes cpBdOut { from{opacity:1} to{opacity:0} }
+        `}</style>
+
+        {/* Backdrop */}
+        <div onClick={close} style={{
+          position:"fixed", inset:0, zIndex:78,
+          background:"rgba(0,0,0,0.6)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: closing ? "cpBdOut .34s ease forwards" : "cpBdIn .26s ease forwards",
+        }} />
+
+        {/* Sheet */}
+        <div style={{
+          position:"fixed", inset:0, zIndex:79,
+          display:"flex", flexDirection:"column",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 96%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"calc(48px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, overflow:"hidden",
+            pointerEvents:"auto",
+            animation: closing ? "cpSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "cpSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+
+            {/* ── Header ── */}
+            <div style={{ flexShrink:0, borderBottom:`1px solid ${th.border}`, padding:"10px 16px 14px" }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center" }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:11, color:th.dim, letterSpacing:"1.5px", fontWeight:700 }}>EDITING PROGRAM</div>
+                  <div style={{ fontSize:13, color:th.muted, marginTop:2 }}>{athleteName}'s workout</div>
+                </div>
+                <button onClick={close} style={{
+                  background:"none", border:"none", color:th.muted,
+                  fontSize:22, cursor:"pointer", lineHeight:1,
+                  padding:"4px 6px", flexShrink:0,
+                }}>✕</button>
+              </div>
+            </div>
+
+            {/* ── Scrollable body ── */}
+            <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"20px 16px 0" }}>
+              {/* Program name */}
+              <div style={{ ...S.label, marginBottom:7 }}>PROGRAM NAME</div>
+              <input
+                type="text"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="e.g. Push Day"
+                style={{ ...S.input, marginBottom:18 }}
+              />
+
+              {/* Exercise list header */}
+              <div style={{ ...S.label, marginBottom:12, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                <span>EXERCISES ({exs.length})</span>
+                <span style={{ fontSize:12, color:th.dim, fontWeight:400, letterSpacing:0 }}>hold ⠿ to reorder</span>
+              </div>
+
+              {/* Drag-sortable exercise list */}
+              <div ref={listRef} style={{ position:"relative", textAlign:"left" }}>
+                {exs.map((ex, exI) => (
+                  <ExerciseEditCard
+                    key={ex.id}
+                    ex={ex} exI={exI}
+                    isOpen={expandedEx === ex.id}
+                    isOver={insertIdx === exI && dragIdx !== null && insertIdx !== dragIdx}
+                    isDragging={dragIdx === exI}
+                    wasDropped={droppedIdx === exI}
+                    dropDir={dropDir}
+                    onToggleOpen={() => setExpandedEx(expandedEx === ex.id ? null : ex.id)}
+                    onRemoveEx={() => removeEx(ex.id)}
+                    onUpdateNumSets={delta => updateNumSets(ex.id, delta)}
+                    onUpdateSet={(sIdx, f, v) => updateSet(ex.id, sIdx, f, v)}
+                    onAddSet={() => updateNumSets(ex.id, 1)}
+                    onRemoveSet={sIdx => setExs(prev => prev.map(e => e.id !== ex.id ? e : { ...e, sets: e.sets.filter((_, i) => i !== sIdx) }))}
+                    onDragStart={dragStart}
+                    listRef={listRef}
+                  />
+                ))}
+                {insertIdx === exs.length && dragIdx !== null && <DropLine />}
+              </div>
+
+              {/* Add exercise */}
+              <button
+                onClick={() => setShowPicker(true)}
+                style={{
+                  width:"100%", background:"none",
+                  border:`1px dashed ${th.text}`, borderRadius:13,
+                  padding:13, cursor:"pointer", color:th.muted, fontSize:14,
+                  fontFamily:"'Outfit',sans-serif",
+                  display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+                  marginTop:4, marginBottom:100,
+                }}
+              >
+                <span style={{ color:th.accentFg, fontSize:18, fontWeight:700 }}>+</span> Add Exercise
+              </button>
+            </div>
+
+            {/* ── Sticky save bar ── */}
+            <div style={{
+              position:"absolute", bottom:0, left:0, right:0,
+              padding:`12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)`,
+              background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
+              backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
+              borderTop:`1px solid ${th.border}`,
+            }}>
+              <button
+                onClick={handleSave}
+                disabled={saving || !name.trim() || exs.length === 0}
+                style={{
+                  width:"100%",
+                  background: (!name.trim() || exs.length === 0)
+                    ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
+                    : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
+                  backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                  border: `1px solid color-mix(in srgb, ${th.accentBg} ${(!name.trim() || exs.length === 0) ? "20%" : "50%"}, transparent)`,
+                  borderRadius:14, padding:"15px 0", cursor: saving ? "default" : "pointer",
+                  fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, letterSpacing:"0.5px",
+                  color: (!name.trim() || exs.length === 0) ? `${th.accentT}55` : th.accentT,
+                  opacity: saving ? 0.6 : 1,
+                  transition:"all .2s",
+                }}
+              >
+                {saving ? "SAVING…" : "SAVE CHANGES"}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Exercise picker portal */}
+        {showPicker && createPortal(
+          <ExercisePicker
+            onAdd={id => { addEx(id); setShowPicker(false); }}
+            onClose={() => setShowPicker(false)}
+            added={exs.map(e => e.id)}
+          />,
+          document.body
+        )}
+      </>,
+      document.body
+    );
+  }
+
   function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
     const th = useTheme();
     const S = useS();
@@ -6656,7 +6858,9 @@ import "./styles.css";
     const [progsLoaded, setProgsLoaded]           = useState(false);   // true once fetch attempted
     const [friendMeasurements, setFriendMeasurements] = useState(null); // friend body measurements
     const [measLoading, setMeasLoading]             = useState(false);
-    const [editingProgId, setEditingProgId]     = useState(null);
+    const [editingProgId, setEditingProgId]     = useState(null); // kept for createNewProg compat
+    const [openProgram, setOpenProgram]         = useState(null); // program open in CoachProgramSheet
+    const [editingProgs, setEditingProgs]       = useState(false); // edit mode to remove programs
     const [creatingNewProg, setCreatingNewProg] = useState(false);
     const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
     const [selHistSession, setSelHistSession]   = useState(null);
@@ -6851,10 +7055,11 @@ import "./styles.css";
       return (
         <>
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-            {[{ label:"STREAK", value: streak ? `${streak}d` : "—" }, { label:"LAST 7 DAYS", value: last7 }, { label:"THIS MONTH", value: thisMonth }].map(({label,value}) => (
+            {[{ label:"STREAK", value: streak ? `${streak}d` : "—", sub:"days" }, { label:"LAST 7 DAYS", value: last7, sub:"workouts" }, { label:"THIS MONTH", value: thisMonth, sub:"workouts" }].map(({label,value,sub}) => (
               <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
                 <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
+                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
+                <div style={{ fontSize:8, color:th.dim, opacity:0.6, marginTop:1, letterSpacing:"0.5px" }}>{sub}</div>
               </div>
             ))}
           </div>
@@ -6877,10 +7082,11 @@ import "./styles.css";
         <>
           {/* ── Quick summary tiles ── */}
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-            {[{ label:"STREAK", value: streak ? `${streak}d` : "—" }, { label:"LAST 7 DAYS", value: last7 }, { label:"THIS MONTH", value: thisMonth }].map(({label,value}) => (
+            {[{ label:"STREAK", value: streak ? `${streak}d` : "—", sub:"days" }, { label:"LAST 7 DAYS", value: last7, sub:"workouts" }, { label:"THIS MONTH", value: thisMonth, sub:"workouts" }].map(({label,value,sub}) => (
               <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
                 <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:5 }}>{label}</div>
+                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
+                <div style={{ fontSize:8, color:th.dim, opacity:0.6, marginTop:1, letterSpacing:"0.5px" }}>{sub}</div>
               </div>
             ))}
           </div>
@@ -7013,7 +7219,29 @@ import "./styles.css";
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Switch to the Workouts tab to load programs.</div>
     ) : (
       <>
-        {/* ── Existing programs ── */}
+        {/* ── EDIT / DONE toggle — only shown when there are programs ── */}
+        {(friendPrograms || []).length > 0 && (
+          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
+            <button
+              onClick={() => setEditingProgs(e => !e)}
+              style={{
+                background: editingProgs
+                  ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
+                  : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
+                backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                border: editingProgs
+                  ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
+                  : `1px solid ${th.border}`,
+                borderRadius:20, padding:"4px 12px", cursor:"pointer",
+                fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
+                color: editingProgs ? th.accentFg : th.muted,
+                letterSpacing:"0.5px", transition:"background .2s, color .2s, border-color .2s",
+              }}
+            >{editingProgs ? "DONE" : "EDIT"}</button>
+          </div>
+        )}
+
+        {/* ── Existing program cards — tappable, opens full sheet editor ── */}
         {(friendPrograms || []).length === 0 && !creatingNewProg && (
           <div style={{ textAlign:"center", padding:"32px 0 20px" }}>
             <div style={{ fontSize:32, marginBottom:12 }}>📋</div>
@@ -7022,40 +7250,62 @@ import "./styles.css";
           </div>
         )}
         {(friendPrograms || []).map(p => (
-          <div key={p.id} style={{ ...S.card, marginBottom:10, overflow:"visible" }}>
-            <div style={{ padding:"14px 16px" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <ProgramIcon name={p.name} size={40} />
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:15, color:th.text, textAlign:"left" }}>{p.name}</div>
-                  <div style={{ fontSize:11, color:th.muted, textAlign:"left" }}>{(p.exs||[]).length} exercises</div>
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:5 }}>
-                    {[...new Set((p.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,4).map(g => (
-                      <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
-                    ))}
-                  </div>
+          <div
+            key={p.id}
+            id={`coach-prog-${p.id}`}
+            onClick={() => !editingProgs && setOpenProgram(p)}
+            style={{
+              ...S.card, marginBottom:10, overflow:"hidden",
+              cursor: editingProgs ? "default" : "pointer",
+              transition:"opacity .15s", position:"relative",
+              WebkitTapHighlightColor:"transparent",
+            }}
+            onPointerDown={e => { if (!editingProgs) e.currentTarget.style.opacity = "0.7"; }}
+            onPointerUp={e => e.currentTarget.style.opacity = "1"}
+            onPointerLeave={e => e.currentTarget.style.opacity = "1"}
+          >
+            {/* Delete badge — visible in edit mode */}
+            {editingProgs && (
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  const el = document.getElementById(`coach-prog-${p.id}`);
+                  if (el) { el.style.animation = "removeSlide 0.31s ease-in forwards"; setTimeout(() => { const next = (friendPrograms||[]).filter(x=>x.id!==p.id); setFriendPrograms(next); onSaveCoachPrograms(friend.uid, next); }, 310); }
+                  else { const next = (friendPrograms||[]).filter(x=>x.id!==p.id); setFriendPrograms(next); onSaveCoachPrograms(friend.uid, next); }
+                }}
+                style={{
+                  position:"absolute", top:-8, right:-8, zIndex:50,
+                  background:"rgba(200,10,10,0.65)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                  border:"1px solid rgba(220,50,50,0.3)", borderRadius:"50%",
+                  width:24, height:24, minWidth:24, minHeight:24,
+                  padding:0, display:"flex", alignItems:"center", justifyContent:"center",
+                  cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
+                  animation:"progXPop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
+                }}
+              >✕</button>
+            )}
+            <div style={{ padding:"14px 16px", display:"flex", alignItems:"center", gap:12 }}>
+              <ProgramIcon name={p.name} size={44} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontWeight:700, fontSize:15, color:th.text, textAlign:"left" }}>{p.name}</div>
+                <div style={{ fontSize:11, color:th.muted, textAlign:"left", marginTop:2 }}>{(p.exs||[]).length} exercises</div>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginTop:5 }}>
+                  {[...new Set((p.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,4).map(g => (
+                    <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                  ))}
                 </div>
-                <button
-                  onClick={() => { setEditingProgId(editingProgId === p.id ? null : p.id); setCreatingNewProg(false); }}
-                  style={{
-                    background: editingProgId === p.id ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border: editingProgId === p.id ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)` : `1px solid ${th.border}`,
-                    borderRadius:10, padding:"7px 14px", cursor:"pointer",
-                    fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                    color: editingProgId === p.id ? th.accentFg : th.muted,
-                    letterSpacing:"0.5px", flexShrink:0,
-                  }}
-                >{editingProgId === p.id ? "CANCEL" : "EDIT"}</button>
               </div>
-              {editingProgId === p.id && (
-                <CoachProgramEditor program={p} onSave={saveProgram} onCancel={() => setEditingProgId(null)} />
+              {/* Chevron — hidden in edit mode */}
+              {!editingProgs && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink:0, opacity:0.4 }}>
+                  <path d="M9 18l6-6-6-6" stroke={th.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               )}
             </div>
           </div>
         ))}
 
-        {/* ── New program creation panel ── */}
+        {/* ── New program creation ── */}
         {creatingNewProg ? (
           <div style={{ ...S.card, padding:"16px", marginBottom:10, overflow:"visible" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:12 }}>
@@ -7070,7 +7320,7 @@ import "./styles.css";
           </div>
         ) : (
           <button
-            onClick={() => { setCreatingNewProg(true); setEditingProgId(null); }}
+            onClick={() => setCreatingNewProg(true)}
             style={{
               width:"100%", background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
               backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
@@ -7084,6 +7334,19 @@ import "./styles.css";
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
             CREATE NEW PROGRAM
           </button>
+        )}
+
+        {/* ── CoachProgramSheet portal — full drag-drop editor ── */}
+        {openProgram && (
+          <CoachProgramSheet
+            program={openProgram}
+            athleteName={friend.name.split(" ")[0]}
+            onSave={async (updated) => {
+              await saveProgram(updated);
+              setOpenProgram(null);
+            }}
+            onClose={() => setOpenProgram(null)}
+          />
         )}
       </>
     );
