@@ -8715,9 +8715,10 @@ import "./styles.css";
       ...friends.map(f => ({ uid:f.uid, name:f.name, photoURL:f.photoURL, isMe:false })),
     ].map(e => ({ ...e, score: boardScores[e.uid] ?? null }))
      .filter(e => e.score !== null)
-     .sort((a,b) => b.score - a.score);
+     .sort((a,b) => b.score - a.score)
+     .slice(0, 3); // always cap at top 3
 
-    // Always pad to at least 3 entries with empty placeholder slots
+    // Pad to exactly 3 with empty placeholder slots
     const entries = [...rawEntries];
     while (entries.length < 3) {
       entries.push({ uid:`empty-${entries.length}`, name:"", photoURL:null, isMe:false, score:0, isEmpty:true });
@@ -8839,7 +8840,8 @@ import "./styles.css";
     const [dashFriend, setDashFriend] = useState(null);
     const [competeFriend, setCompeteFriend] = useState(null);
     const [editFriends, setEditFriends] = useState(false);
-    const [confirmRemoveFriend, setConfirmRemoveFriend] = useState(null); // friend object to confirm removal
+    const [confirmRemoveFriend, setConfirmRemoveFriend] = useState(null);
+    const [pendingCoachAccept, setPendingCoachAccept] = useState(null); // coach request to show rules before accepting
     // Feed: map of friendUid → their recent sessions
     const [feedData, setFeedData] = useState({});
     const [feedLoading, setFeedLoading] = useState(false);
@@ -9129,7 +9131,7 @@ import "./styles.css";
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
                   style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
-                <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
+                <button onClick={() => setPendingCoachAccept(req)}
                   style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
               </div>
             </div>
@@ -9361,6 +9363,61 @@ import "./styles.css";
                   style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, border:`1px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
                 <button onClick={() => { onRemoveFriend(confirmRemoveFriend.uid); setConfirmRemoveFriend(null); }}
                   style={{ flex:1, background:"rgba(220,50,50,0.75)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>REMOVE</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Athlete coaching rules popup — shown before confirming acceptance ── */}
+        {pendingCoachAccept && (
+          <div onClick={() => setPendingCoachAccept(null)} style={{
+            position:"fixed", inset:0, zIndex:80,
+            background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+            display:"flex", alignItems:"flex-end", justifyContent:"center",
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:"100%", maxWidth:480,
+              background:th.card, borderRadius:"24px 24px 0 0",
+              borderTop:`1px solid ${th.border}`,
+              padding:"20px 20px calc(32px + env(safe-area-inset-bottom,0px))",
+              animation:"fdSheetIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+            }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ textAlign:"center", marginBottom:20 }}>
+                <div style={{ fontSize:36, marginBottom:10 }}>🎓</div>
+                <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>ACCEPT COACHING?</div>
+                <div style={{ fontSize:13, color:th.muted, lineHeight:1.65, maxWidth:290, margin:"0 auto" }}>
+                  <strong style={{ color:th.sub }}>{pendingCoachAccept.fromName.split(" ")[0]}</strong> will become your coach. Here's what they'll be able to access:
+                </div>
+              </div>
+              <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
+                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACH ACCESS INCLUDES</div>
+                {[
+                  { icon:"📊", label:"All Dashboards",   desc:"Full analytics: volume, density, pace, muscles trained, PRs and more" },
+                  { icon:"📋", label:"Workout Programs", desc:"They can view, edit and create training programs on your behalf" },
+                  { icon:"📅", label:"Session History",  desc:"Every session you've logged with full exercise and set details" },
+                ].map(({ icon, label, desc }) => (
+                  <div key={label} style={{ display:"flex", gap:12, marginBottom:10, alignItems:"flex-start" }}>
+                    <div style={{ fontSize:18, flexShrink:0, lineHeight:1.3 }}>{icon}</div>
+                    <div>
+                      <div style={{ fontSize:13, fontWeight:700, color:th.text, textAlign:"left" }}>{label}</div>
+                      <div style={{ fontSize:11, color:th.muted, marginTop:2, textAlign:"left", lineHeight:1.45 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginBottom:18, lineHeight:1.5 }}>
+                You can end the coaching relationship at any time from the coaching button in their profile.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => setPendingCoachAccept(null)}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                <button onClick={async () => { await onAcceptCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
+                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
+                  ACCEPT {pendingCoachAccept.fromName.split(" ")[0].toUpperCase()} AS COACH
+                </button>
               </div>
             </div>
           </div>
