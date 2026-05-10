@@ -7644,7 +7644,14 @@ import "./styles.css";
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
               <div style={{ textAlign:"center", marginBottom:20 }}>
-                <div style={{ fontSize:36, marginBottom:10 }}>🎓</div>
+                <div style={{ fontSize:36, marginBottom:10 }}>
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
+                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
+                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
+                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>REQUEST COACHING</div>
                 <div style={{ fontSize:13, color:th.muted, lineHeight:1.65, maxWidth:290, margin:"0 auto" }}>
                   Send a coaching request to <strong style={{ color:th.sub }}>{friend.name.split(" ")[0]}</strong>. Once they accept, you'll unlock full access to guide their training.
@@ -7696,7 +7703,14 @@ import "./styles.css";
               animation:"notifPop 0.3s cubic-bezier(0.34,1.4,0.64,1) forwards",
             }}>
               <div style={{ textAlign:"center", marginBottom:18 }}>
-                <div style={{ fontSize:32, marginBottom:10 }}>🎓</div>
+                <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
+                  <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
+                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
+                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
+                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
                   {coachBtnState === "active" ? "STOP COACHING?" : "WITHDRAW REQUEST?"}
                 </div>
@@ -9369,9 +9383,9 @@ import "./styles.css";
         )}
 
         {/* ── Athlete coaching rules popup — shown before confirming acceptance ── */}
-        {pendingCoachAccept && (
+        {pendingCoachAccept && createPortal(
           <div onClick={() => setPendingCoachAccept(null)} style={{
-            position:"fixed", inset:0, zIndex:80,
+            position:"fixed", inset:0, zIndex:85,
             background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
             display:"flex", alignItems:"flex-end", justifyContent:"center",
           }}>
@@ -9380,13 +9394,21 @@ import "./styles.css";
               background:th.card, borderRadius:"24px 24px 0 0",
               borderTop:`1px solid ${th.border}`,
               padding:"20px 20px calc(32px + env(safe-area-inset-bottom,0px))",
-              animation:"fdSheetIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+              animation:"cpSheetIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
             }}>
               <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
               <div style={{ textAlign:"center", marginBottom:20 }}>
-                <div style={{ fontSize:36, marginBottom:10 }}>🎓</div>
+                {/* Coaching icon — whistle / trainer */}
+                <div style={{ fontSize:36, marginBottom:10 }}>
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
+                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
+                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
+                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>ACCEPT COACHING?</div>
                 <div style={{ fontSize:13, color:th.muted, lineHeight:1.65, maxWidth:290, margin:"0 auto" }}>
                   <strong style={{ color:th.sub }}>{pendingCoachAccept.fromName.split(" ")[0]}</strong> will become your coach. Here's what they'll be able to access:
@@ -9412,7 +9434,7 @@ import "./styles.css";
                 You can end the coaching relationship at any time from the coaching button in their profile.
               </div>
               <div style={{ display:"flex", gap:8 }}>
-                <button onClick={() => setPendingCoachAccept(null)}
+                <button onClick={async () => { await onDeclineCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
                   style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
                   style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
@@ -9420,7 +9442,8 @@ import "./styles.css";
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* ── Empty state (no friends yet) ── */}
@@ -16806,7 +16829,7 @@ import "./styles.css";
                   const icon = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
                     : n.type === "coach_request" || n.type === "coach_accepted"
-                    ? <span style={{ fontSize:14 }}>🎓</span>
+                    ? <svg width="14" height="14" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2.5" fill="rgba(91,156,246,0.12)"/><path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/><circle cx="20" cy="24" r="4" fill="#5B9CF6"/></svg>
                     : n.type === "friend_request"
                     ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke="#5B9CF6" strokeWidth="2"/><path d="M14 12.5c1.5.8 2.5 2.3 2.5 4M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/><path d="M17 7v4M19 9h-4" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : n.type === "friend_accepted"
