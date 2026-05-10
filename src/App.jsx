@@ -1813,11 +1813,15 @@ import "./styles.css";
   async function fsGetPrograms(uid) {
     try {
       const snap = await getDoc(doc(fbDb, "users", uid, "data", "programs"));
-      if (!snap.exists()) return null;
-      return snap.data().list || null;
+      if (!snap.exists()) return [];        // doc doesn't exist = empty
+      return snap.data().list || [];        // exists but no list = empty
     } catch (e) {
-      console.error("fsGetPrograms:", e.code, e.message);
-      return null;
+      if (e?.code === "permission-denied") {
+        console.warn("fsGetPrograms: permission denied for uid", uid, "— Firestore rule needed: allow coach read on users/{uid}/data/programs");
+      } else {
+        console.error("fsGetPrograms:", e.code, e.message);
+      }
+      return null;                          // null = read failed (rules or network)
     }
   }
   async function fsSavePrograms(uid, list) {
@@ -2140,7 +2144,12 @@ import "./styles.css";
       const docs = snap.docs.map(d => d.data());
       return docs.sort((a, b) => (b.startTime || 0) - (a.startTime || 0)).slice(0, 60);
     } catch (e) {
-      return [];
+      if (e?.code === "permission-denied") {
+        console.warn("fsGetFriendSessions: permission denied for uid", friendUid, "— Firestore rule needed: allow coach read on users/{uid}/sessions");
+      } else {
+        console.error("fsGetFriendSessions:", e.code, e.message);
+      }
+      return null; // null = failed (rules or network); [] would mean exists-but-empty
     }
   }
 
@@ -2179,7 +2188,23 @@ import "./styles.css";
 
   async function fsAcceptCoachRequest(requestId) {
     try {
-      await updateDoc(doc(fbDb, "coachRequests", requestId), { status: "accepted" });
+      const reqSnap = await getDoc(doc(fbDb, "coachRequests", requestId));
+      if (!reqSnap.exists()) return false;
+      const data = reqSnap.data();
+      const deterministicId = `${data.fromUid}_${data.toUid}`;
+
+      if (requestId === deterministicId) {
+        // Already the correct deterministic ID — just update status
+        await updateDoc(doc(fbDb, "coachRequests", requestId), { status: "accepted" });
+      } else {
+        // Old random ID — migrate: write deterministic doc, then delete the old one
+        await setDoc(doc(fbDb, "coachRequests", deterministicId), {
+          ...data,
+          status: "accepted",
+        });
+        // Best-effort delete the old random-ID doc (ignore failure)
+        deleteDoc(doc(fbDb, "coachRequests", requestId)).catch(() => {});
+      }
       return true;
     } catch (e) { console.error("fsAcceptCoachRequest:", e); return false; }
   }
@@ -6632,6 +6657,8 @@ import "./styles.css";
     const [showCoachRules, setShowCoachRules]   = useState(false);
     const [showStopCoach, setShowStopCoach]     = useState(false);
     const [stoppingCoach, setStoppingCoach]     = useState(false);
+    const [permissionError, setPermissionError] = useState(false); // set if any cross-user read fails
+    const [reloadKey, setReloadKey]             = useState(0);      // increment to force re-fetch
 
     // Determine coaching relationship state
     const coachRelation = coachRelations?.find(r =>
@@ -6644,11 +6671,20 @@ import "./styles.css";
     // Load sessions
     useEffect(() => {
       let cancelled = false;
+      setPermissionError(false); // reset on friend change
       onGetFriendSessions(friend.uid).then(s => {
-        if (!cancelled) { setSessions(s); setLoading(false); }
+        if (cancelled) return;
+        if (s === null) {
+          // Read failed (permission-denied or network)
+          setSessions([]);
+          setPermissionError(true);
+        } else {
+          setSessions(s);
+        }
+        setLoading(false);
       });
       return () => { cancelled = true; };
-    }, [friend.uid]);
+    }, [friend.uid, reloadKey]);
 
     // Set coachBtnState based on relations on mount
     useEffect(() => {
@@ -6668,11 +6704,17 @@ import "./styles.css";
       if (progsLoaded) return; // already attempted (success or fail)
       setProgsLoading(true);
       onGetFriendPrograms(friend.uid).then(list => {
-        setFriendPrograms(Array.isArray(list) ? list : (list ?? []));
+        if (list === null) {
+          setFriendPrograms([]);
+          setPermissionError(true);
+        } else {
+          setFriendPrograms(Array.isArray(list) ? list : []);
+        }
         setProgsLoaded(true);
         setProgsLoading(false);
       }).catch(() => {
         setFriendPrograms([]);
+        setPermissionError(true);
         setProgsLoaded(true);
         setProgsLoading(false);
       });
@@ -6684,10 +6726,45 @@ import "./styles.css";
       if (friendMeasurements !== null) return;
       setMeasLoading(true);
       fsGetMeasurements(friend.uid).then(meas => {
-        setFriendMeasurements(Array.isArray(meas) ? meas : []);
+        if (meas === null) {
+          setFriendMeasurements([]);
+          setPermissionError(true);
+        } else {
+          setFriendMeasurements(Array.isArray(meas) ? meas : []);
+        }
         setMeasLoading(false);
-      }).catch(() => { setFriendMeasurements([]); setMeasLoading(false); });
+      }).catch(() => {
+        setFriendMeasurements([]);
+        setPermissionError(true);
+        setMeasLoading(false);
+      });
     }, [isCoachingActive, iAmCoach, friend.uid]);
+
+    // ── Auto-repair: if permission error + coaching doc has old random ID, migrate it ──
+    // Old coach requests were created with addDoc (random ID). Firestore rules use
+    // exists(coachRequests/{coachUid}_{athleteUid}) — so random IDs fail the check.
+    // This migrates the doc to the deterministic ID transparently on first open.
+    useEffect(() => {
+      if (!permissionError || !coachRelation || !iAmCoach) return;
+      const expectedId = `${coachRelation.fromUid}_${coachRelation.toUid}`;
+      if (coachRelation.id === expectedId) return; // already deterministic — real rules problem
+
+      console.log("Coach relation migration: rewriting", coachRelation.id, "→", expectedId);
+      const { id: _drop, ...coachData } = coachRelation;
+      setDoc(doc(fbDb, "coachRequests", expectedId), { ...coachData, status: "accepted" })
+        .then(() => {
+          // Delete the old random-ID doc (best-effort)
+          deleteDoc(doc(fbDb, "coachRequests", coachRelation.id)).catch(() => {});
+          // Reset all loaded states so data fetches retry with the new doc in place
+          setPermissionError(false);
+          setProgsLoaded(false);
+          setFriendPrograms(null);
+          setFriendMeasurements(null);
+          setLoading(true);
+          setReloadKey(k => k + 1); // re-triggers sessions useEffect
+        })
+        .catch(err => console.error("Coach relation migration failed:", err?.code, err?.message));
+    }, [permissionError, coachRelation?.id, iAmCoach]);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
     const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -7184,6 +7261,29 @@ import "./styles.css";
 
             {/* ── Body ── */}
             <div style={{ flex:1, overflowY:"auto", overflowX:"hidden", padding:"16px 16px calc(88px + env(safe-area-inset-bottom, 0px))" }}>
+              {/* Permission-denied banner — shown when any cross-user Firestore read fails */}
+              {permissionError && isCoachingActive && iAmCoach && (
+                <div style={{
+                  background:"rgba(220,50,50,0.12)",
+                  border:"1.5px solid rgba(220,50,50,0.45)",
+                  borderRadius:12,
+                  padding:"12px 14px",
+                  marginBottom:14,
+                  display:"flex",
+                  gap:10,
+                  alignItems:"flex-start",
+                }}>
+                  <div style={{ fontSize:18, lineHeight:1.2, flexShrink:0 }}>⚠️</div>
+                  <div style={{ flex:1, textAlign:"left" }}>
+                    <div style={{ fontSize:12, fontWeight:700, color:"#E04050", letterSpacing:"0.5px", marginBottom:4 }}>FIRESTORE ACCESS BLOCKED</div>
+                    <div style={{ fontSize:12, color:th.muted, lineHeight:1.55 }}>
+                      Coaching is accepted, but Firestore security rules are blocking reads of {friend.name.split(" ")[0]}'s data. The athlete's data is in Firebase, but your account lacks permission to read it.
+                      <br/><br/>
+                      <span style={{ fontWeight:600, color:th.sub }}>Fix:</span> add the <code style={{ background:th.sect, padding:"1px 5px", borderRadius:4, fontSize:11 }}>users/{`{userId}`}/data/{`{docId}`}</code> and <code style={{ background:th.sect, padding:"1px 5px", borderRadius:4, fontSize:11 }}>users/{`{userId}`}/sessions/{`{sessionId}`}</code> rules with an <code style={{ background:th.sect, padding:"1px 5px", borderRadius:4, fontSize:11 }}>exists()</code> check on <code style={{ background:th.sect, padding:"1px 5px", borderRadius:4, fontSize:11 }}>coachRequests/{`{coachUid}_{athleteUid}`}</code>. Browser console has the exact error.
+                    </div>
+                  </div>
+                </div>
+              )}
               {isCoachingActive && iAmCoach ? (
                 <>
                   {innerTab === "dashboards" && coachDashboardsJSX}
