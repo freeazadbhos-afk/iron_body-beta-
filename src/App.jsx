@@ -7055,11 +7055,15 @@ import "./styles.css";
       return (
         <>
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-            {[{ label:"STREAK", value: streak ? `${streak}d` : "—", sub:"days" }, { label:"LAST 7 DAYS", value: last7, sub:"workouts" }, { label:"THIS MONTH", value: thisMonth, sub:"workouts" }].map(({label,value,sub}) => (
-              <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
-                <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
-                <div style={{ fontSize:8, color:th.dim, opacity:0.6, marginTop:1, letterSpacing:"0.5px" }}>{sub}</div>
+            {[
+              { num: streak || 0, unit:"days", ctx:"streak",       noData: !streak },
+              { num: last7,       unit:"workouts", ctx:"last 7 days",  noData: false },
+              { num: thisMonth,   unit:"workouts", ctx:"this month",   noData: false },
+            ].map(({num, unit, ctx, noData}) => (
+              <div key={ctx} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 6px 10px", textAlign:"center" }}>
+                <div className="bebas" style={{ fontSize:30, color:th.accentFg, lineHeight:1 }}>{noData ? "—" : num}</div>
+                <div style={{ fontSize:9, color:th.accentFg, fontWeight:700, letterSpacing:"0.5px", marginTop:3, opacity:noData?0.35:0.75 }}>{unit}</div>
+                <div style={{ fontSize:8, color:th.dim, letterSpacing:"0.5px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
               </div>
             ))}
           </div>
@@ -7082,11 +7086,15 @@ import "./styles.css";
         <>
           {/* ── Quick summary tiles ── */}
           <div style={{ display:"flex", gap:8, marginBottom:16 }}>
-            {[{ label:"STREAK", value: streak ? `${streak}d` : "—", sub:"days" }, { label:"LAST 7 DAYS", value: last7, sub:"workouts" }, { label:"THIS MONTH", value: thisMonth, sub:"workouts" }].map(({label,value,sub}) => (
-              <div key={label} style={{ flex:1, background:th.sect, borderRadius:12, padding:"14px 8px", textAlign:"center" }}>
-                <div className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{value}</div>
-                <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px", marginTop:3 }}>{label}</div>
-                <div style={{ fontSize:8, color:th.dim, opacity:0.6, marginTop:1, letterSpacing:"0.5px" }}>{sub}</div>
+            {[
+              { num: streak || 0, unit:"days", ctx:"streak",       noData: !streak },
+              { num: last7,       unit:"workouts", ctx:"last 7 days",  noData: false },
+              { num: thisMonth,   unit:"workouts", ctx:"this month",   noData: false },
+            ].map(({num, unit, ctx, noData}) => (
+              <div key={ctx} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 6px 10px", textAlign:"center" }}>
+                <div className="bebas" style={{ fontSize:30, color:th.accentFg, lineHeight:1 }}>{noData ? "—" : num}</div>
+                <div style={{ fontSize:9, color:th.accentFg, fontWeight:700, letterSpacing:"0.5px", marginTop:3, opacity:noData?0.35:0.75 }}>{unit}</div>
+                <div style={{ fontSize:8, color:th.dim, letterSpacing:"0.5px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
               </div>
             ))}
           </div>
@@ -7255,7 +7263,8 @@ import "./styles.css";
             id={`coach-prog-${p.id}`}
             onClick={() => !editingProgs && setOpenProgram(p)}
             style={{
-              ...S.card, marginBottom:10, overflow:"hidden",
+              ...S.card, marginBottom:10,
+              overflow: editingProgs ? "visible" : "hidden",
               cursor: editingProgs ? "default" : "pointer",
               transition:"opacity .15s", position:"relative",
               WebkitTapHighlightColor:"transparent",
