@@ -1879,6 +1879,21 @@ import "./styles.css";
         status: "pending",
         createdAt: serverTimestamp(),
       });
+      // Try to find the recipient's UID via publicProfiles to push a notification
+      try {
+        const q = query(collection(fbDb, "publicProfiles"), where("email", "==", toEmail.toLowerCase().trim()));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const toUid = snap.docs[0].id;
+          fsPushNotification(toUid, {
+            type: "friend_request",
+            fromUid,
+            name: fromName,
+            photoURL: fromPhotoURL || null,
+            text: `${fromName} sent you a friend request`,
+          });
+        }
+      } catch (_) { /* notification is best-effort */ }
       return { ok: true };
     } catch (e) {
       console.error("fsSendInvitation:", e);
@@ -2185,6 +2200,14 @@ import "./styles.css";
         status: "pending",
         createdAt: Date.now(),
       });
+      // Notify the athlete about the incoming coaching request
+      fsPushNotification(toUid, {
+        type: "coach_request",
+        fromUid,
+        name: fromName,
+        photoURL: fromPhotoURL || null,
+        text: `${fromName} wants to be your coach`,
+      });
       return { ok: true };
     } catch (e) {
       console.error("fsSendCoachRequest:", e);
@@ -2200,17 +2223,19 @@ import "./styles.css";
       const deterministicId = `${data.fromUid}_${data.toUid}`;
 
       if (requestId === deterministicId) {
-        // Already the correct deterministic ID — just update status
         await updateDoc(doc(fbDb, "coachRequests", requestId), { status: "accepted" });
       } else {
-        // Old random ID — migrate: write deterministic doc, then delete the old one
-        await setDoc(doc(fbDb, "coachRequests", deterministicId), {
-          ...data,
-          status: "accepted",
-        });
-        // Best-effort delete the old random-ID doc (ignore failure)
+        await setDoc(doc(fbDb, "coachRequests", deterministicId), { ...data, status: "accepted" });
         deleteDoc(doc(fbDb, "coachRequests", requestId)).catch(() => {});
       }
+      // Notify the coach that their request was accepted
+      fsPushNotification(data.fromUid, {
+        type: "coach_accepted",
+        fromUid: data.toUid,
+        name: data.toName || "Your athlete",
+        photoURL: null,
+        text: `${data.toName || "Your athlete"} accepted your coaching request`,
+      });
       return true;
     } catch (e) { console.error("fsAcceptCoachRequest:", e); return false; }
   }
@@ -3344,7 +3369,8 @@ import "./styles.css";
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
             marginTop:"auto",
             display:"flex", flexDirection:"column", overflow:"hidden",
-            maxHeight:"72vh",
+            height:"72vh",
+            minHeight:"72vh",
             pointerEvents:"auto",
             animation: epClosing ? "epSlideDown 0.34s cubic-bezier(0.4,0,1,1) forwards" : "epSlideUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
@@ -6626,8 +6652,17 @@ import "./styles.css";
           );
         })}
         <button onClick={() => setShowPicker(true)}
-          style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 10%, transparent)`, border:`1px dashed color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"10px 0", cursor:"pointer", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, letterSpacing:"0.5px", marginBottom:14 }}>
-          + ADD EXERCISE
+          style={{
+            width:"100%", background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+            backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+            border:`1.5px dashed rgba(91,156,246,0.4)`,
+            borderRadius:14, padding:"13px 0", cursor:"pointer",
+            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+            color:"#5B9CF6", letterSpacing:"0.5px", marginBottom:14,
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+          }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+          ADD EXERCISE
         </button>
         {showPicker && (
           <ExercisePicker onAdd={id => { addEx(id); setShowPicker(false); }} onClose={() => setShowPicker(false)} />
@@ -6733,7 +6768,7 @@ import "./styles.css";
               <div style={{ display:"flex", alignItems:"center" }}>
                 <div style={{ flex:1 }}>
                   <div style={{ fontSize:11, color:th.dim, letterSpacing:"1.5px", fontWeight:700 }}>{isNew ? "NEW PROGRAM" : "EDITING PROGRAM"}</div>
-                  <div style={{ fontSize:13, color:th.muted, marginTop:2 }}>{athleteName}'s workout</div>
+                  <div style={{ fontSize:13, color:th.muted, marginTop:2 }}><span style={{ fontWeight:700, color:th.sub }}>{athleteName}</span>'s workout</div>
                 </div>
                 <button onClick={close} style={{
                   background:"none", border:"none", color:th.muted,
@@ -6789,15 +6824,18 @@ import "./styles.css";
               <button
                 onClick={() => setShowPicker(true)}
                 style={{
-                  width:"100%", background:"none",
-                  border:`1px dashed ${th.text}`, borderRadius:13,
-                  padding:13, cursor:"pointer", color:th.muted, fontSize:14,
-                  fontFamily:"'Outfit',sans-serif",
+                  width:"100%", background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+                  backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                  border:`1.5px dashed rgba(91,156,246,0.4)`,
+                  borderRadius:14, padding:"13px 0", cursor:"pointer",
+                  fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+                  color:"#5B9CF6", letterSpacing:"0.5px",
                   display:"flex", alignItems:"center", justifyContent:"center", gap:8,
                   marginTop:4, marginBottom:100,
                 }}
               >
-                <span style={{ color:th.accentFg, fontSize:18, fontWeight:700 }}>+</span> Add Exercise
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+                ADD EXERCISE
               </button>
             </div>
 
@@ -7071,8 +7109,8 @@ import "./styles.css";
             ].map(({num, unit, ctx, noData}) => (
               <div key={ctx} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 6px 10px", textAlign:"center" }}>
                 <div className="bebas" style={{ fontSize:30, color:th.accentFg, lineHeight:1 }}>{noData ? "—" : num}</div>
-                <div style={{ fontSize:9, color:th.accentFg, fontWeight:700, letterSpacing:"0.5px", marginTop:3, opacity:noData?0.35:0.75 }}>{unit}</div>
-                <div style={{ fontSize:8, color:th.dim, letterSpacing:"0.5px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
+                <div style={{ fontSize:11, color:th.accentFg, fontWeight:700, letterSpacing:"0.3px", marginTop:4, opacity:noData?0.35:0.8 }}>{unit}</div>
+                <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.3px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
               </div>
             ))}
           </div>
@@ -7102,8 +7140,8 @@ import "./styles.css";
             ].map(({num, unit, ctx, noData}) => (
               <div key={ctx} style={{ flex:1, background:th.sect, borderRadius:12, padding:"12px 6px 10px", textAlign:"center" }}>
                 <div className="bebas" style={{ fontSize:30, color:th.accentFg, lineHeight:1 }}>{noData ? "—" : num}</div>
-                <div style={{ fontSize:9, color:th.accentFg, fontWeight:700, letterSpacing:"0.5px", marginTop:3, opacity:noData?0.35:0.75 }}>{unit}</div>
-                <div style={{ fontSize:8, color:th.dim, letterSpacing:"0.5px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
+                <div style={{ fontSize:11, color:th.accentFg, fontWeight:700, letterSpacing:"0.3px", marginTop:4, opacity:noData?0.35:0.8 }}>{unit}</div>
+                <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.3px", marginTop:2, lineHeight:1.2 }}>{ctx}</div>
               </div>
             ))}
           </div>
@@ -7298,7 +7336,7 @@ import "./styles.css";
                   width:24, height:24, minWidth:24, minHeight:24,
                   padding:0, display:"flex", alignItems:"center", justifyContent:"center",
                   cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
-                  animation:"progXPop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
+                                    animation:"coachXPop 0.38s cubic-bezier(0.34,1.5,0.64,1) forwards",
                 }}
               >✕</button>
             )}
@@ -7411,6 +7449,8 @@ import "./styles.css";
           @keyframes fdBdIn  { from{opacity:0} to{opacity:1} }
           @keyframes fdBdOut { from{opacity:1} to{opacity:0} }
           @keyframes coachPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+          @keyframes coachXPop  { 0%{transform:scale(0) rotate(-45deg);opacity:0} 65%{transform:scale(1.25) rotate(5deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
+          @keyframes removeSlide { to{transform:translateX(-100%);opacity:0} }
         `}</style>
 
         {/* Backdrop */}
@@ -8729,7 +8769,7 @@ import "./styles.css";
               )}
               <div style={{ flex:1 }}>
                 <div style={{ fontWeight:700, fontSize:15, color: e.isMe ? th.accentFg : th.text }}>{e.isMe ? "You" : e.name.split(" ")[0]}</div>
-                <div style={{ fontSize:11, color:th.dim, marginTop:1 }}>{monthName}</div>
+
               </div>
               <div style={{ textAlign:"right", flexShrink:0 }}>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:1, color: isTop ? "#D4AF37" : e.isMe ? th.accentFg : th.text, lineHeight:1 }}>{e.score}</div>
@@ -8799,6 +8839,7 @@ import "./styles.css";
     const [dashFriend, setDashFriend] = useState(null);
     const [competeFriend, setCompeteFriend] = useState(null);
     const [editFriends, setEditFriends] = useState(false);
+    const [confirmRemoveFriend, setConfirmRemoveFriend] = useState(null); // friend object to confirm removal
     // Feed: map of friendUid → their recent sessions
     const [feedData, setFeedData] = useState({});
     const [feedLoading, setFeedLoading] = useState(false);
@@ -8978,107 +9019,6 @@ import "./styles.css";
           <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true, hasSharingOnboardedV2: true })} />
         )}
 
-        {/* ── Pending invitations received + sent + coach requests — FRIENDS TAB ONLY ── */}
-        {sharingTab === "friends" && (
-          <>
-            {/* Pending friend invitations received */}
-            {pendingInvitations.length > 0 && (
-              <div style={{ marginBottom: 20,textAlign:"left", animation: "sharingFadeUp 0.3s ease both" }}>
-                <div style={{ ...S.label, marginBottom: 10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
-                {pendingInvitations.map(inv => (
-                  <div key={inv.id} style={{ ...S.card, padding: "14px 16px", marginBottom: 8 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
-                        {(inv.fromName||"?")[0].toUpperCase()}
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
-                        <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
-                        <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
-                      </div>
-                      <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                        style={{ background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>✕</button>
-                      <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                        style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity: actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Pending competition invitations received */}
-            {competitions.filter(c => c.toUid === user.id && c.status === "pending").map(c => {
-              const f = friends.find(fr => fr.uid === c.fromUid);
-              const initials = (c.fromName||"?")[0].toUpperCase();
-              return (
-                <div key={c.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
-                    {f?.photoURL ? (
-                      <img src={f.photoURL} alt={c.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                    ) : (
-                      <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, #E8612C 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#E8612C", flexShrink:0 }}>
-                        {initials}
-                      </div>
-                    )}
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
-                      <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>
-                    Challenges you to a 7-day workout competition. Score is based on intensity, calories and consistency.
-                  </div>
-                  <div style={{ display:"flex", gap:8 }}>
-                    <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
-                    <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Pending coaching requests received */}
-            {(pendingCoachRequests || []).map(req => {
-              const f = friends.find(fr => fr.uid === req.fromUid);
-              const initials = (req.fromName||"?")[0].toUpperCase();
-              return (
-                <div key={req.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both", borderColor:`rgba(91,156,246,0.35)` }}>
-                  <div style={{ height:3, background:"#5B9CF6", borderRadius:"4px 4px 0 0", margin:"-14px -16px 12px" }} />
-                  <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
-                    {(req.fromPhotoURL || f?.photoURL) ? (
-                      <img src={req.fromPhotoURL || f.photoURL} alt={req.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                    ) : (
-                      <div style={{ width:40, height:40, borderRadius:"50%", background:`rgba(91,156,246,0.15)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>
-                        {initials}
-                      </div>
-                    )}
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
-                      <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
-                        COACHING REQUEST
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
-                    <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach — they'll have access to your workout programs, all dashboards, and session history to guide your progress.
-                  </div>
-                  <div style={{ display:"flex", gap:8 }}>
-                    <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
-                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
-                    <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
-                      style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
-                  </div>
-                </div>
-              );
-            })}
-
-            {/* Sent friend invitations awaiting response — moved to below tab switcher */}
-
-            {/* Sent coaching requests awaiting response — moved to below tab switcher */}
-          </>
-        )}
         {(() => {
           const tabs = ["feed","friends"];
           const idx = tabs.indexOf(sharingTab);
@@ -9108,6 +9048,93 @@ import "./styles.css";
             </div>
           );
         })()}
+
+        {/* ── Pending invitations / requests received — BELOW TAB, FRIENDS TAB ONLY ── */}
+        {sharingTab === "friends" && pendingInvitations.length > 0 && (
+          <div style={{ marginBottom:20, textAlign:"left", animation:"sharingFadeUp 0.3s ease both" }}>
+            <div style={{ ...S.label, marginBottom:10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
+            {pendingInvitations.map(inv => (
+              <div key={inv.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                    {(inv.fromName||"?")[0].toUpperCase()}
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
+                    <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
+                    <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
+                  </div>
+                  <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
+                    style={{ background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
+                  <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
+                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── Pending competition invitations received — FRIENDS TAB ONLY ── */}
+        {sharingTab === "friends" && competitions.filter(c => c.toUid === user.id && c.status === "pending").map(c => {
+          const f = friends.find(fr => fr.uid === c.fromUid);
+          const initials = (c.fromName||"?")[0].toUpperCase();
+          return (
+            <div key={c.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:12 }}>
+                {f?.photoURL ? (
+                  <img src={f.photoURL} alt={c.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`color-mix(in srgb, #E8612C 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#E8612C", flexShrink:0 }}>{initials}</div>
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
+                  <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
+                </div>
+              </div>
+              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>Challenges you to a 7-day workout competition.</div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
+                <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* ── Pending coaching requests received — FRIENDS TAB ONLY ── */}
+        {sharingTab === "friends" && (pendingCoachRequests || []).map(req => {
+          const f = friends.find(fr => fr.uid === req.fromUid);
+          const initials = (req.fromName||"?")[0].toUpperCase();
+          return (
+            <div key={req.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8, animation:"sharingFadeUp 0.3s ease both", borderColor:`rgba(91,156,246,0.35)` }}>
+              <div style={{ height:3, background:"#5B9CF6", borderRadius:"4px 4px 0 0", margin:"-14px -16px 12px" }} />
+              <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:10 }}>
+                {(req.fromPhotoURL || f?.photoURL) ? (
+                  <img src={req.fromPhotoURL || f.photoURL} alt={req.fromName} style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:40, height:40, borderRadius:"50%", background:`rgba(91,156,246,0.15)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:"#5B9CF6", flexShrink:0 }}>{initials}</div>
+                )}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
+                  <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
+                    COACHING REQUEST
+                  </div>
+                </div>
+              </div>
+              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
+                <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach.
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
+                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                <button onClick={async () => { await onAcceptCoachRequest(req.id); }}
+                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
+              </div>
+            </div>
+          );
+        })}
 
         {/* ── Horizontal friends bubble row ── */}
         {sharingTab === "friends" && (
@@ -9194,7 +9221,7 @@ import "./styles.css";
                     )}
                     {/* Remove X badge in edit mode — floats above avatar, delete-account style */}
                     {editFriends && (
-                      <button onClick={e => { e.stopPropagation(); onRemoveFriend(f.uid); }}
+                      <button onClick={e => { e.stopPropagation(); setConfirmRemoveFriend(f); }}
                         style={{
                           position: "absolute",
                           top: -4,
@@ -9299,6 +9326,44 @@ import "./styles.css";
             onWithdrawCompeteInvite={onWithdrawCompeteInvite}
           />,
           document.body
+        )}
+
+        {/* ── Remove friend confirmation popup ── */}
+        {confirmRemoveFriend && (
+          <div onClick={() => setConfirmRemoveFriend(null)} style={{
+            position:"fixed", inset:0, zIndex:80,
+            background:"rgba(0,0,0,0.6)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
+            display:"flex", alignItems:"center", justifyContent:"center", padding:"0 20px",
+          }}>
+            <div onClick={e => e.stopPropagation()} style={{
+              width:"100%", maxWidth:360,
+              background:th.card, borderRadius:20,
+              border:`1px solid ${th.border}`,
+              padding:"28px 22px 22px",
+              animation:"notifPop 0.3s cubic-bezier(0.34,1.4,0.64,1) forwards",
+            }}>
+              <div style={{ textAlign:"center", marginBottom:18 }}>
+                {confirmRemoveFriend.photoURL ? (
+                  <img src={confirmRemoveFriend.photoURL} alt={confirmRemoveFriend.name}
+                    style={{ width:56, height:56, borderRadius:"50%", objectFit:"cover", margin:"0 auto 12px" }} />
+                ) : (
+                  <div style={{ width:56, height:56, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, fontWeight:700, color:th.accentFg, margin:"0 auto 12px" }}>
+                    {(confirmRemoveFriend.name||"?")[0].toUpperCase()}
+                  </div>
+                )}
+                <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>REMOVE FRIEND?</div>
+                <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
+                  Remove <strong style={{ color:th.sub }}>{confirmRemoveFriend.name.split(" ")[0]}</strong> from your friends list? You'll no longer see each other's activity and will need to re-invite to reconnect.
+                </div>
+              </div>
+              <div style={{ display:"flex", gap:8 }}>
+                <button onClick={() => setConfirmRemoveFriend(null)}
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, border:`1px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+                <button onClick={() => { onRemoveFriend(confirmRemoveFriend.uid); setConfirmRemoveFriend(null); }}
+                  style={{ flex:1, background:"rgba(220,50,50,0.75)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>REMOVE</button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* ── Empty state (no friends yet) ── */}
@@ -10398,26 +10463,19 @@ import "./styles.css";
           <button
             onClick={() => setShowPicker(true)}
             style={{
-              width: "100%",
-              background: "none",
-              border: `1px dashed ${th.text}`,
-              borderRadius: 13,
-              padding: 13,
-              cursor: "pointer",
-              color: th.muted,
-              fontSize: 14,
-              fontFamily: "'Outfit',sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              marginTop: 4,
+              width:"100%",
+              background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:`1.5px dashed rgba(91,156,246,0.4)`,
+              borderRadius:14, padding:"13px 0", cursor:"pointer",
+              fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+              color:"#5B9CF6", letterSpacing:"0.5px",
+              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              marginTop:4,
             }}
           >
-            <span style={{ color: th.accentFg, fontSize: 18, fontWeight: 700 }}>
-              +
-            </span>{" "}
-            Add Exercise
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+            ADD EXERCISE
           </button>
           {showBuildGuide && (
             <div style={{ marginTop: 12 }}>
@@ -10957,26 +11015,19 @@ import "./styles.css";
           <button
             onClick={() => setShowPicker(true)}
             style={{
-              width: "100%",
-              background: "none",
-              border: `1px dashed ${th.inputB}`,
-              borderRadius: 13,
-              padding: 13,
-              cursor: "pointer",
-              color: th.muted,
-              fontSize: 14,
-              fontFamily: "'Outfit',sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              marginTop: 4,
+              width:"100%",
+              background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:`1.5px dashed rgba(91,156,246,0.4)`,
+              borderRadius:14, padding:"13px 0", cursor:"pointer",
+              fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+              color:"#5B9CF6", letterSpacing:"0.5px",
+              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              marginTop:4,
             }}
           >
-            <span style={{ color: th.accentFg, fontSize: 18, fontWeight: 700 }}>
-              +
-            </span>{" "}
-            Add Exercise
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+            ADD EXERCISE
           </button>
         </div>
         <div style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
@@ -14510,28 +14561,22 @@ import "./styles.css";
           <button
             onClick={() => setShowPicker(true)}
             style={{
-              width: "100%",
-              background: "none",
-              border: `1px dashed ${th.text}`,
-              borderRadius: 13,
-              padding: 13,
-              cursor: "pointer",
-              color: th.muted,
-              fontSize: 15,
-              fontFamily: "'Outfit',sans-serif",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              marginTop: 4,
+              width:"100%",
+              background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+              backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+              border:`1.5px dashed rgba(91,156,246,0.4)`,
+              borderRadius:14, padding:"13px 0", cursor:"pointer",
+              fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
+              color:"#5B9CF6", letterSpacing:"0.5px",
+              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
+              marginTop:4,
             }}
           >
-            <span style={{ color: th.accentFg, fontSize: 20, fontWeight: 700 }}>
-              +
-            </span>{" "}
-            Add Exercise
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
+            ADD EXERCISE
           </button>
-        </div>
+
+        </div>{/* close slide-up */}
 
         <div style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
         <Btn
@@ -16698,11 +16743,15 @@ import "./styles.css";
                     : `${d} days ago`;
                   const iconBg = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? "rgba(212,175,55,0.18)"
-                    : n.type === "friend_accepted"
-                    ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`
+                    : n.type === "coach_request" || n.type === "coach_accepted"
+                    ? "rgba(91,156,246,0.18)"
                     : `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`;
                   const icon = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
+                    : n.type === "coach_request" || n.type === "coach_accepted"
+                    ? <span style={{ fontSize:14 }}>🎓</span>
+                    : n.type === "friend_request"
+                    ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke="#5B9CF6" strokeWidth="2"/><path d="M14 12.5c1.5.8 2.5 2.3 2.5 4M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/><path d="M17 7v4M19 9h-4" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : n.type === "friend_accepted"
                     ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2"/><path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : <svg width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}><polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.4" strokeLinejoin="round"/></svg>;
