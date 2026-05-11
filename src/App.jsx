@@ -7520,6 +7520,7 @@ import "./styles.css";
           @keyframes coachPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
           @keyframes coachXPop  { 0%{transform:scale(0) rotate(-45deg);opacity:0} 65%{transform:scale(1.25) rotate(5deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
           @keyframes removeSlide { to{transform:translateX(-100%);opacity:0} }
+          @keyframes sheetUp { from{transform:translateY(100%);opacity:.5} to{transform:translateY(0);opacity:1} }
         `}</style>
 
         {/* Backdrop */}
@@ -7715,10 +7716,35 @@ import "./styles.css";
               <div style={{ textAlign:"center", marginBottom:20 }}>
                 <div style={{ fontSize:36, marginBottom:10 }}>
                   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
-                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
-                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
-                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    {/* Circle bg */}
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
+                    {/* Clipboard body */}
+                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
+                    {/* Clip */}
+                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
+                    {/* Row 1: checkbox + lines */}
+                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 2: checkbox + lines */}
+                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 3: checkbox (empty) + lines */}
+                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
+                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
+                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
+                    {/* Pencil — diagonal, top-right of clipboard */}
+                    <g transform="rotate(-40 27 14)" opacity="0.9">
+                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
+                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
+                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
+                    </g>
+                    {/* Person silhouette — bottom-right */}
+                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
+                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>REQUEST COACHING</div>
@@ -7774,10 +7800,35 @@ import "./styles.css";
               <div style={{ textAlign:"center", marginBottom:18 }}>
                 <div style={{ display:"flex", justifyContent:"center", marginBottom:10 }}>
                   <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
-                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
-                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
-                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    {/* Circle bg */}
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
+                    {/* Clipboard body */}
+                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
+                    {/* Clip */}
+                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
+                    {/* Row 1: checkbox + lines */}
+                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 2: checkbox + lines */}
+                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 3: checkbox (empty) + lines */}
+                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
+                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
+                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
+                    {/* Pencil — diagonal, top-right of clipboard */}
+                    <g transform="rotate(-40 27 14)" opacity="0.9">
+                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
+                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
+                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
+                    </g>
+                    {/* Person silhouette — bottom-right */}
+                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
+                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
@@ -9458,12 +9509,13 @@ import "./styles.css";
             background:"rgba(0,0,0,0.65)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
             display:"flex", alignItems:"flex-end", justifyContent:"center",
           }}>
+            <style>{`@keyframes sheetUpLocal { from{transform:translateY(100%);opacity:.5} to{transform:translateY(0);opacity:1} }`}</style>
             <div onClick={e => e.stopPropagation()} style={{
               width:"100%", maxWidth:480,
               background:th.card, borderRadius:"24px 24px 0 0",
               borderTop:`1px solid ${th.border}`,
               padding:"20px 20px calc(32px + env(safe-area-inset-bottom,0px))",
-              animation:"cpSheetIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+              animation:"sheetUpLocal .44s cubic-bezier(0.32,0.72,0,1) forwards",
             }}>
               <div style={{ display:"flex", justifyContent:"center", marginBottom:18 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
@@ -9472,10 +9524,35 @@ import "./styles.css";
                 {/* Coaching icon — whistle / trainer */}
                 <div style={{ fontSize:36, marginBottom:10 }}>
                   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.12)"/>
-                    <path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.2" strokeLinecap="round"/>
-                    <circle cx="20" cy="24" r="4" fill="#5B9CF6"/>
-                    <path d="M27 13l3-3M27 13h3M27 13v3" stroke="#5B9CF6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    {/* Circle bg */}
+                    <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
+                    {/* Clipboard body */}
+                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
+                    {/* Clip */}
+                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
+                    {/* Row 1: checkbox + lines */}
+                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 2: checkbox + lines */}
+                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
+                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
+                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
+                    {/* Row 3: checkbox (empty) + lines */}
+                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
+                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
+                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
+                    {/* Pencil — diagonal, top-right of clipboard */}
+                    <g transform="rotate(-40 27 14)" opacity="0.9">
+                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
+                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
+                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
+                    </g>
+                    {/* Person silhouette — bottom-right */}
+                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
+                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>ACCEPT COACHING?</div>
@@ -10673,15 +10750,14 @@ import "./styles.css";
                 focusable="false"
                 style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, maxWidth: 22, maxHeight: 22, display: "block", flex: "0 0 22px", overflow: "visible" }}
               >
-                <circle cx="18" cy="5" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" vectorEffect="non-scaling-stroke"/>
-                <circle cx="6" cy="12" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" vectorEffect="non-scaling-stroke"/>
-                <circle cx="18" cy="19" r="3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" vectorEffect="non-scaling-stroke"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+                {/* Share tray — open-top box with centred up-arrow, universally recognised */}
+                <path d="M8.5 8.5H6C5.44772 8.5 5 8.94772 5 9.5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V9.5C19 8.94772 18.5523 8.5 18 8.5H15.5" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+                <path d="M12 14V3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+                <path d="M9 6L12 3L15 6" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
               </svg>
             </button>
           )}
-          {/* SAVE button — subtle secondary, frosted glass with accent border */}
+          {/* SAVE button — blue glass, identical to Request Coaching style */}
           <button
             onClick={() => {
               if (!name.trim() || exs.length === 0) return;
@@ -10691,11 +10767,12 @@ import "./styles.css";
             style={{
               flex: 1,
               background: (!name.trim() || exs.length === 0)
-                ? `color-mix(in srgb, ${th.card} 40%, transparent)`
-                : `color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              border: `1.5px solid ${(!name.trim() || exs.length === 0) ? th.inputB : `color-mix(in srgb, ${th.accentBg} 60%, transparent)`}`,
+                ? "rgba(91,156,246,0.08)"
+                : "linear-gradient(135deg, rgba(91,156,246,0.75) 0%, rgba(60,120,220,0.82) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              boxShadow: (!name.trim() || exs.length === 0) ? "none" : "0 2px 16px rgba(91,156,246,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
+              border: `1.5px solid ${(!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.18)" : "rgba(91,156,246,0.6)"}`,
               borderRadius: 14,
               padding: "15px 0",
               cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
@@ -10703,8 +10780,8 @@ import "./styles.css";
               fontWeight: 700,
               fontSize: 14,
               letterSpacing: "0.5px",
-              color: (!name.trim() || exs.length === 0) ? th.dim : th.accentFg,
-              transition: "background .2s, color .2s, border-color .2s",
+              color: (!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.3)" : "#fff",
+              transition: "background .2s, box-shadow .2s, border-color .2s",
             }}
           >
             SAVE
@@ -16924,7 +17001,7 @@ import "./styles.css";
                   const icon = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
                     : n.type === "coach_request" || n.type === "coach_accepted"
-                    ? <svg width="14" height="14" viewBox="0 0 40 40" fill="none"><circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2.5" fill="rgba(91,156,246,0.12)"/><path d="M12 20c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/><circle cx="20" cy="24" r="4" fill="#5B9CF6"/></svg>
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="13" height="16" rx="1.5" stroke="#5B9CF6" strokeWidth="1.8" fill="none"/><rect x="7.5" y="2.5" width="5" height="3" rx="0.8" stroke="#5B9CF6" strokeWidth="1.3" fill="rgba(91,156,246,0.25)"/><rect x="5" y="8" width="3" height="3" rx="0.4" stroke="#5B9CF6" strokeWidth="1.2" fill="none"/><path d="M5.6 9.5l.9.9 1.3-1.6" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="9" x2="14.5" y2="9" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" opacity="0.6"/><rect x="5" y="13" width="3" height="3" rx="0.4" stroke="#5B9CF6" strokeWidth="1.2" fill="none" opacity="0.5"/><line x1="10" y1="14" x2="14.5" y2="14" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" opacity="0.35"/><circle cx="19.5" cy="16.5" r="2.5" stroke="#5B9CF6" strokeWidth="1.5" fill="none"/><path d="M16.2 22c0-1.8 1.5-3.3 3.3-3.3s3.3 1.5 3.3 3.3" stroke="#5B9CF6" strokeWidth="1.4" strokeLinecap="round" fill="none"/></svg>
                     : n.type === "friend_request"
                     ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke="#5B9CF6" strokeWidth="2"/><path d="M14 12.5c1.5.8 2.5 2.3 2.5 4M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/><path d="M17 7v4M19 9h-4" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : n.type === "friend_accepted"
