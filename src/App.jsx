@@ -5321,17 +5321,19 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Got it ✔</button>
@@ -5364,7 +5366,7 @@ import "./styles.css";
           <div style={{ ...S.label, textAlign:"left" }}>DASHBOARDS</div>
           <div style={{ display:"flex", gap:6 }}>
             <button onClick={() => dismiss(onCancel)} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>Cancel</button>
-            <button onClick={() => dismiss(() => onSave(order))} style={{ background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
+            <button onClick={() => dismiss(() => onSave(order))} style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>SAVE</button>
           </div>
         </div>
 
@@ -6622,7 +6624,7 @@ import "./styles.css";
                 {ex.sets && <div style={{ fontSize:11, color:th.accentFg, fontWeight:700 }}>{ex.sets.length} sets</div>}
                 <div style={{ color:th.muted, fontSize:14, transition:"transform .2s", transform: isExp ? "rotate(180deg)" : "none" }}>▾</div>
                 <button onClick={e => { e.stopPropagation(); removeEx(ex.id); }}
-                  style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:6, width:24, height:24, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11 }}>✕</button>
+                  style={{ background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:6, width:24, height:24, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11 }}>✕</button>
               </div>
               {isExp && ex.sets && (
                 <div style={{ padding:"0 12px 12px", borderTop:`1px solid ${th.border}` }}>
@@ -6669,9 +6671,9 @@ import "./styles.css";
         )}
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={onCancel}
-            style={{ flex:1, background:th.row, border:`1px solid ${th.border}`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+            style={{ flex:1, background:th.row, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
           <button onClick={doSave} disabled={saving}
-            style={{ flex:2, background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity:saving?0.6:1 }}>
+            style={{ flex:2, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity:saving?0.6:1 }}>
             {saving ? "SAVING…" : "SAVE CHANGES"}
           </button>
         </div>
@@ -6843,9 +6845,6 @@ import "./styles.css";
             <div style={{
               position:"absolute", bottom:0, left:0, right:0,
               padding:`12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)`,
-              background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
-              backdropFilter:"blur(20px)", WebkitBackdropFilter:"blur(20px)",
-              borderTop:`1px solid ${th.border}`,
             }}>
               <button
                 onClick={handleSave}
@@ -7281,17 +7280,16 @@ import "./styles.css";
             <button
               onClick={() => setEditingProgs(e => !e)}
               style={{
-                background: editingProgs
-                  ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
-                  : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+                background: editingProgs ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
+                backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)",
+                boxShadow: editingProgs ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14)` : "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 4px rgba(0,0,0,0.07)",
                 border: editingProgs
-                  ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
-                  : `1px solid ${th.border}`,
+                  ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
+                  : `1.5px solid ${th.border}`,
                 borderRadius:20, padding:"4px 12px", cursor:"pointer",
                 fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
                 color: editingProgs ? th.accentFg : th.muted,
-                letterSpacing:"0.5px", transition:"background .2s, color .2s, border-color .2s",
+                letterSpacing:"0.5px", transition:"background .2s, box-shadow .2s, border-color .2s",
               }}
             >{editingProgs ? "DONE" : "EDIT"}</button>
           </div>
@@ -7587,13 +7585,15 @@ import "./styles.css";
                 {/* COMPETE */}
                 <button onClick={onCompete} style={{
                   flex:1,
-                  background:`color-mix(in srgb, rgba(212,175,55,0.15) 100%, transparent)`,
+                  background:"linear-gradient(135deg, rgba(212,175,55,0.45) 0%, rgba(168,130,20,0.6) 100%)",
                   backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                  border:`1.5px solid rgba(212,175,55,0.45)`,
+                  boxShadow:"0 2px 12px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.16)",
+                  border:`1.5px solid rgba(212,175,55,0.65)`,
                   borderRadius:11, padding:"9px 0", cursor:"pointer",
                   fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                  color:"#D4AF37", letterSpacing:"0.5px",
+                  color:"#fff", letterSpacing:"0.5px",
                   display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                  textShadow:"0 1px 2px rgba(100,80,0,0.5)",
                 }}>{compLabel}</button>
 
                 {/* COACH REQUEST — hidden if this user is already the athlete */}
@@ -7603,17 +7603,20 @@ import "./styles.css";
                     disabled={coachBtnState === "sending"}
                     style={{
                       flex:1,
-                      background:`rgba(91,156,246,0.15)`,
+                      background: coachBtnState === "idle"
+                        ? "linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)"
+                        : `rgba(91,156,246,0.12)`,
                       backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                      boxShadow: coachBtnState === "idle" ? "0 2px 12px rgba(91,156,246,0.32), inset 0 1px 0 rgba(255,255,255,0.18)" : "none",
                       border: coachBtnState === "active"
                         ? `1.5px solid rgba(91,156,246,0.55)`
                         : coachBtnState === "pending"
                         ? `1.5px solid rgba(91,156,246,0.3)`
-                        : `1.5px solid rgba(91,156,246,0.5)`,
+                        : `1.5px solid rgba(91,156,246,0.65)`,
                       borderRadius:11, padding:"9px 0",
                       cursor: coachBtnState === "sending" ? "default" : "pointer",
                       fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                      color: coachBtnState === "pending" ? `rgba(91,156,246,0.55)` : "#5B9CF6",
+                      color: coachBtnState === "pending" ? `rgba(91,156,246,0.55)` : coachBtnState === "idle" ? "#fff" : "#5B9CF6",
                       letterSpacing:"0.5px", transition:"all .2s",
                       display:"flex", alignItems:"center", justifyContent:"center", gap:5,
                       opacity: coachBtnState === "pending" ? 0.7 : 1,
@@ -7718,33 +7721,14 @@ import "./styles.css";
                   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Circle bg */}
                     <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
-                    {/* Clipboard body */}
-                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
-                    {/* Clip */}
-                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
-                    {/* Row 1: checkbox + lines */}
-                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 2: checkbox + lines */}
-                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 3: checkbox (empty) + lines */}
-                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
-                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
-                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
-                    {/* Pencil — diagonal, top-right of clipboard */}
-                    <g transform="rotate(-40 27 14)" opacity="0.9">
-                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
-                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
-                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
-                    </g>
-                    {/* Person silhouette — bottom-right */}
-                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
-                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
+                    {/* Clipboard board */}
+                    <rect x="11" y="12" width="18" height="20" rx="2.5" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.08)"/>
+                    {/* Clip at top */}
+                    <rect x="15.5" y="10" width="9" height="5" rx="1.5" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.22)"/>
+                    {/* Content lines */}
+                    <line x1="14" y1="18" x2="26" y2="18" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round"/>
+                    <line x1="14" y1="22" x2="26" y2="22" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="14" y1="26" x2="22" y2="26" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>REQUEST COACHING</div>
@@ -7773,9 +7757,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setShowCoachRules(false)}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>CANCEL</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>CANCEL</button>
                 <button onClick={confirmSendCoachRequest}
-                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
+                  style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
                   SEND REQUEST TO {friend.name.split(" ")[0].toUpperCase()}
                 </button>
               </div>
@@ -7802,33 +7786,14 @@ import "./styles.css";
                   <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Circle bg */}
                     <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
-                    {/* Clipboard body */}
-                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
-                    {/* Clip */}
-                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
-                    {/* Row 1: checkbox + lines */}
-                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 2: checkbox + lines */}
-                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 3: checkbox (empty) + lines */}
-                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
-                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
-                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
-                    {/* Pencil — diagonal, top-right of clipboard */}
-                    <g transform="rotate(-40 27 14)" opacity="0.9">
-                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
-                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
-                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
-                    </g>
-                    {/* Person silhouette — bottom-right */}
-                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
-                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
+                    {/* Clipboard board */}
+                    <rect x="11" y="12" width="18" height="20" rx="2.5" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.08)"/>
+                    {/* Clip at top */}
+                    <rect x="15.5" y="10" width="9" height="5" rx="1.5" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.22)"/>
+                    {/* Content lines */}
+                    <line x1="14" y1="18" x2="26" y2="18" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round"/>
+                    <line x1="14" y1="22" x2="26" y2="22" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="14" y1="26" x2="22" y2="26" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
@@ -7842,9 +7807,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setShowStopCoach(false)}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, border:`1px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
                 <button onClick={confirmStopCoaching} disabled={stoppingCoach}
-                  style={{ flex:1, background:"rgba(220,50,50,0.75)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", opacity:stoppingCoach?0.5:1 }}>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", opacity:stoppingCoach?0.5:1 }}>
                   {stoppingCoach ? "…" : coachBtnState === "active" ? "STOP COACHING" : "WITHDRAW"}
                 </button>
               </div>
@@ -7874,7 +7839,7 @@ import "./styles.css";
         {editing ? (
           <button
             onClick={onRemove}
-            style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0 }}
+            style={{ background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0 }}
           >✕</button>
         ) : (
           <div style={{ display:"flex", gap:6, flexShrink:0 }}>
@@ -7891,7 +7856,7 @@ import "./styles.css";
             >COMPETE</button>
             <button
               onClick={onViewDashboard}
-              style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"8px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, letterSpacing:"0.5px" }}
+              style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"8px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, letterSpacing:"0.5px" }}
             >VIEW →</button>
           </div>
         )}
@@ -8121,9 +8086,9 @@ import "./styles.css";
                   </div>
                   <div style={{ display:"flex", gap:8 }}>
                     <button onClick={async () => { await onDeclineCompeteInvite(comp.id); close(); }}
-                      style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                      style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                     <button onClick={async () => { await onAcceptCompeteInvite(comp.id); }}
-                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✔</button>
+                      style={{ flex:1, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✔</button>
                   </div>
                 </div>
               )}
@@ -8139,7 +8104,7 @@ import "./styles.css";
                   </div>
                   <button
                     onClick={async () => { await onWithdrawCompeteInvite(comp.id); close(); }}
-                    style={{ background:th.del, border:`1px solid ${th.delB}`, borderRadius:12, padding:"11px 24px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}
+                    style={{ background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:12, padding:"11px 24px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}
                   >WITHDRAW INVITATION</button>
                 </div>
               )}
@@ -8265,12 +8230,13 @@ import "./styles.css";
                         }}
                         style={{
                           width:"100%",
-                          background:`color-mix(in srgb, rgba(212,175,55,0.2) 100%, transparent)`,
+                          background:"linear-gradient(135deg, rgba(212,175,55,0.42) 0%, rgba(168,130,20,0.58) 100%)",
                           backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                          border:`1.5px solid rgba(212,175,55,0.5)`,
+                          boxShadow:"0 2px 10px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.15)",
+                          border:`1.5px solid rgba(212,175,55,0.65)`,
                           borderRadius:14, padding:"15px 0", cursor: sending?"default":"pointer",
                           fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
-                          letterSpacing:"0.5px", color:"#D4AF37",
+                          letterSpacing:"0.5px", color:"#fff", textShadow:"0 1px 2px rgba(100,80,0,0.4)",
                           transition:"background .2s, color .2s",
                           opacity: sending ? 0.6 : 1,
                         }}
@@ -8418,17 +8384,19 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Got it ✔</button>
@@ -9201,9 +9169,9 @@ import "./styles.css";
                     <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
                   </div>
                   <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                    style={{ background:"rgba(220,50,50,0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
+                    style={{ background:"linear-gradient(135deg, rgba(220,50,50,0.45) 0%, rgba(170,25,25,0.58) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 10px rgba(200,30,30,0.25), inset 0 1px 0 rgba(255,255,255,0.10)", border:"1.5px solid rgba(220,50,50,0.45)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                    style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
                 </div>
               </div>
             ))}
@@ -9230,9 +9198,9 @@ import "./styles.css";
               <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>Challenges you to a 7-day workout competition.</div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 80%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
+                  style={{ flex:1, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
               </div>
             </div>
           );
@@ -9263,9 +9231,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                 <button onClick={() => setPendingCoachAccept(req)}
-                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
+                  style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
               </div>
             </div>
           );
@@ -9303,14 +9271,13 @@ import "./styles.css";
               <div style={S.label}>FRIENDS ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
                 style={{
-                  background: editFriends
-                    ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
-                    : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
+                  background: editFriends ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
+                  backdropFilter: "blur(14px)",
+                  WebkitBackdropFilter: "blur(14px)",
+                  boxShadow: editFriends ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14)` : "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 4px rgba(0,0,0,0.07)",
                   border: editFriends
-                    ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
-                    : `1px solid ${th.border}`,
+                    ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
+                    : `1.5px solid ${th.border}`,
                   borderRadius: 20,
                   color: editFriends ? th.accentFg : th.muted,
                   fontSize: 11,
@@ -9319,7 +9286,7 @@ import "./styles.css";
                   fontWeight: 700,
                   letterSpacing: "0.5px",
                   padding: "4px 12px",
-                  transition: "background .2s, color .2s, border-color .2s",
+                  transition: "background .2s, box-shadow .2s, border-color .2s",
                 }}>
                 {editFriends ? "DONE" : "EDIT"}
               </button>
@@ -9493,9 +9460,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setConfirmRemoveFriend(null)}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, border:`1px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
                 <button onClick={() => { onRemoveFriend(confirmRemoveFriend.uid); setConfirmRemoveFriend(null); }}
-                  style={{ flex:1, background:"rgba(220,50,50,0.75)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>REMOVE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>REMOVE</button>
               </div>
             </div>
           </div>
@@ -9525,33 +9492,14 @@ import "./styles.css";
                   <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     {/* Circle bg */}
                     <circle cx="20" cy="20" r="19" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.10)"/>
-                    {/* Clipboard body */}
-                    <rect x="9" y="10" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.07)"/>
-                    {/* Clip */}
-                    <rect x="14" y="8.5" width="6" height="3.5" rx="1" stroke="#5B9CF6" strokeWidth="1.5" fill="rgba(91,156,246,0.2)"/>
-                    {/* Row 1: checkbox + lines */}
-                    <rect x="11.5" y="14" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 15.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="15" x2="22.5" y2="15" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="17" x2="21" y2="17" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 2: checkbox + lines */}
-                    <rect x="11.5" y="19" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none"/>
-                    <path d="M12.2 20.8l1 1 1.5-1.8" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
-                    <line x1="16.5" y1="20" x2="22.5" y2="20" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.6"/>
-                    <line x1="16.5" y1="22" x2="21" y2="22" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.4"/>
-                    {/* Row 3: checkbox (empty) + lines */}
-                    <rect x="11.5" y="24" width="3.5" height="3.5" rx="0.5" stroke="#5B9CF6" strokeWidth="1.3" fill="none" opacity="0.5"/>
-                    <line x1="16.5" y1="25" x2="22.5" y2="25" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.35"/>
-                    <line x1="16.5" y1="27" x2="20" y2="27" stroke="#5B9CF6" strokeWidth="1.2" strokeLinecap="round" opacity="0.25"/>
-                    {/* Pencil — diagonal, top-right of clipboard */}
-                    <g transform="rotate(-40 27 14)" opacity="0.9">
-                      <rect x="25.5" y="10" width="3" height="8" rx="0.8" stroke="#5B9CF6" strokeWidth="1.4" fill="rgba(91,156,246,0.12)"/>
-                      <path d="M25.5 18 L27 20.5 L28.5 18Z" stroke="#5B9CF6" strokeWidth="1.2" strokeLinejoin="round" fill="rgba(91,156,246,0.25)"/>
-                      <line x1="25.5" y1="12" x2="28.5" y2="12" stroke="#5B9CF6" strokeWidth="1" opacity="0.5"/>
-                    </g>
-                    {/* Person silhouette — bottom-right */}
-                    <circle cx="28" cy="26" r="3" stroke="#5B9CF6" strokeWidth="1.6" fill="none"/>
-                    <path d="M23.5 35c0-2.485 2.015-4.5 4.5-4.5s4.5 2.015 4.5 4.5" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" fill="none"/>
+                    {/* Clipboard board */}
+                    <rect x="11" y="12" width="18" height="20" rx="2.5" stroke="#5B9CF6" strokeWidth="2" fill="rgba(91,156,246,0.08)"/>
+                    {/* Clip at top */}
+                    <rect x="15.5" y="10" width="9" height="5" rx="1.5" stroke="#5B9CF6" strokeWidth="1.8" fill="rgba(91,156,246,0.22)"/>
+                    {/* Content lines */}
+                    <line x1="14" y1="18" x2="26" y2="18" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round"/>
+                    <line x1="14" y1="22" x2="26" y2="22" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.7"/>
+                    <line x1="14" y1="26" x2="22" y2="26" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/>
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>ACCEPT COACHING?</div>
@@ -9580,9 +9528,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
-                  style={{ flex:1, background:th.del, border:`1px solid ${th.delB}`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
-                  style={{ flex:2, background:`rgba(91,156,246,0.85)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
+                  style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
                   ACCEPT {pendingCoachAccept.fromName.split(" ")[0].toUpperCase()} AS COACH
                 </button>
               </div>
@@ -9651,7 +9599,7 @@ import "./styles.css";
         {/* ── Invite button / panel — only shown when no friends yet ── */}
         {sharingTab === "friends" && (!showInvitePanel && friends.length === 0 ? (
           <button onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
-            style={{ width:"100%", background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`, backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"none", borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}>
+            style={{ width:"100%", background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:16, padding:"16px 20px", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:10, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color:th.accentT, letterSpacing:"0.5px", marginBottom:20, animation:"sharingFadeUp 0.45s cubic-bezier(0,0,0.2,1) 0.05s both" }}>
             <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
               <circle cx="9" cy="7.5" r="3.5" stroke={th.accentT} strokeWidth="2" />
               <path d="M1 19.5c0-4.418 3.582-8 8-8" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
@@ -9751,7 +9699,7 @@ import "./styles.css";
                     />
                   {inviteStatus === "error" && <div style={{ fontSize:13, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
                   <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
-                    style={{ width:"100%", background: inviteEmail.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, color .2s", letterSpacing:"0.5px" }}>
+                    style={{ width:"100%", background: inviteEmail.trim() ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)` : th.inputB, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow: inviteEmail.trim() ? `0 2px 14px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)` : "none", border: inviteEmail.trim() ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)` : `1.5px solid ${th.inputB}`, borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, box-shadow .2s, border-color .2s", letterSpacing:"0.5px" }}>
                     {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
                   </button>
                 </>
@@ -10138,17 +10086,19 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                  backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-                  border: "none", borderRadius: 9, color: th.accentT,
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Got it ✔</button>
@@ -10197,13 +10147,16 @@ import "./styles.css";
             <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20 }}>
               <button onClick={() => setEditing(e => !e)} style={{
                 background: editing
-                  ? `color-mix(in srgb, ${th.accentBg} 14%, transparent)`
+                  ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)`
                   : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
+                backdropFilter: "blur(14px)",
+                WebkitBackdropFilter: "blur(14px)",
+                boxShadow: editing
+                  ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14)`
+                  : "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 4px rgba(0,0,0,0.07)",
                 border: editing
-                  ? `1px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`
-                  : `1px solid ${th.border}`,
+                  ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
+                  : `1.5px solid ${th.border}`,
                 borderRadius: 20,
                 color: editing ? th.accentFg : th.muted,
                 fontSize: 11,
@@ -10212,7 +10165,7 @@ import "./styles.css";
                 fontWeight: 700,
                 letterSpacing: "0.5px",
                 padding: "4px 12px",
-                transition: "background .2s, color .2s, border-color .2s",
+                transition: "background .2s, box-shadow .2s, border-color .2s",
               }}>{editing ? "DONE" : "EDIT"}</button>
             </div>
             {programs.map((p) => (
@@ -10271,13 +10224,14 @@ import "./styles.css";
                           setTimeout(() => r.remove(), 560);
                         }}
                         style={{
-                          background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                          backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                          border:"none", borderRadius:"50%",
+                          background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
+                          backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                          boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                          border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:"50%",
                           width:48, height:48, minWidth:48,
                           display:"flex", alignItems:"center", justifyContent:"center",
                           cursor:"pointer", color: th.accentFg,
-                          transition:"opacity .15s",
+                          transition:"opacity .15s, box-shadow .2s",
                         }}>
                         <svg width="22" height="22" viewBox="0 0 18 18" style={{ width:22, height:22, minWidth:22, flexShrink:0, display:"block" }}>
                           <polygon points="4,2 16,9 4,16" fill={th.accentT}/>
@@ -10798,12 +10752,13 @@ import "./styles.css";
               flex: 1,
               background: (!name.trim() || exs.length === 0)
                 ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
-                : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
+                : `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`,
               backdropFilter: "blur(16px)",
               WebkitBackdropFilter: "blur(16px)",
-              border: `1px solid ${(!name.trim() || exs.length === 0)
+              boxShadow: (!name.trim() || exs.length === 0) ? "none" : `0 2px 14px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
+              border: `1.5px solid ${(!name.trim() || exs.length === 0)
                 ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)`
-                : `color-mix(in srgb, ${th.accentBg} 50%, transparent)`}`,
+                : `color-mix(in srgb, ${th.accentBg} 55%, transparent)`}`,
               borderRadius: 14,
               padding: "15px 0",
               cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
@@ -10812,7 +10767,7 @@ import "./styles.css";
               fontSize: 14,
               letterSpacing: "0.5px",
               color: (!name.trim() || exs.length === 0) ? `${th.accentT}44` : th.accentT,
-              transition: "background .2s, color .2s, border-color .2s",
+              transition: "background .2s, box-shadow .2s, border-color .2s",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -17000,7 +16955,7 @@ import "./styles.css";
                   const icon = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
                     : n.type === "coach_request" || n.type === "coach_accepted"
-                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="13" height="16" rx="1.5" stroke="#5B9CF6" strokeWidth="1.8" fill="none"/><rect x="7.5" y="2.5" width="5" height="3" rx="0.8" stroke="#5B9CF6" strokeWidth="1.3" fill="rgba(91,156,246,0.25)"/><rect x="5" y="8" width="3" height="3" rx="0.4" stroke="#5B9CF6" strokeWidth="1.2" fill="none"/><path d="M5.6 9.5l.9.9 1.3-1.6" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round"/><line x1="10" y1="9" x2="14.5" y2="9" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" opacity="0.6"/><rect x="5" y="13" width="3" height="3" rx="0.4" stroke="#5B9CF6" strokeWidth="1.2" fill="none" opacity="0.5"/><line x1="10" y1="14" x2="14.5" y2="14" stroke="#5B9CF6" strokeWidth="1.1" strokeLinecap="round" opacity="0.35"/><circle cx="19.5" cy="16.5" r="2.5" stroke="#5B9CF6" strokeWidth="1.5" fill="none"/><path d="M16.2 22c0-1.8 1.5-3.3 3.3-3.3s3.3 1.5 3.3 3.3" stroke="#5B9CF6" strokeWidth="1.4" strokeLinecap="round" fill="none"/></svg>
+                    ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="2" fill="none"/><rect x="9" y="1.5" width="6" height="4" rx="1" stroke="#5B9CF6" strokeWidth="1.6" fill="rgba(91,156,246,0.25)"/><line x1="7" y1="10" x2="17" y2="10" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round"/><line x1="7" y1="14" x2="17" y2="14" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.7"/><line x1="7" y1="18" x2="14" y2="18" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/></svg>
                     : n.type === "friend_request"
                     ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke="#5B9CF6" strokeWidth="2"/><path d="M14 12.5c1.5.8 2.5 2.3 2.5 4M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/><path d="M17 7v4M19 9h-4" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : n.type === "friend_accepted"
