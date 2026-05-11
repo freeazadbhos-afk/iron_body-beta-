@@ -2533,7 +2533,7 @@ import "./styles.css";
       <button
         onClick={disabled ? undefined : onClick}
         style={{
-          border: "none",
+          border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
           borderRadius: 13,
           cursor: disabled ? "not-allowed" : "pointer",
           fontFamily: "'Bebas Neue',sans-serif",
@@ -2541,11 +2541,14 @@ import "./styles.css";
           fontSize: 18,
           fontWeight: 700,
           padding: "15px 22px",
-          transition: "opacity .2s",
+          transition: "opacity .2s, box-shadow .2s",
           opacity: disabled ? 0.3 : 1,
-          background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
+          background: disabled
+            ? `color-mix(in srgb, ${th.accentBg} 30%, transparent)`
+            : `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          boxShadow: disabled ? "none" : `0 3px 16px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
           color: th.accentT,
           ...style,
         }}
@@ -3561,18 +3564,23 @@ import "./styles.css";
           {pending.length > 0 && (
             <div
               style={{
-                padding: "12px 18px 20px",
-                borderTop: `1px solid ${th.border}`,
+                position: "sticky",
+                bottom: 0,
+                padding: "12px 18px 18px",
+                background: "transparent",
+                pointerEvents: "none",
               }}
             >
+              <div style={{ pointerEvents: "auto" }}>
               <button
                 onClick={confirmAdd}
                 style={{
                   width: "100%",
-                  background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  border: "none",
+                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                  backdropFilter: "blur(20px)",
+                  WebkitBackdropFilter: "blur(20px)",
+                  boxShadow: `0 4px 20px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
                   borderRadius: 13,
                   padding: "14px",
                   cursor: "pointer",
@@ -3585,6 +3593,7 @@ import "./styles.css";
               >
                 ADD {pending.length} EXERCISE{pending.length > 1 ? "S" : ""}
               </button>
+              </div>
             </div>
           )}
         </div>
@@ -5276,14 +5285,15 @@ import "./styles.css";
         {/* Accent top bar */}
         <div style={{ height: 3, background: th.accentBg }} />
         <div style={{ padding: "16px 16px 14px" }}>
-          {/* Step content */}
+          {/* Step content — fixed height so card never resizes between slides */}
+          <div style={{ position:"relative", height:108, overflow:"hidden" }}>
           <div
             key={step}
             style={{
+              position:"absolute", inset:0, overflowY:"auto",
               animation: leaving
                 ? (dir > 0 ? "obSlideOut 0.16s ease-in forwards" : "obSlideOutR 0.16s ease-in forwards")
                 : (dir > 0 ? "obSlideIn 0.22s cubic-bezier(0,0,0.2,1) forwards" : "obSlideInR 0.22s cubic-bezier(0,0,0.2,1) forwards"),
-              minHeight: 84,
             }}
           >
             <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
@@ -5298,6 +5308,7 @@ import "./styles.css";
                 <div style={{ fontSize: 12, textAlign: "left", color: th.muted, lineHeight: 1.5 }}>{s.body}</div>
               </div>
             </div>
+          </div>
           </div>
           {/* Footer: dots + navigation */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: 14 }}>
@@ -7288,7 +7299,7 @@ import "./styles.css";
                   : `1.5px solid ${th.border}`,
                 borderRadius:20, padding:"4px 12px", cursor:"pointer",
                 fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:11,
-                color: editingProgs ? th.accentFg : th.muted,
+                color: editingProgs ? "#fff" : th.muted,
                 letterSpacing:"0.5px", transition:"background .2s, box-shadow .2s, border-color .2s",
               }}
             >{editingProgs ? "DONE" : "EDIT"}</button>
@@ -7484,7 +7495,6 @@ import "./styles.css";
       </div>
     ) : (
       <>
-        {friendAwardsJSX}
         {sessions.map(s => {
           const ic = intColor(s.intensity || 0, th);
           return (
@@ -7751,9 +7761,6 @@ import "./styles.css";
                     </div>
                   </div>
                 ))}
-              </div>
-              <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginBottom:18, lineHeight:1.5 }}>
-                {friend.name.split(" ")[0]} will receive a notification and must <strong>accept</strong> before you gain any access.
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setShowCoachRules(false)}
@@ -8266,10 +8273,12 @@ import "./styles.css";
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
             <rect x="2" y="3" width="18" height="5" rx="2.5" stroke={th.accentFg} strokeWidth="1.8"/>
             <line x1="7" y1="5.5" x2="15" y2="5.5" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+            <rect x="2" y="11" width="18" height="8" rx="2.5" stroke={th.accentFg} strokeWidth="1.8" opacity="0.5"/>
+            <line x1="7" y1="15" x2="15" y2="15" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
           </svg>
         ),
         title: "Feed & Friends Tabs",
-        body: "The Sharing tab has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections and the monthly Iron Board leaderboard.",
+        body: "Sharing has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections, pending requests, and the monthly Iron Board leaderboard.",
       },
       {
         icon: (
@@ -8281,7 +8290,22 @@ import "./styles.css";
           </svg>
         ),
         title: "Add Friends",
-        body: "Tap the + bubble or INVITE A FRIEND to connect. Suggested users from the app appear automatically. Once accepted, you'll see each other's workouts in your feeds.",
+        body: "Tap the + bubble or INVITE A FRIEND to connect. Once accepted you'll see each other's workouts in your feeds. Pending invites and coach requests appear in the Friends tab, above the leaderboard.",
+      },
+      {
+        icon: (
+          <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
+            <rect x="3" y="4" width="12" height="15" rx="2" stroke={th.accentFg} strokeWidth="1.8"/>
+            <rect x="7.5" y="2.5" width="5" height="3" rx="0.8" stroke={th.accentFg} strokeWidth="1.5"/>
+            <line x1="5.5" y1="9" x2="12.5" y2="9" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="5.5" y1="12" x2="12.5" y2="12" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round" opacity="0.7"/>
+            <line x1="5.5" y1="15" x2="10" y2="15" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round" opacity="0.45"/>
+            <circle cx="18" cy="16.5" r="3" stroke="#5B9CF6" strokeWidth="1.6"/>
+            <path d="M15 20c0-1.6 1.3-3 3-3s3 1.4 3 3" stroke="#5B9CF6" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        ),
+        title: "Request Coaching",
+        body: "Tap a friend's profile and hit REQUEST COACHING to become their coach. Once they accept, you unlock their full dashboards, session history, and workout programs — and can edit or create programs for them.",
       },
       {
         icon: (
@@ -8298,21 +8322,22 @@ import "./styles.css";
       {
         icon: (
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-            <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round" transform="translate(0 0) scale(0.55) translate(10 16)"/>
+            <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke="#D4AF37" strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         ),
-        title: "React & Comment",
-        body: "Tap the ★ on any feed post to react — your friend gets notified. Tap the comment bubble to leave a message. Tap a star count to see who reacted.",
+        title: "Iron Board & Compete",
+        body: "The Friends tab shows the monthly Iron Board — top 3 ranked by intensity, calories, consistency and volume. Tap a friend bubble to view their dashboards and send a 7-day competition challenge.",
       },
       {
         icon: (
           <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-            <path d="M11 2l2.4 6.8H20l-5.5 4 2.1 6.8L11 15.6l-5.6 4 2.1-6.8L2 8.8h6.6z" stroke="#D4AF37" strokeWidth="1.8" strokeLinejoin="round"/>
+            <path d="M11 2l2.4 6.8H20l-5.5 4 2.1 6.8L11 15.6l-5.6 4 2.1-6.8L2 8.8h6.6z" stroke={th.accentFg} strokeWidth="1.5" strokeLinejoin="round" opacity="0.7"/>
+            <circle cx="17" cy="5" r="3.5" fill={`color-mix(in srgb, ${th.accentBg} 25%, transparent)`} stroke={th.accentFg} strokeWidth="1.6"/>
+            <path d="M15.6 5l1 1 2-2" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         ),
-        title: "Iron Board & Compete",
-        body: "Switch to Friends tab to see the monthly Iron Board — a live leaderboard ranking you and friends by intensity, calories, consistency and volume. Tap a friend bubble to open their dashboard and send a 7-day challenge.",
+        title: "Notifications",
+        body: "The bell icon at the top right shows friend requests, coach requests, competition invites, program reactions, and accepted coaching — all in one place.",
       },
     ];
 
@@ -8340,14 +8365,15 @@ import "./styles.css";
         {/* Accent top bar */}
         <div style={{ height: 3, background: th.accentBg }} />
         <div style={{ padding: "16px 16px 14px" }}>
-          {/* Step content */}
+          {/* Step content — fixed height so card never resizes between slides */}
+          <div style={{ position:"relative", height:108, overflow:"hidden" }}>
           <div
             key={step}
             style={{
+              position:"absolute", inset:0, overflowY:"auto",
               animation: leaving
                 ? (dir > 0 ? "obSlideOut 0.16s ease-in forwards" : "obSlideOutR 0.16s ease-in forwards")
                 : (dir > 0 ? "obSlideIn 0.22s cubic-bezier(0,0,0.2,1) forwards" : "obSlideInR 0.22s cubic-bezier(0,0,0.2,1) forwards"),
-              minHeight: 84,
             }}
           >
             <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
@@ -8361,6 +8387,7 @@ import "./styles.css";
                 <div style={{ fontSize: 12, textAlign: "left", color: th.muted, lineHeight: 1.55 }}>{s.body}</div>
               </div>
             </div>
+          </div>
           </div>
           {/* Footer: dots + nav */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: 14 }}>
@@ -9118,9 +9145,9 @@ import "./styles.css";
         `}</style>
 
         {/* ── Sharing onboarding guide ── */}
-        {/* Show onboarding if user hasn't seen v2 of the sharing guide */}
-        {!settings?.hasSharingOnboardedV2 && (
-          <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true, hasSharingOnboardedV2: true })} />
+        {/* Show onboarding if user hasn't seen v3 of the sharing guide (coaching update) */}
+        {!settings?.hasSharingOnboardedV3 && (
+          <SharingOnboarding onDismiss={() => onUpdateSettings?.({ ...settings, hasSharingOnboarded: true, hasSharingOnboardedV2: true, hasSharingOnboardedV3: true })} />
         )}
 
         {(() => {
@@ -9133,7 +9160,8 @@ import "./styles.css";
                 position:"absolute", top:3, bottom:3,
                 width:"calc(50% - 3px)",
                 left: idx === 0 ? 3 : "calc(50%)",
-                background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
+                background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
                 borderRadius:11,
                 transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
                 pointerEvents:"none",
@@ -9279,7 +9307,7 @@ import "./styles.css";
                     ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
                     : `1.5px solid ${th.border}`,
                   borderRadius: 20,
-                  color: editFriends ? th.accentFg : th.muted,
+                  color: editFriends ? "#fff" : th.muted,
                   fontSize: 11,
                   cursor: "pointer",
                   fontFamily: "'Outfit',sans-serif",
@@ -10041,14 +10069,15 @@ import "./styles.css";
         {/* Accent top bar */}
         <div style={{ height: 3, background: th.accentBg }} />
         <div style={{ padding: "16px 16px 14px" }}>
-          {/* Step content */}
+          {/* Step content — fixed height so card never resizes between slides */}
+          <div style={{ position:"relative", height:108, overflow:"hidden" }}>
           <div
             key={step}
             style={{
+              position:"absolute", inset:0, overflowY:"auto",
               animation: leaving
                 ? (dir > 0 ? "obSlideOut 0.16s ease-in forwards" : "obSlideOutR 0.16s ease-in forwards")
                 : (dir > 0 ? "obSlideIn 0.22s cubic-bezier(0,0,0.2,1) forwards" : "obSlideInR 0.22s cubic-bezier(0,0,0.2,1) forwards"),
-              minHeight: 84,
             }}
           >
             <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
@@ -10063,6 +10092,7 @@ import "./styles.css";
                 <div style={{ fontSize: 12, textAlign: "left", color: th.muted, lineHeight: 1.5 }}>{s.body}</div>
               </div>
             </div>
+          </div>
           </div>
           {/* Footer: dots + navigation */}
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginTop: 14 }}>
@@ -10158,7 +10188,7 @@ import "./styles.css";
                   ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
                   : `1.5px solid ${th.border}`,
                 borderRadius: 20,
-                color: editing ? th.accentFg : th.muted,
+                color: editing ? "#fff" : th.muted,
                 fontSize: 11,
                 cursor: "pointer",
                 fontFamily: "'Outfit',sans-serif",
@@ -15863,10 +15893,14 @@ import "./styles.css";
                   <button
                     onClick={toggleWorkoutPause}
                     style={{
-                      background: paused ? th.pause : "transparent",
-                      border: `1px solid ${paused ? th.pauseB : th.inputB}`,
+                      background: paused
+                        ? "linear-gradient(135deg, rgba(232,97,44,0.55) 0%, rgba(180,55,10,0.72) 100%)"
+                        : "rgba(255,255,255,0.06)",
+                      backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                      boxShadow: paused ? "0 2px 10px rgba(232,97,44,0.35), inset 0 1px 0 rgba(255,255,255,0.18)" : "inset 0 1px 0 rgba(255,255,255,0.10)",
+                      border: `1.5px solid ${paused ? "rgba(232,97,44,0.65)" : "rgba(255,255,255,0.14)"}`,
                       borderRadius: 9,
-                      color: paused ? "#E8612C" : th.muted,
+                      color: paused ? "#fff" : th.muted,
                       fontSize: 10,
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -15879,12 +15913,12 @@ import "./styles.css";
                   <button
                     onClick={handleAbandon}
                     style={{
-                      background: "rgba(220, 50, 50, 0.15)",
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "1px solid rgba(220, 50, 50, 0.3)",
+                      background: "linear-gradient(135deg, rgba(200,40,40,0.38) 0%, rgba(155,20,20,0.52) 100%)",
+                      backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                      boxShadow: "0 2px 8px rgba(200,30,30,0.30), inset 0 1px 0 rgba(255,255,255,0.12)",
+                      border: "1.5px solid rgba(220,50,50,0.55)",
                       borderRadius: 9,
-                      color: th.delText,
+                      color: "#fff",
                       fontSize: 10,
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -15903,10 +15937,10 @@ import "./styles.css";
                       handleFinishWorkout(active.exercises);
                     }}
                     style={{
-                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "none",
+                      background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
+                      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                      boxShadow: `0 2px 14px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
+                      border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
                       borderRadius: 9,
                       color: th.accentT,
                       fontSize: 11,
@@ -15964,9 +15998,10 @@ import "./styles.css";
                 width: "calc(100% - 80px)",
                 maxWidth: 380,
                 zIndex: 15,
-                background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                backdropFilter: "blur(14px)",
-                WebkitBackdropFilter: "blur(14px)",
+                background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 90%, transparent) 100%)`,
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
                 borderRadius: 50,
                 cursor: "pointer",
                 display: "flex",
@@ -15977,7 +16012,7 @@ import "./styles.css";
                 animation: pillPressing
                   ? "pillPress 0.22s cubic-bezier(0.4,0,1,1) forwards"
                   : "pillFadeIn 0.35s cubic-bezier(0,0,0.2,1) forwards",
-                boxShadow: `0 0 0 0 color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
+                boxShadow: `0 4px 24px color-mix(in srgb, ${th.accentBg} 45%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
               }}
             >
               <style>{`
