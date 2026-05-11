@@ -9254,7 +9254,6 @@ import "./styles.css";
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
                   <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z" fill="#5B9CF6"/></svg>
                     COACHING REQUEST
                   </div>
                 </div>
@@ -9615,7 +9614,7 @@ import "./styles.css";
         {/* ── Coaching requests sent — before leaderboard ── */}
         {sharingTab === "friends" && (sentCoachRequests||[]).length > 0 && (
           <div style={{ marginBottom:16 }}>
-            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS SENT</div>
+            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS</div>
             {(sentCoachRequests||[]).map(req => {
               const f = friends.find(fr => fr.uid === req.toUid);
               const initials = (req.toName||"?")[0].toUpperCase();
