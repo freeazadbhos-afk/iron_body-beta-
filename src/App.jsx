@@ -2448,13 +2448,76 @@ import "./styles.css";
   }
 
   /* ─── Shared UI ─────────────────────────────────────────────────────────────── */
+  function buttonTexture(th, variant = "accent", disabled = false) {
+    const palettes = {
+      accent: {
+        bg: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
+        disabledBg: `color-mix(in srgb, ${th.accentBg} 25%, transparent)`,
+        border: `color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
+        disabledBorder: `color-mix(in srgb, ${th.accentBg} 20%, transparent)`,
+        glow: `color-mix(in srgb, ${th.accentBg} 42%, transparent)`,
+        color: th.accentT,
+        disabledColor: `${th.accentT}55`,
+      },
+      blue: {
+        bg: "linear-gradient(135deg, rgba(91,156,246,0.75) 0%, rgba(60,120,220,0.86) 100%)",
+        disabledBg: "rgba(91,156,246,0.08)",
+        border: "rgba(91,156,246,0.62)",
+        disabledBorder: "rgba(91,156,246,0.18)",
+        glow: "rgba(91,156,246,0.38)",
+        color: "#fff",
+        disabledColor: "rgba(91,156,246,0.35)",
+      },
+      accentSoft: {
+        bg: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 14%, ${th.card}) 0%, color-mix(in srgb, ${th.accentBg} 24%, ${th.card}) 100%)`,
+        disabledBg: `color-mix(in srgb, ${th.card} 42%, transparent)`,
+        border: `color-mix(in srgb, ${th.accentBg} 60%, transparent)`,
+        disabledBorder: th.inputB,
+        glow: `color-mix(in srgb, ${th.accentBg} 20%, transparent)`,
+        color: th.accentFg,
+        disabledColor: th.dim,
+      },
+      danger: {
+        bg: "linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)",
+        disabledBg: "rgba(220,50,50,0.12)",
+        border: "rgba(220,50,50,0.62)",
+        disabledBorder: "rgba(220,50,50,0.24)",
+        glow: "rgba(200,30,30,0.35)",
+        color: "#fff",
+        disabledColor: "rgba(255,255,255,0.45)",
+      },
+      neutral: {
+        bg: `linear-gradient(135deg, color-mix(in srgb, ${th.inputB} 28%, transparent) 0%, color-mix(in srgb, ${th.card} 52%, transparent) 100%)`,
+        disabledBg: `color-mix(in srgb, ${th.inputB} 18%, transparent)`,
+        border: th.border,
+        disabledBorder: th.border,
+        glow: "rgba(0,0,0,0.10)",
+        color: th.muted,
+        disabledColor: th.dim,
+      },
+    };
+    const p = palettes[variant] || palettes.accent;
+    return {
+      background: disabled
+        ? p.disabledBg
+        : `radial-gradient(circle at 18% 12%, rgba(255,255,255,0.28), transparent 28%), radial-gradient(circle at 86% 110%, rgba(255,255,255,0.12), transparent 34%), ${p.bg}`,
+      backdropFilter: "blur(18px)",
+      WebkitBackdropFilter: "blur(18px)",
+      border: `1.5px solid ${disabled ? p.disabledBorder : p.border}`,
+      boxShadow: disabled
+        ? "none"
+        : `0 2px 14px ${p.glow}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.08)`,
+      color: disabled ? p.disabledColor : p.color,
+    };
+  }
+
   function Btn({ children, onClick, disabled, style = {} }) {
     const th = useTheme();
     return (
       <button
         onClick={disabled ? undefined : onClick}
         style={{
-          border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
+          ...buttonTexture(th, "accent", disabled),
           borderRadius: 13,
           cursor: disabled ? "not-allowed" : "pointer",
           fontFamily: "'Bebas Neue',sans-serif",
@@ -2463,14 +2526,7 @@ import "./styles.css";
           fontWeight: 700,
           padding: "15px 22px",
           transition: "opacity .2s, box-shadow .2s",
-          opacity: disabled ? 0.3 : 1,
-          background: disabled
-            ? `color-mix(in srgb, ${th.accentBg} 30%, transparent)`
-            : `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          boxShadow: disabled ? "none" : `0 3px 16px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
-          color: th.accentT,
+          opacity: disabled ? 0.55 : 1,
           ...style,
         }}
       >
@@ -3478,11 +3534,7 @@ import "./styles.css";
                 onClick={confirmAdd}
                 style={{
                   width: "100%",
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(20px)",
-                  WebkitBackdropFilter: "blur(20px)",
-                  boxShadow: `0 4px 20px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
+                  ...buttonTexture(th, "accent"),
                   borderRadius: 13,
                   padding: "14px",
                   cursor: "pointer",
@@ -4942,19 +4994,15 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
@@ -6335,14 +6383,9 @@ import "./styles.css";
                 disabled={saving || !name.trim() || exs.length === 0}
                 style={{
                   width:"100%",
-                  background: (!name.trim() || exs.length === 0)
-                    ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
-                    : `color-mix(in srgb, ${th.accentBg} 70%, transparent)`,
-                  backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                  border: `1px solid color-mix(in srgb, ${th.accentBg} ${(!name.trim() || exs.length === 0) ? "20%" : "50%"}, transparent)`,
+                  ...buttonTexture(th, "accent", saving || !name.trim() || exs.length === 0),
                   borderRadius:14, padding:"15px 0", cursor: saving ? "default" : "pointer",
                   fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, letterSpacing:"0.5px",
-                  color: (!name.trim() || exs.length === 0) ? `${th.accentT}55` : th.accentT,
                   opacity: saving ? 0.6 : 1,
                   transition:"all .2s",
                 }}
@@ -7443,9 +7486,9 @@ import "./styles.css";
                   </div>
                   <div style={{ display:"flex", gap:8 }}>
                     <button onClick={async () => { await onDeclineCompeteInvite(comp.id); close(); }}
-                      style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                      style={{ flex:1, ...buttonTexture(th, "danger"), borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>DECLINE</button>
                     <button onClick={async () => { await onAcceptCompeteInvite(comp.id); }}
-                      style={{ flex:1, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT }}>ACCEPT ✔</button>
+                      style={{ flex:1, ...buttonTexture(th, "accent"), borderRadius:12, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>ACCEPT ✔</button>
                   </div>
                 </div>
               )}
@@ -7761,19 +7804,15 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
@@ -7929,11 +7968,8 @@ import "./styles.css";
                   onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
                   style={{
                     width:"100%",
-                    background: saved
-                      ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
-                      : `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                    backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                    border:"none", borderRadius:13, padding:"14px",
+                    ...buttonTexture(th, "accent", saved),
+                    borderRadius:13, padding:"14px",
                     cursor: saved ? "default" : "pointer",
                     fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
                     letterSpacing:0.5, color: saved ? th.accentFg : th.accentT,
@@ -8544,9 +8580,9 @@ import "./styles.css";
                     <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
                   </div>
                   <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
-                    style={{ background:"linear-gradient(135deg, rgba(220,50,50,0.45) 0%, rgba(170,25,25,0.58) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 10px rgba(200,30,30,0.25), inset 0 1px 0 rgba(255,255,255,0.10)", border:"1.5px solid rgba(220,50,50,0.45)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
+                    style={{ ...buttonTexture(th, "danger", actioning[inv.id]), borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                    style={{ ...buttonTexture(th, "accent", actioning[inv.id]), borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
                 </div>
               </div>
             ))}
@@ -8573,9 +8609,9 @@ import "./styles.css";
               <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>Challenges you to a 7-day workout competition.</div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, ...buttonTexture(th, "danger"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>DECLINE</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.accentT }}>ACCEPT</button>
+                  style={{ flex:1, ...buttonTexture(th, "accent"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>ACCEPT</button>
               </div>
             </div>
           );
@@ -9073,7 +9109,7 @@ import "./styles.css";
                     />
                   {inviteStatus === "error" && <div style={{ fontSize:13, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
                   <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
-                    style={{ width:"100%", background: inviteEmail.trim() ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)` : th.inputB, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow: inviteEmail.trim() ? `0 2px 14px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)` : "none", border: inviteEmail.trim() ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)` : `1.5px solid ${th.inputB}`, borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, color: inviteEmail.trim() ? th.accentT : th.dim, transition:"background .2s, box-shadow .2s, border-color .2s", letterSpacing:"0.5px" }}>
+                    style={{ width:"100%", ...buttonTexture(th, "accent", !inviteEmail.trim() || inviteStatus === "sending"), borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, transition:"background .2s, box-shadow .2s, border-color .2s", letterSpacing:"0.5px" }}>
                     {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
                   </button>
                 </>
@@ -9462,19 +9498,15 @@ import "./styles.css";
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}>Next →</button>
               ) : (
                 <button onClick={onDismiss} style={{
-                  background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  boxShadow: `0 2px 10px color-mix(in srgb, ${th.accentBg} 36%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-                  border: `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`, borderRadius: 9, color: th.accentT,
+                  ...buttonTexture(th, "accent"),
+                  borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
                 }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
@@ -9600,10 +9632,8 @@ import "./styles.css";
                           setTimeout(() => r.remove(), 560);
                         }}
                         style={{
-                          background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
-                          backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                          boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 40%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
-                          border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:"50%",
+                          ...buttonTexture(th, "accent"),
+                          borderRadius:"50%",
                           width:48, height:48, minWidth:48,
                           display:"flex", alignItems:"center", justifyContent:"center",
                           cursor:"pointer", color: th.accentFg,
@@ -10049,11 +10079,7 @@ import "./styles.css";
                 flex: "0 0 50px",
                 flexShrink: 0,
                 boxSizing: "border-box",
-                background: (!name.trim() || exs.length === 0)
-                  ? `color-mix(in srgb, ${th.card} 40%, transparent)`
-                  : `color-mix(in srgb, ${th.accentBg} 12%, ${th.card})`,
-                backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                border: `1.5px solid ${(!name.trim() || exs.length === 0) ? th.inputB : `color-mix(in srgb, ${th.accentBg} 60%, transparent)`}`,
+                ...buttonTexture(th, "accentSoft", !name.trim() || exs.length === 0),
                 borderRadius: 14,
                 cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -10064,13 +10090,13 @@ import "./styles.css";
               }}
             >
               <svg
-                width="22"
-                height="22"
+                width="26"
+                height="26"
                 viewBox="0 0 24 24"
                 fill="none"
                 aria-hidden="true"
                 focusable="false"
-                style={{ width: 22, height: 22, minWidth: 22, minHeight: 22, maxWidth: 22, maxHeight: 22, display: "block", flex: "0 0 22px", overflow: "visible" }}
+                style={{ width: 26, height: 26, minWidth: 26, minHeight: 26, maxWidth: 26, maxHeight: 26, display: "block", flex: "0 0 26px", overflow: "visible" }}
               >
                 {/* Share tray — open-top box with centred up-arrow, universally recognised */}
                 <path d="M8.5 8.5H6C5.44772 8.5 5 8.94772 5 9.5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V9.5C19 8.94772 18.5523 8.5 18 8.5H15.5" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
@@ -10088,13 +10114,7 @@ import "./styles.css";
             disabled={!name.trim() || exs.length === 0}
             style={{
               flex: 1,
-              background: (!name.trim() || exs.length === 0)
-                ? "rgba(91,156,246,0.08)"
-                : "linear-gradient(135deg, rgba(91,156,246,0.75) 0%, rgba(60,120,220,0.82) 100%)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              boxShadow: (!name.trim() || exs.length === 0) ? "none" : "0 2px 16px rgba(91,156,246,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
-              border: `1.5px solid ${(!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.18)" : "rgba(91,156,246,0.6)"}`,
+              ...buttonTexture(th, "blue", !name.trim() || exs.length === 0),
               borderRadius: 14,
               padding: "15px 0",
               cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
@@ -10102,7 +10122,6 @@ import "./styles.css";
               fontWeight: 700,
               fontSize: 14,
               letterSpacing: "0.5px",
-              color: (!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.3)" : "#fff",
               transition: "background .2s, box-shadow .2s, border-color .2s",
             }}
           >
@@ -10119,15 +10138,7 @@ import "./styles.css";
             disabled={!name.trim() || exs.length === 0}
             style={{
               flex: 1,
-              background: (!name.trim() || exs.length === 0)
-                ? `color-mix(in srgb, ${th.accentBg} 25%, transparent)`
-                : `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`,
-              backdropFilter: "blur(16px)",
-              WebkitBackdropFilter: "blur(16px)",
-              boxShadow: (!name.trim() || exs.length === 0) ? "none" : `0 2px 14px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.16)`,
-              border: `1.5px solid ${(!name.trim() || exs.length === 0)
-                ? `color-mix(in srgb, ${th.accentBg} 20%, transparent)`
-                : `color-mix(in srgb, ${th.accentBg} 55%, transparent)`}`,
+              ...buttonTexture(th, "accent", !name.trim() || exs.length === 0),
               borderRadius: 14,
               padding: "15px 0",
               cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
@@ -10135,7 +10146,6 @@ import "./styles.css";
               fontWeight: 700,
               fontSize: 14,
               letterSpacing: "0.5px",
-              color: (!name.trim() || exs.length === 0) ? `${th.accentT}44` : th.accentT,
               transition: "background .2s, box-shadow .2s, border-color .2s",
               display: "flex",
               alignItems: "center",
@@ -10874,8 +10884,14 @@ import "./styles.css";
               type: "strength",
               sets: [{ i: 0, reps: 10, weight: 20, done: false }],
             };
-      upd([...exercises, newEx]);
-      setShowExPicker(false);
+      // Functional update so consecutive adds (multi-select from picker) don't
+      // collide on a stale `exercises` closure — each call sees the latest list.
+      setExercises((prev) => {
+        if (prev.some((ex) => ex.exId === dbId)) return prev;
+        const next = [...prev, newEx].map(normalizeWorkoutExercise);
+        onSaveActive({ ...session, exercises: next });
+        return next;
+      });
     };
 
     return (
@@ -11201,26 +11217,30 @@ import "./styles.css";
           onClick={() => setShowExPicker(true)}
           style={{
             width: "100%",
-            background: "none",
-            border: `1px dashed ${th.text}`,
-            borderRadius: 13,
-            padding: 13,
+            background: `color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
+            backdropFilter: "blur(16px)",
+            WebkitBackdropFilter: "blur(16px)",
+            border: "1.5px dashed rgba(91,156,246,0.4)",
+            borderRadius: 14,
+            padding: "13px 0",
             cursor: "pointer",
-            color: th.muted,
-            fontSize: 14,
             fontFamily: "'Outfit',sans-serif",
+            fontWeight: 700,
+            fontSize: 13,
+            color: "#5B9CF6",
+            letterSpacing: "0.5px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             gap: 8,
-            marginBottom: 10,
             marginTop: 4,
+            marginBottom: 10,
           }}
         >
-          <span style={{ color: th.accentFg, fontSize: 18, fontWeight: 700 }}>
-            +
-          </span>{" "}
-          Add Exercise
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round" />
+          </svg>
+          ADD EXERCISE
         </button>
 
       </div>
@@ -13908,7 +13928,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.0 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
@@ -15254,12 +15274,8 @@ import "./styles.css";
                       handleFinishWorkout(active?.exercises || []);
                     }}
                     style={{
-                      background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
-                      backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                      boxShadow: `0 2px 14px color-mix(in srgb, ${th.accentBg} 42%, transparent), inset 0 1px 0 rgba(255,255,255,0.18)`,
-                      border: `1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`,
+                      ...buttonTexture(th, "accent"),
                       borderRadius: 9,
-                      color: th.accentT,
                       fontSize: 11,
                       fontWeight: 700,
                       padding: "8px 14px",
