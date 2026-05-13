@@ -1467,7 +1467,6 @@ import "./styles.css";
   }
 
   /* ─── Helpers ───────────────────────────────────────────────────────────────── */
-  /* simpleHash removed — Firebase handles password hashing */
   function fmtTime(s) {
     const h = Math.floor(s / 3600),
       m = Math.floor((s % 3600) / 60),
@@ -1493,17 +1492,24 @@ import "./styles.css";
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
   }
+  function normalizeWorkoutExercise(ex) {
+    const safeEx = ex || {};
+    return {
+      ...safeEx,
+      sets: Array.isArray(safeEx.sets) ? safeEx.sets : [],
+    };
+  }
   function intColor(n, th) {
     const hi = th ? th.accentFg : "#c8f030";
     return n >= 8 ? hi : n >= 5 ? "#E8612C" : "#CC1F42";
   }
   function sessionVol(s) {
-    return s.exercises.reduce(
+    return (s?.exercises || []).reduce(
       (a, ex) =>
         ex.type === "cardio"
           ? a
           : a +
-            ex.sets
+            (ex.sets || [])
               .filter((st) => st.done)
               .reduce((b, st) => b + (st.weight || 0) * (st.reps || 0), 0),
       0
@@ -1631,44 +1637,6 @@ import "./styles.css";
     );
   }
 
-  function mkEx(te) {
-    const db = DB.find((e) => e.id === te.id);
-    if (!db) return null;
-    if (db.type === "cardio") {
-      return {
-        uid: uid(),
-        exId: db.id,
-        name: db.name,
-        muscle: db.muscle,
-        group: db.group,
-        type: "cardio",
-        sets: [
-          {
-            i: 0,
-            done: false,
-            duration: te.duration || 0,
-            distance: 0,
-            calories: te.calories || 0,
-            intensity: te.intensity || 0,
-          },
-        ],
-      };
-    }
-    return {
-      uid: uid(),
-      exId: te.id,
-      name: db.name,
-      muscle: db.muscle,
-      group: db.group,
-      type: "strength",
-      sets: Array.from({ length: te.s || 4 }, (_, i) => ({
-        i,
-        reps: te.r || 10,
-        weight: te.w || 20,
-        done: false,
-      })),
-    };
-  }
   function mkCardioEx(dbId) {
     const db = DB.find((e) => e.id === dbId);
     return {
@@ -1775,7 +1743,6 @@ import "./styles.css";
     } catch {}
   }
   const uKey = (id, k) => `ib3-${id}-${k}`;
-  /* getUsers/saveUsers/getCurrentUser replaced by Firebase Auth */
   function saveLocalProfile(uid, profile) {
     lsSet("ib3-profile-" + uid, profile);
   }
@@ -1850,7 +1817,6 @@ import "./styles.css";
         doc(fbDb, "users", uid, "sessions", String(session.id)),
         clean
       );
-      console.log("fsAddSession: wrote", session.id);
       return true;
     } catch (e) {
       console.error("fsAddSession FAILED:", e.code, e.message);
@@ -1909,7 +1875,7 @@ import "./styles.css";
         ts: Date.now(),
         read: false,
       });
-    } catch (e) { /* silently ignore */ }
+    } catch { /* silently ignore */ }
   }
 
   async function fsShareProgram(fromUser, toFriend, program) {
@@ -1936,7 +1902,7 @@ import "./styles.css";
         programId: docRef.id,
       });
       return { ok: true, id: docRef.id };
-    } catch (e) {
+    } catch {
       return { ok: false };
     }
   }
@@ -2053,7 +2019,7 @@ import "./styles.css";
     try {
       await updateDoc(doc(fbDb, "competitions", compId), { status: "declined" });
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   }
@@ -2103,7 +2069,7 @@ import "./styles.css";
     try {
       const snap = await getDocs(collection(fbDb, "users", ownerUid, "sessions", String(sessionId), "reactions"));
       return snap.docs.map(d => d.data());
-    } catch (e) {
+    } catch {
       return [];
     }
   }
@@ -2180,7 +2146,7 @@ import "./styles.css";
         try {
           const snap = await getDoc(doc(fbDb, "coachRequests", id));
           return snap.exists() ? snap.data() : null;
-        } catch (e) {
+        } catch {
           // permission-denied here means the doc doesn't exist (null resource in rule)
           // OR we genuinely can't read it — either way, not a blocking condition for creation
           return null;
@@ -2288,17 +2254,6 @@ import "./styles.css";
     return () => { u1(); u2(); };
   }
 
-  // Get all coach requests involving two specific users (any direction, any status)
-  async function fsGetCoachRequestBetween(uid1, uid2) {
-    try {
-      const [s1, s2] = await Promise.all([
-        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",uid1), where("toUid","==",uid2))),
-        getDocs(query(collection(fbDb, "coachRequests"), where("fromUid","==",uid2), where("toUid","==",uid1))),
-      ]);
-      return [...s1.docs, ...s2.docs].map(d => ({ id: d.id, ...d.data() }));
-    } catch (e) { return []; }
-  }
-
   async function fsGetFriendPrograms(friendUid) {
     return fsGetPrograms(friendUid);
   }
@@ -2366,31 +2321,6 @@ import "./styles.css";
     }, { merge: true }).catch(e => {
       console.warn("fsRegisterPublicProfile:", e.code, e.message);
     });
-  }
-
-  // Get suggested users by scanning invitations (existing data) + publicProfiles
-  // invitations already stores fromUid/fromName/fromEmail/fromPhotoURL for every registered user
-  async function fsGetSuggestedFromInvitations(myUid, excludeUids, excludeEmails) {
-    try {
-      const snap = await getDocs(collection(fbDb, "invitations"));
-      const seen = new Set();
-      const users = [];
-      snap.docs.forEach(d => {
-        const inv = d.data();
-        const uid = inv.fromUid;
-        const email = (inv.fromEmail || "").toLowerCase();
-        if (!uid || !inv.fromName || uid === myUid) return;
-        if (excludeUids.has(uid)) return;
-        if (excludeEmails.has(email)) return;
-        if (seen.has(uid)) return;
-        seen.add(uid);
-        users.push({ uid, name: inv.fromName, email: inv.fromEmail || "", photoURL: inv.fromPhotoURL || null });
-      });
-      return users;
-    } catch (e) {
-      console.warn("fsGetSuggestedFromInvitations:", e.code, e.message);
-      return [];
-    }
   }
 
   function fsListenPublicProfiles(cb) {
@@ -2495,15 +2425,6 @@ import "./styles.css";
       console.error("fsSaveMeasurements:", e.code, e.message);
     }
   }
-  // Full sync: pull everything from Firestore and update local state
-  async function fsSyncAll(uid) {
-    const [progs, sess] = await Promise.all([
-      fsGetPrograms(uid),
-      fsGetSessions(uid),
-    ]);
-    return { programs: progs, sessions: sess };
-  }
-
   /* ─── Firebase error helper ─────────────────────────────────────────────────── */
   function friendlyError(code) {
     switch (code) {
@@ -2554,25 +2475,6 @@ import "./styles.css";
         }}
       >
         {children}
-      </button>
-    );
-  }
-  function BackBtn({ onClick }) {
-    const th = useTheme();
-    return (
-      <button
-        onClick={onClick}
-        style={{
-          background: "none",
-          border: "none",
-          color: th.sub,
-          fontSize: 22,
-          cursor: "pointer",
-          padding: "4px 8px 4px 0",
-          lineHeight: 1,
-        }}
-      >
-        ←
       </button>
     );
   }
@@ -3602,127 +3504,10 @@ import "./styles.css";
     );
   }
 
-  /* ─── Google Setup Modal ─────────────────────────────────────────────────────── */
-  function GoogleSetupModal({ onClose }) {
-    const th = useTheme();
-    return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0,0,0,.9)",
-          zIndex: 200,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "0 20px",
-          maxWidth: 480,
-          margin: "0 auto",
-        }}
-      >
-        <div
-          style={{
-            background: th.card,
-            borderRadius: 20,
-            padding: 24,
-            border: `1px solid ${th.border}`,
-            width: "100%",
-          }}
-        >
-          <div
-            className="bebas"
-            style={{
-              fontSize: 22,
-              color: th.accentFg,
-              marginBottom: 14,
-              letterSpacing: 2,
-            }}
-          >
-            GOOGLE SIGN-IN SETUP
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              color: th.sub,
-              lineHeight: 1.7,
-              marginBottom: 16,
-            }}
-          >
-            To enable Google Sign-In, connect Firebase to this project:
-          </div>
-          {[
-            "Go to firebase.google.com and create a project",
-            "Enable Authentication → Sign-in method → Google",
-            "Project Settings → Your Apps → Add Web App",
-            "Copy the firebaseConfig object",
-            "In App.js replace FIREBASE_CONFIG=null with your config",
-            "npm install firebase",
-            "Uncomment the Google sign-in code block",
-          ].map((step, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                gap: 12,
-                marginBottom: 10,
-                alignItems: "flex-start",
-              }}
-            >
-              <div
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: "50%",
-                  background: th.accentBg,
-                  color: th.accentT,
-                  fontWeight: 800,
-                  fontSize: 11,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  marginTop: 1,
-                }}
-              >
-                {i + 1}
-              </div>
-              <div style={{ fontSize: 12, color: th.muted, lineHeight: 1.5 }}>
-                {step}
-              </div>
-            </div>
-          ))}
-          <button
-            onClick={onClose}
-            style={{
-              width: "100%",
-              background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-              backdropFilter: "blur(10px)",
-              WebkitBackdropFilter: "blur(10px)",
-              border: "none",
-              borderRadius: 12,
-              padding: "13px",
-              cursor: "pointer",
-              fontFamily: "'Outfit',sans-serif",
-              fontSize: 14,
-              fontWeight: 700,
-              letterSpacing: 0.5,
-              color: th.accentT,
-              marginTop: 6,
-            }}
-          >
-            GOT IT
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   /* ═══════════════════════════════════════════════════════════════════════════════
     AUTH VIEW — with workout photo background
   ═══════════════════════════════════════════════════════════════════════════════ */
   function AuthView() {
-    const th = useTheme();
-    const S = useS();
     const [tab, setTab] = useState("login");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -4156,65 +3941,6 @@ import "./styles.css";
     );
   }
 
-  /* ─── Minimized Workout Banner ─────────────────────────────────────────────────
-    Shows on all views when a workout is active but minimized
-  ─────────────────────────────────────────────────────────────────────────────── */
-  function WorkoutBanner({ active, elapsed, onResume }) {
-    const th = useTheme();
-    if (!active) return null;
-    const doneSets = active.exercises.reduce(
-      (a, ex) => a + ex.sets.filter((s) => s.done).length,
-      0
-    );
-    const totalSets = active.exercises.reduce((a, ex) => a + ex.sets.length, 0);
-    return (
-      <div
-        onClick={onResume}
-        style={{
-          background: `color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-          backdropFilter: "blur(10px)",
-          WebkitBackdropFilter: "blur(10px)",
-          padding: 16,
-          marginBottom: 12,
-          borderRadius: 13,
-          cursor: "pointer",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              color: th.accentT,
-              fontWeight: 700,
-              fontSize: 11,
-              letterSpacing: "1.5px",
-            }}
-          >
-            WORKOUT IN PROGRESS — TAP TO RETURN
-          </div>
-          <div
-            style={{
-              color: th.accentT,
-              opacity: 0.7,
-              fontSize: 12,
-              marginTop: 1,
-            }}
-          >
-            {active.name} · {doneSets}/{totalSets} sets
-          </div>
-        </div>
-        <div
-          className="bebas"
-          style={{ color: th.accentT, fontSize: 20, letterSpacing: 1 }}
-        >
-          {fmtTime(elapsed)}
-        </div>
-      </div>
-    );
-  }
-
   /* ═══════════════════════════════════════════════════════════════════════════════
     HOME VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
@@ -4231,7 +3957,10 @@ import "./styles.css";
       : new Date(new Date().getFullYear(), 0, 1).getTime();
     const ws = sessions.filter(s => (s.startTime || 0) >= cutoff);
     const resistSess = ws.filter(s => (s.exercises||[]).some(e => e.type !== "cardio"));
-    const cardioSess = ws.filter(s => (s.exercises||[]).every(e => e.type === "cardio") && s.exercises.length > 0);
+    const cardioSess = ws.filter(s => {
+      const exs = s.exercises || [];
+      return exs.every(e => e.type === "cardio") && exs.length > 0;
+    });
     const totalMins = ws.reduce((a,s) => a+(s.duration||0),0);
     const hrsDisplay = totalMins >= 60 ? `${Math.floor(totalMins/60)}h ${totalMins%60}m` : `${totalMins}m`;
     const totalCals = ws.reduce((a,s) => a+(s.calories||0),0);
@@ -4568,8 +4297,6 @@ import "./styles.css";
         <div key={page} style={{ animation: dir === 1 ? "sbSlideL 0.22s ease-out" : "sbSlideR 0.22s ease-out" }}>
           {pageRows.map(({ label, actual, min, max }) => {
             const isEmpty  = actual === 0;
-            const inTarget = !isEmpty && actual >= min && actual <= max;
-            const isUnder  = !isEmpty && actual < min;
             const isOver   = !isEmpty && actual > max;
 
             // Stacked segments: [below-min | min-to-max | above-max]
@@ -4814,120 +4541,6 @@ import "./styles.css";
     );
   }
 
-  /* ─── Volume & Intensity Dual-Axis Chart ───────────────────────────────────── */
-  function VolumeIntensityChart({ sessions, sessionVol }) {
-    const th = useTheme();
-    const S = useS();
-    const now = Date.now();
-    const W7 = 7 * 24 * 60 * 60 * 1000;
-    const weeks = Array.from({ length: 6 }, (_, i) => {
-      const end = now - i * W7; const start = end - W7;
-      const startD = new Date(start);
-      const fmt = d => d.toLocaleDateString("en-GB", { day:"numeric", month:"short" });
-      return { start, end, label: i === 0 ? "Now" : fmt(startD) };
-    }).reverse();
-
-    const weekVols = weeks.map(w =>
-      sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end)
-        .reduce((a,s) => a + sessionVol(s), 0)
-    );
-    const weekInts = weeks.map(w => {
-      const ws = sessions.filter(s => (s.startTime||0) >= w.start && (s.startTime||0) < w.end && (s.intensity||0) > 0);
-      return ws.length ? ws.reduce((a,s) => a + (s.intensity||0), 0) / ws.length : null;
-    });
-
-    const maxVol = Math.max(...weekVols, 1);
-    const hasData = weekVols.some(v => v > 0);
-    if (!hasData) return null;
-
-    const BAR_H = 64;
-    const W = 280; const H = 50; const R = 3;
-    // Line chart for intensity — only non-null points
-    const intPts = weeks.map((w, i) => ({ i, v: weekInts[i] })).filter(p => p.v != null);
-    const intMin = Math.min(...intPts.map(p => p.v), 0);
-    const intMax = Math.max(...intPts.map(p => p.v), 10);
-    const iRange = intMax - intMin || 1;
-    const ix = (i) => (i / (weeks.length - 1)) * W;
-    const iy = (v) => H - ((v - intMin) / iRange) * (H - R * 2) - R;
-    const linePath = intPts.length >= 2
-      ? intPts.map((p, j) => `${j === 0 ? "M" : "L"}${ix(p.i)},${iy(p.v)}`).join(" ")
-      : null;
-
-    const latestVol = weekVols[weekVols.length - 1];
-    const prevVol   = weekVols[weekVols.length - 2] || 0;
-    const volDelta  = latestVol - prevVol;
-    const volArrow  = volDelta > 0 ? "↑" : volDelta < 0 ? "↓" : null;
-    const volCol    = volDelta > 0 ? "#1db954" : "#CC1F42";
-    const fmtV = v => v >= 1000 ? `${(v/1000).toFixed(1)}t` : `${Math.round(v)}kg`;
-
-    return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-          <div style={{ ...S.label }}>VOLUME & INTENSITY</div>
-          <div style={{ textAlign:"right" }}>
-            <div style={{ display:"flex", alignItems:"baseline", gap:3, justifyContent:"flex-end" }}>
-              {volArrow && <span style={{ fontSize:14, color:volCol, fontWeight:700 }}>{volArrow}</span>}
-              <span className="bebas" style={{ fontSize:26, color:th.accentFg, lineHeight:1 }}>{fmtV(latestVol)}</span>
-            </div>
-            <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>THIS WEEK</div>
-          </div>
-        </div>
-
-        {/* Bars (volume) + SVG line (intensity) overlaid */}
-        <div style={{ position:"relative" }}>
-          {/* Volume bars */}
-          <div style={{ display:"flex", gap:5, alignItems:"flex-end", height: BAR_H }}>
-            {weeks.map((w, i) => {
-              const v = weekVols[i];
-              const h = v > 0 ? Math.max(6, (v / maxVol) * BAR_H) : 3;
-              const isCur = i === weeks.length - 1;
-              return (
-                <div key={i} style={{ flex:1, display:"flex", flexDirection:"column", justifyContent:"flex-end", height:"100%" }}>
-                  <div style={{
-                    width:"100%", height: h,
-                    background: isCur ? th.accentBg : `${th.accentBg}55`,
-                    borderRadius:"3px 3px 0 0",
-                  }} />
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Intensity line overlay */}
-          {linePath && (
-            <svg viewBox={`0 0 ${W} ${H}`} width="100%"
-              style={{ position:"absolute", top:0, left:0, overflow:"visible", height: BAR_H, pointerEvents:"none" }}>
-              <path d={linePath} fill="none" stroke="#5B9CF6" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round" />
-              {intPts.map((p) => (
-                <circle key={p.i} cx={ix(p.i)} cy={iy(p.v)} r={p.i === weeks.length-1 ? R+1 : R}
-                  fill={p.i === weeks.length-1 ? "#5B9CF6" : th.card} stroke="#5B9CF6" strokeWidth="1.5" />
-              ))}
-            </svg>
-          )}
-        </div>
-
-        {/* X-axis labels */}
-        <div style={{ display:"flex", gap:5, marginTop:3 }}>
-          {weeks.map((w,i) => (
-            <div key={i} style={{ flex:1, fontSize:7, color: i===weeks.length-1?th.accentFg:th.dim,
-              textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap", overflow:"hidden" }}>{w.label}</div>
-          ))}
-        </div>
-
-        {/* Legend */}
-        <div style={{ display:"flex", gap:12, marginTop:8 }}>
-          {[{ col:th.accentBg, label:"Volume" }, { col:"#5B9CF6", label:"Avg intensity /10" }].map(({col,label}) => (
-            <div key={label} style={{ display:"flex", alignItems:"center", gap:5 }}>
-              <div style={{ width:8, height:8, borderRadius:"50%", background:col }} />
-              <span style={{ fontSize:12, color:th.dim }}>{label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   /* ─── Relative Strength Multiplier ─────────────────────────────────────────── */
   function RelativeStrengthDashboard({ sessions, measurements }) {
     const th = useTheme();
@@ -5021,7 +4634,6 @@ import "./styles.css";
 
     const weeks = Array.from({ length: 5 }, (_, i) => {
       const end = now - i * W7; const start = end - W7;
-      const fmtShort = d => d.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
       const startD = new Date(start); const endD = new Date(end - 1);
       const fmtDay = d => `${d.getDate()} ${d.toLocaleDateString("en-GB",{month:"short"})}`;
       const label = `${fmtDay(startD)} - ${fmtDay(endD)}`;
@@ -5202,8 +4814,6 @@ import "./styles.css";
           const ys = pts.map(p => H - ((p.w-mn)/range)*(H-R*2) - R);
           const linePath = xs.map((x,i) => (i===0?`M${x},${ys[i]}`:`L${x},${ys[i]}`)).join(" ");
           const areaPath = `${linePath} L${xs[xs.length-1]},${H+4} L0,${H+4} Z`;
-          // X-axis: label all 7 points
-          const labelStep = Math.ceil(pts.length / 7);
           return (
             <svg key={selGroup+selId} viewBox={`0 0 ${W} ${H+20}`} width="100%" style={{ overflow:"visible", minHeight:80, animation:"tabSlideIn 0.2s ease-out" }}>
               <path d={areaPath} fill={group.col} opacity="0.07" />
@@ -5484,22 +5094,7 @@ import "./styles.css";
     const dashOrder = (id) => { const i = enabledDashboards.indexOf(id); return i >= 0 ? i : 999; };
     const isDashEnabled = (id) => enabledDashboards.includes(id);
     const cancelDashEdit = () => setEditingDashboards(false);
-    const today = new Date();
-    const dow = today
-      .toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })
-      .toUpperCase();
-    const last7Cutoff2 = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const ws = sessions.filter((s) => (s.startTime || 0) >= last7Cutoff2);
-    const last8 = [...sessions].slice(0, 8).reverse();
     const firstName = user.name.split(" ")[0];
-    const pinnedIds = settings.homePrograms;
-    const shownPrograms = pinnedIds
-      ? programs.filter((p) => pinnedIds.includes(p.id))
-      : programs;
 
     // Collect all muscles trained in the last 7 days (granular)
     const last7Cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -5507,24 +5102,10 @@ import "./styles.css";
     sessions
       .filter((s) => (s.startTime || 0) >= last7Cutoff)
       .forEach((s) =>
-        s.exercises.forEach((ex) => {
+        (s.exercises || []).forEach((ex) => {
           if (ex.muscle) weekMuscleSet.add(ex.muscle);
         })
       );
-
-    const removeFromHome = (pid) => {
-      const c = pinnedIds || programs.map((p) => p.id);
-      onUpdateSettings({
-        ...settings,
-        homePrograms: c.filter((id) => id !== pid),
-      });
-    };
-    const addToHome = (pid) => {
-      const c = pinnedIds || programs.map((p) => p.id);
-      if (!c.includes(pid))
-        onUpdateSettings({ ...settings, homePrograms: [...c, pid] });
-      setAddingShortcut(false);
-    };
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
@@ -5917,7 +5498,10 @@ import "./styles.css";
                   const dk = d.toDateString();
                   const ds = byDate[dk] || [];
                   const resistCal = ds.filter(s => (s.exercises||[]).some(e => e.type !== "cardio")).reduce((a,s) => a+(s.calories||0),0);
-                  const cardioCal = ds.filter(s => (s.exercises||[]).every(e => e.type === "cardio") && s.exercises.length>0).reduce((a,s) => a+(s.calories||0),0);
+                  const cardioCal = ds.filter(s => {
+                    const exs = s.exercises || [];
+                    return exs.every(e => e.type === "cardio") && exs.length > 0;
+                  }).reduce((a,s) => a+(s.calories||0),0);
                   const total = ds.reduce((a,s) => a+(s.calories||0),0);
                   return { total, resistCal, cardioCal, hasResist: resistCal>0, hasCardio: cardioCal>0 };
                 });
@@ -5925,7 +5509,7 @@ import "./styles.css";
                 return (
                   <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                     {days.map((d, i) => {
-                      const { total, resistCal, cardioCal, hasResist, hasCardio } = dayData[i];
+                      const { total, hasResist, hasCardio } = dayData[i];
                       const hasData = total > 0;
                       const h = hasData ? Math.max(8, (total / maxCal) * 80) : 6;
                       const barBg = hasData
@@ -6461,7 +6045,7 @@ import "./styles.css";
     const arrowCol=arrow==="↑"?"#1db954":"#CC1F42";
     const days=Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-(6-i));d.setHours(0,0,0,0);return d;});
     const byDate={}; sessions.forEach(s=>{if(!s.startTime)return;const k=new Date(s.startTime).toDateString();if(!byDate[k])byDate[k]=[];byDate[k].push(s);});
-    const dayData=days.map(d=>{const ds=byDate[d.toDateString()]||[];const rCal=ds.filter(s=>(s.exercises||[]).some(e=>e.type!=="cardio")).reduce((a,s)=>a+(s.calories||0),0);const cCal=ds.filter(s=>(s.exercises||[]).every(e=>e.type==="cardio")&&s.exercises.length>0).reduce((a,s)=>a+(s.calories||0),0);const total=ds.reduce((a,s)=>a+(s.calories||0),0);return{total,hasR:rCal>0,hasC:cCal>0};});
+    const dayData=days.map(d=>{const ds=byDate[d.toDateString()]||[];const rCal=ds.filter(s=>(s.exercises||[]).some(e=>e.type!=="cardio")).reduce((a,s)=>a+(s.calories||0),0);const cCal=ds.filter(s=>{const exs=s.exercises||[];return exs.every(e=>e.type==="cardio")&&exs.length>0;}).reduce((a,s)=>a+(s.calories||0),0);const total=ds.reduce((a,s)=>a+(s.calories||0),0);return{total,hasR:rCal>0,hasC:cCal>0};});
     const maxC=Math.max(...dayData.map(d=>d.total),1);
     return (
       <div style={{...S.card,padding:16,marginBottom:10}}>
@@ -6581,117 +6165,6 @@ import "./styles.css";
   }
 
   /* ─── Friend Dashboard Sheet ─────────────────────────────────────────────────── */
-  /* ─── Coach: inline program editor inside FriendDashboardSheet ─────────────── */
-  function CoachProgramEditor({ program, onSave, onCancel }) {
-    const th = useTheme();
-    const S = useS();
-    const [name, setName]       = useState(program.name || "");
-    const [exs, setExs]         = useState(() =>
-      (program.exs || []).map(e => e.sets ? e : e.type === "cardio" ? e : { ...e, sets: Array.from({ length: e.s || 4 }, () => ({ reps: e.r||10, weight: e.w||20 })) })
-    );
-    const [showPicker, setShowPicker] = useState(false);
-    const [expandedEx, setExpandedEx] = useState(null);
-    const [saving, setSaving]   = useState(false);
-
-    const addEx = (dbId) => {
-      const db = DB.find(e => e.id === dbId);
-      setExs(p => [...p, db?.type === "cardio"
-        ? { id: dbId, type: "cardio", duration: 0, calories: 0, intensity: 0 }
-        : { id: dbId, sets: Array.from({ length: 4 }, () => ({ reps: 10, weight: 20 })) }
-      ]);
-    };
-    const removeEx = id => setExs(p => p.filter(e => e.id !== id));
-    const updateSet = (id, si, f, v) => setExs(p => p.map(e => e.id !== id ? e : { ...e, sets: e.sets.map((s, i) => i !== si ? s : { ...s, [f]: Math.max(0, parseFloat(v)||0) }) }));
-    const updateNumSets = (id, delta) => setExs(p => p.map(e => {
-      if (e.id !== id || !e.sets) return e;
-      const n = Math.max(1, Math.min(10, e.sets.length + delta));
-      const last = e.sets[e.sets.length-1] || { reps:10, weight:20 };
-      return { ...e, sets: n > e.sets.length ? [...e.sets, ...Array.from({length:n-e.sets.length},()=>({reps:last.reps,weight:last.weight}))] : e.sets.slice(0,n) };
-    }));
-
-    const doSave = async () => {
-      setSaving(true);
-      await onSave({ ...program, name: name.trim() || program.name, exs });
-      setSaving(false);
-    };
-
-    return (
-      <div style={{ borderTop:`1px solid ${th.border}`, paddingTop:16, marginTop:4 }}>
-        <div style={{ marginBottom:12 }}>
-          <div style={{ fontSize:11, color:th.muted, letterSpacing:"1.5px", fontWeight:700, marginBottom:6 }}>PROGRAM NAME</div>
-          <input value={name} onChange={e => setName(e.target.value)} style={{ ...S.input, fontSize:14 }} placeholder="Program name" />
-        </div>
-        <div style={{ fontSize:11, color:th.muted, letterSpacing:"1.5px", fontWeight:700, marginBottom:8 }}>EXERCISES ({exs.length})</div>
-        {exs.map((ex, i) => {
-          const dbEx = DB.find(d => d.id === ex.id);
-          const isExp = expandedEx === ex.id;
-          return (
-            <div key={`${ex.id}-${i}`} style={{ ...S.card, marginBottom:6, overflow:"visible" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", cursor:"pointer" }} onClick={() => setExpandedEx(isExp ? null : ex.id)}>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:700, fontSize:13, color:th.text, textAlign:"left" }}>{dbEx?.name || ex.id}</div>
-                  {dbEx?.muscle && <div style={{ fontSize:11, color:th.dim, textAlign:"left" }}>{dbEx.muscle}</div>}
-                </div>
-                {ex.sets && <div style={{ fontSize:11, color:th.accentFg, fontWeight:700 }}>{ex.sets.length} sets</div>}
-                <div style={{ color:th.muted, fontSize:14, transition:"transform .2s", transform: isExp ? "rotate(180deg)" : "none" }}>▾</div>
-                <button onClick={e => { e.stopPropagation(); removeEx(ex.id); }}
-                  style={{ background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:6, width:24, height:24, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:11 }}>✕</button>
-              </div>
-              {isExp && ex.sets && (
-                <div style={{ padding:"0 12px 12px", borderTop:`1px solid ${th.border}` }}>
-                  <div style={{ display:"flex", gap:8, marginBottom:6, marginTop:10 }}>
-                    {["REPS","KG"].map(h => (
-                      <div key={h} style={{ flex:1, fontSize:10, color:th.dim, letterSpacing:"1px", fontWeight:700, textAlign:"center" }}>{h}</div>
-                    ))}
-                  </div>
-                  {ex.sets.map((s, si) => (
-                    <div key={si} style={{ display:"flex", gap:8, marginBottom:6, alignItems:"center" }}>
-                      <div style={{ fontSize:10, color:th.dim, width:20, textAlign:"center", flexShrink:0 }}>{si+1}</div>
-                      {["reps","weight"].map(f => (
-                        <input key={f} type="number" value={s[f] ?? ""} onChange={e => updateSet(ex.id, si, f, e.target.value)}
-                          style={{ ...S.input, flex:1, padding:"8px 10px", fontSize:14, textAlign:"center" }} />
-                      ))}
-                    </div>
-                  ))}
-                  <div style={{ display:"flex", gap:8, marginTop:8 }}>
-                    <button onClick={() => updateNumSets(ex.id, -1)} disabled={ex.sets.length<=1}
-                      style={{ flex:1, background:th.row, border:`1px solid ${th.border}`, borderRadius:8, padding:"6px 0", cursor:"pointer", color:th.muted, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12 }}>− SET</button>
-                    <button onClick={() => updateNumSets(ex.id, 1)} disabled={ex.sets.length>=10}
-                      style={{ flex:1, background:`color-mix(in srgb, ${th.accentBg} 15%, transparent)`, border:`1px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)`, borderRadius:8, padding:"6px 0", cursor:"pointer", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12 }}>+ SET</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <button onClick={() => setShowPicker(true)}
-          style={{
-            width:"100%", background:`color-mix(in srgb, rgba(91,156,246,0.1) 100%, transparent)`,
-            backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-            border:`1.5px dashed rgba(91,156,246,0.4)`,
-            borderRadius:14, padding:"13px 0", cursor:"pointer",
-            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13,
-            color:"#5B9CF6", letterSpacing:"0.5px", marginBottom:14,
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-          }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
-          ADD EXERCISE
-        </button>
-        {showPicker && (
-          <ExercisePicker onAdd={id => { addEx(id); setShowPicker(false); }} onClose={() => setShowPicker(false)} />
-        )}
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={onCancel}
-            style={{ flex:1, background:th.row, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
-          <button onClick={doSave} disabled={saving}
-            style={{ flex:2, background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:11, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.accentT, opacity:saving?0.6:1 }}>
-            {saving ? "SAVING…" : "SAVE CHANGES"}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   function CoachProgramSheet({ program, athleteName, onSave, onClose, isNew = false }) {
     const th = useTheme();
     const S = useS();
@@ -6915,11 +6388,9 @@ import "./styles.css";
     const [progsLoaded, setProgsLoaded]           = useState(false);   // true once fetch attempted
     const [friendMeasurements, setFriendMeasurements] = useState(null); // friend body measurements
     const [measLoading, setMeasLoading]             = useState(false);
-    const [editingProgId, setEditingProgId]     = useState(null); // kept for createNewProg compat
     const [openProgram, setOpenProgram]         = useState(null); // program open in CoachProgramSheet
     const [editingProgs, setEditingProgs]       = useState(false); // edit mode to remove programs
     const [creatingNewProg, setCreatingNewProg] = useState(false);
-    const [awardPage, setAwardPage]             = useState(0);    // pagination for friend awards
     const [coachBtnState, setCoachBtnState]     = useState("idle"); // idle|sending|pending|active
     const [selHistSession, setSelHistSession]   = useState(null);
     const [showCoachRules, setShowCoachRules]   = useState(false);
@@ -7017,7 +6488,6 @@ import "./styles.css";
       const expectedId = `${coachRelation.fromUid}_${coachRelation.toUid}`;
       if (coachRelation.id === expectedId) return; // already deterministic — real rules problem
 
-      console.log("Coach relation migration: rewriting", coachRelation.id, "→", expectedId);
       const { id: _drop, ...coachData } = coachRelation;
       setDoc(doc(fbDb, "coachRequests", expectedId), { ...coachData, status: "accepted" })
         .then(() => {
@@ -7066,8 +6536,7 @@ import "./styles.css";
         : (friendPrograms || []).map(p => p.id === prog.id ? prog : p);
       await onSaveCoachPrograms(friend.uid, newList);
       setFriendPrograms(newList);
-      setEditingProgId(null);
-      setCreatingNewProg(false);
+          setCreatingNewProg(false);
     };
 
     // ── Separate dashboard JSX for normal friendship vs coach view ──
@@ -7419,73 +6888,6 @@ import "./styles.css";
       </>
     );
 
-    // ── Inline awards JSX for friend's history tab (NOT a component — avoids remount on every render) ──
-    // Uses awardPage state from the parent component for pagination.
-    const friendAwardsJSX = (() => {
-      if (!sessions || sessions.length === 0) return null;
-      const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
-      const sortedDays = [...daySet].sort((a,b) => b-a);
-      let streak = 0;
-      let expected = new Date(); expected.setHours(0,0,0,0);
-      if (sortedDays.length && sortedDays[0] >= expected.getTime() - 86400000*2) {
-        for (const day of sortedDays) {
-          if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
-          else break;
-        }
-      }
-      const now2 = new Date();
-      const ms = new Date(now2.getFullYear(), now2.getMonth(), 1).getTime();
-      const mn = now2.toLocaleString("en-US", { month:"long" });
-      const daysMonth = new Set(sessions.filter(s=>(s.startTime||0)>=ms).map(s=>{const d=new Date(s.startTime||0);d.setHours(0,0,0,0);return d.getTime();})).size;
-      const dow = (now2.getDay()+6)%7;
-      const wkStart = new Date(now2); wkStart.setHours(0,0,0,0); wkStart.setDate(wkStart.getDate()-dow);
-      const daysWeek = new Set(sessions.filter(s=>(s.startTime||0)>=wkStart.getTime()).map(s=>{const d=new Date(s.startTime||0);d.setHours(0,0,0,0);return d.getTime();})).size;
-      const awards = [
-        { id:"streak7",  icon:"🔥", label:"7-Day Streak",    desc:"Train 7 days in a row",    earned: streak >= 7 },
-        { id:"streak14", icon:"⚡", label:"14-Day Streak",   desc:"Train 14 days in a row",   earned: streak >= 14 },
-        { id:"streak21", icon:"💎", label:"21-Day Streak",   desc:"Train 21 days in a row",   earned: streak >= 21 },
-        { id:"streak30", icon:"👑", label:"1-Month Streak",  desc:"Train 30 days in a row",   earned: streak >= 30 },
-        { id:"monthly",  icon:"📅", label:`${mn} Challenge`, desc:`20 workouts in ${mn}`,     earned: daysMonth >= 20 },
-        { id:"weekly",   icon:"🗓️", label:"Week Challenge",  desc:"5 workouts this week",     earned: daysWeek >= 5 },
-      ];
-      const PAGE = 3;
-      const totalPages = Math.ceil(awards.length / PAGE);
-      const slice = awards.slice(awardPage * PAGE, awardPage * PAGE + PAGE);
-      const earnedCount = awards.filter(a => a.earned).length;
-      return (
-        <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
-          <style>{`@keyframes awSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes awSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
-            <div style={{ ...S.label, textAlign:"left" }}>AWARDS</div>
-            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-              <span style={{ fontSize:12, color:th.dim }}>{earnedCount}/{awards.length}</span>
-              {totalPages > 1 && (<>
-                <button onClick={() => setAwardPage(p => Math.max(0, p-1))} disabled={awardPage === 0}
-                  style={{ background:"none", border:"none", color: awardPage===0 ? th.inputB : th.accentFg, fontSize:28, cursor: awardPage===0?"default":"pointer", padding:"0 4px", lineHeight:1 }}>‹</button>
-                <button onClick={() => setAwardPage(p => Math.min(totalPages-1, p+1))} disabled={awardPage === totalPages-1}
-                  style={{ background:"none", border:"none", color: awardPage===totalPages-1 ? th.inputB : th.accentFg, fontSize:28, cursor: awardPage===totalPages-1?"default":"pointer", padding:"0 4px", lineHeight:1 }}>›</button>
-              </>)}
-            </div>
-          </div>
-          <div key={awardPage} style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, animation:"awSlideL 0.22s ease-out", minHeight:142 }}>
-            {slice.map(a => (
-              <div key={a.id} style={{
-                display:"flex", flexDirection:"column", alignItems:"center", gap:6, padding:"12px 8px",
-                background: a.earned ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})` : th.sect,
-                borderRadius:12,
-                border: a.earned ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)` : `1.5px solid ${th.border}`,
-                opacity: a.earned ? 1 : 0.38,
-              }}>
-                <div style={{ width:46, height:46, borderRadius:12, background:a.earned?`color-mix(in srgb, ${th.accentBg} 18%, ${th.card})`:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24, boxShadow:a.earned?`0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)`:"none" }}>{a.icon}</div>
-                <div style={{ fontSize:11, fontWeight:700, color:a.earned?th.accentBg:th.dim, textAlign:"center", lineHeight:1.3 }}>{a.label}</div>
-                <div style={{ fontSize:10, color:th.text, textAlign:"center", lineHeight:1.3 }}>{a.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    })();
-
     const historyJSX = loading ? (
       <div style={{ textAlign:"center", padding:"48px 0", color:th.dim, fontSize:14 }}>Loading…</div>
     ) : !sessions || sessions.length === 0 ? (
@@ -7827,50 +7229,6 @@ import "./styles.css";
     );
   }
 
-  function FriendCard({ friend, onViewDashboard, onCompete, editing, onRemove }) {
-    const th = useTheme();
-    const S = useS();
-    const initials = (friend.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
-    return (
-      <div style={{ ...S.card, padding:"14px 16px", marginBottom:10, display:"flex", alignItems:"center", gap:12, border: editing ? `1px solid ${th.delB}` : undefined, transition:"border-color .2s" }}>
-        {friend.photoURL ? (
-          <img src={friend.photoURL} alt={friend.name} style={{ width:44, height:44, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-        ) : (
-          <div style={{ width:44, height:44, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:15, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
-            {initials}
-          </div>
-        )}
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{friend.name}</div>
-        </div>
-        {editing ? (
-          <button
-            onClick={onRemove}
-            style={{ background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:14, lineHeight:1, flexShrink:0 }}
-          >✕</button>
-        ) : (
-          <div style={{ display:"flex", gap:6, flexShrink:0 }}>
-            <button
-              onClick={onCompete}
-              style={{
-                background: `color-mix(in srgb, #E8612C 22%, transparent)`,
-                backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                border: `1px solid rgba(232,97,44,0.4)`,
-                borderRadius:10, padding:"8px 12px", cursor:"pointer",
-                fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                color:"#E8612C", letterSpacing:"0.5px",
-              }}
-            >COMPETE</button>
-            <button
-              onClick={onViewDashboard}
-              style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 85%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 35%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 50%, transparent)`, borderRadius:10, padding:"8px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12, color:th.accentT, letterSpacing:"0.5px" }}
-            >VIEW →</button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   /* ─── Competition Sheet ─────────────────────────────────────────────────────── */
   function CompetitionSheet({ user, friend, competitions, mySessions, onGetFriendSessions, onClose, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite }) {
     const th = useTheme();
@@ -8012,14 +7370,6 @@ import "./styles.css";
         </div>
       );
     };
-
-    const StatRow = ({ label, myVal, frVal }) => (
-      <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 0", borderBottom:`1px solid ${th.border}` }}>
-        <div className="bebas" style={{ fontSize:15, color:myColor, textAlign:"right", minWidth:40 }}>{myVal}</div>
-        <div style={{ flex:1, fontSize:11, color:th.dim, textAlign:"center", letterSpacing:"0.5px" }}>{label}</div>
-        <div className="bebas" style={{ fontSize:15, color:frColor, textAlign:"left", minWidth:40 }}>{frVal}</div>
-      </div>
-    );
 
     return (
       <>
@@ -8602,7 +7952,6 @@ import "./styles.css";
   // ── CommentsSheet ─────────────────────────────────────────────────────────────
   function CommentsSheet({ postId, user, onClose }) {
     const th = useTheme();
-    const S = useS();
     const [comments, setComments] = useState([]);
     const [text, setText] = useState("");
     const [sending, setSending] = useState(false);
@@ -8801,7 +8150,6 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const [loading, setLoading] = useState(true);
-    const [friendSessions, setFriendSessions] = useState({});
 
     // Month window
     const now = new Date();
@@ -8833,7 +8181,7 @@ import "./styles.css";
       Promise.all(friends.map(f => onGetFriendSessions(f.uid).then(s => ({ uid:f.uid, s }))))
         .then(results => {
           const scores = { [user.id]: myScore };
-          results.forEach(({ uid, s }) => { scores[uid] = calcScore(s); setFriendSessions(prev => ({...prev, [uid]:s})); });
+          results.forEach(({ uid, s }) => { scores[uid] = calcScore(s); });
           setBoardScores(scores);
           setLoading(false);
         });
@@ -8978,7 +8326,6 @@ import "./styles.css";
     const [starState, setStarState] = useState({});
     const [sharedPrograms, setSharedPrograms] = useState([]); // programs shared with me
     const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
-    const [savedProgIds, setSavedProgIds] = useState(new Set()); // shared prog ids I've saved
     const [openSharedProg, setOpenSharedProg] = useState(null);
     const [openComments, setOpenComments] = useState(null); // { postId }
     const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
@@ -9030,7 +8377,7 @@ import "./styles.css";
       fsRegisterPublicProfile(user.id, user.name || "", user.photoURL || null, user.email);
       const friendUidSet = new Set(friends.map(f => f.uid));
       const pendingEmails = new Set([
-        user.email.toLowerCase(),
+        (user.email || "").toLowerCase(),
         ...pendingInvitations.map(i => i.fromEmail?.toLowerCase()).filter(Boolean),
         ...sentInvitations.map(i => i.toEmail?.toLowerCase()).filter(Boolean),
       ]);
@@ -9091,9 +8438,9 @@ import "./styles.css";
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
       if (!email) return;
-      if (email === user.email.toLowerCase()) { setInviteStatus("error"); setInviteError("That's your own email!"); return; }
-      if (friends.some(f => f.email.toLowerCase() === email)) { setInviteStatus("error"); setInviteError("Already friends!"); return; }
-      if (sentInvitations.some(i => i.toEmail === email)) { setInviteStatus("error"); setInviteError("Invitation already sent."); return; }
+      if (email === (user.email || "").toLowerCase()) { setInviteStatus("error"); setInviteError("That's your own email!"); return; }
+      if (friends.some(f => (f.email || "").toLowerCase() === email)) { setInviteStatus("error"); setInviteError("Already friends!"); return; }
+      if (sentInvitations.some(i => (i.toEmail || "").toLowerCase() === email)) { setInviteStatus("error"); setInviteError("Invitation already sent."); return; }
       setInviteStatus("sending");
       const result = await onSendInvite(email);
       if (result?.ok) {
@@ -9423,7 +8770,6 @@ import "./styles.css";
             onClose={() => setOpenSharedProg(null)}
             onSave={(prog) => {
               onSaveSharedProgram && onSaveSharedProgram(prog);
-              setSavedProgIds(s => new Set([...s, openSharedProg.id]));
             }}
           />,
           document.body
@@ -10473,13 +9819,6 @@ import "./styles.css";
               }
         )
       );
-    // Update cardio fields
-    const updateEx = (id, f, val) =>
-      setExs((prev) =>
-        prev.map((e) =>
-          e.id === id ? { ...e, [f]: Math.max(0, parseFloat(val) || 0) } : e
-        )
-      );
     // Add/remove sets
     const updateNumSets = (id, delta) =>
       setExs((prev) =>
@@ -11256,7 +10595,6 @@ import "./styles.css";
   /* ─── Cardio Log Row — used inside WorkoutView for cardio exercises ──────────── */
   function CardioLogRow({ set, onChange, onRemove, setIdx }) {
     const th = useTheme();
-    const S = useS();
     const upd = (f, v) => onChange({ ...set, [f]: parseFloat(v) || 0 });
     const fields = [
       { l: "Duration", k: "duration", unit: "min", step: 1, placeholder: "0" },
@@ -11400,7 +10738,9 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
-    const [exercises, setExercises] = useState(session.exercises);
+    const [exercises, setExercises] = useState(() =>
+      (session.exercises || []).map(normalizeWorkoutExercise)
+    );
     const [showExPicker, setShowExPicker] = useState(false);
     const [milestoneMsg, setMilestoneMsg] = useState(null);
     const [milestoneExIdx, setMilestoneExIdx] = useState(null);
@@ -11432,8 +10772,9 @@ import "./styles.css";
     }, [liveDone]);
 
     const upd = (newExs) => {
-      setExercises(newExs);
-      onSaveActive({ ...session, exercises: newExs });
+      const safeExs = (newExs || []).map(normalizeWorkoutExercise);
+      setExercises(safeExs);
+      onSaveActive({ ...session, exercises: safeExs });
     };
     const toggleSet = (eIdx, sIdx) => {
       lastToggledExIdxRef.current = eIdx;
@@ -11893,14 +11234,15 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const vol = sessionVol(finished);
+    const finishedExercises = finished.exercises || [];
 
     // Pre-fill from cardio sets if session contains cardio exercises
     const cardioTotals = (() => {
-      const cardioExs = (finished.exercises || []).filter(
+      const cardioExs = finishedExercises.filter(
         (e) => e.type === "cardio"
       );
       if (!cardioExs.length) return null;
-      const doneSets = cardioExs.flatMap((e) => e.sets.filter((s) => s.done));
+      const doneSets = cardioExs.flatMap((e) => (e.sets || []).filter((s) => s.done));
       if (!doneSets.length) return null;
       return {
         cals: doneSets.reduce((a, s) => a + (s.calories || 0), 0),
@@ -11908,11 +11250,11 @@ import "./styles.css";
       };
     })();
     const allCardio =
-      (finished.exercises || []).length > 0 &&
-      (finished.exercises || []).every((e) => e.type === "cardio");
+      finishedExercises.length > 0 &&
+      finishedExercises.every((e) => e.type === "cardio");
 
     const calcAutoIntensity = () => {
-      const exs = (finished.exercises || []).filter((e) => e.type !== "cardio");
+      const exs = finishedExercises.filter((e) => e.type !== "cardio");
       if (exs.length === 0) return 7;
       const allSets  = exs.flatMap((ex) => ex.sets || []);
       const doneSets = allSets.filter((s) => s.done);
@@ -11941,8 +11283,8 @@ import "./styles.css";
     // For cardio: use avg intensity from entered set data, fallback to 7
     const cardioIntensityFromData = (() => {
       if (!allCardio) return 7;
-      const cardioExs = (finished.exercises || []).filter(e => e.type === "cardio");
-      const doneSets = cardioExs.flatMap(e => e.sets.filter(s => s.done));
+      const cardioExs = finishedExercises.filter(e => e.type === "cardio");
+      const doneSets = cardioExs.flatMap(e => (e.sets || []).filter(s => s.done));
       const withInt = doneSets.filter(s => (s.intensity || 0) > 0);
       if (!withInt.length) return 7;
       return Math.round(withInt.reduce((a, s) => a + s.intensity, 0) / withInt.length);
@@ -12090,8 +11432,8 @@ import "./styles.css";
               <div style={{ fontSize: 11, color: th.muted, marginTop: 5 }}>
                 {(() => {
                   if (allCardio) {
-                    const cardExs = (finished.exercises || []).filter(e => e.type === "cardio");
-                    const dSets = cardExs.flatMap(e => e.sets.filter(s => s.done));
+                    const cardExs = finishedExercises.filter(e => e.type === "cardio");
+                    const dSets = cardExs.flatMap(e => (e.sets || []).filter(s => s.done));
                     const totDur = dSets.reduce((a,s) => a + (s.duration||0), 0);
                     const totCal = dSets.reduce((a,s) => a + (s.calories||0), 0);
                     const parts = [];
@@ -12135,8 +11477,8 @@ import "./styles.css";
           }}
         >
           {(() => {
-            const cardioExs = (finished.exercises || []).filter(e => e.type === "cardio");
-            const doneSets = cardioExs.flatMap(e => e.sets.filter(s => s.done));
+            const cardioExs = finishedExercises.filter(e => e.type === "cardio");
+            const doneSets = cardioExs.flatMap(e => (e.sets || []).filter(s => s.done));
             const totalCalFromData = doneSets.reduce((a, s) => a + (s.calories || 0), 0);
             const totalDurFromData = doneSets.reduce((a, s) => a + (s.duration || 0), 0);
             const durationDisplay = allCardio && totalDurFromData > 0
@@ -12147,7 +11489,7 @@ import "./styles.css";
               : { v: Math.round(vol).toLocaleString() + "kg", l: "VOLUME", u: "lifted" };
             return [
               { v: finished.doneSets, l: "SETS DONE", u: `of ${finished.totalSets}` },
-              { v: finished.exercises.length, l: "EXERCISES", u: "completed" },
+              { v: finishedExercises.length, l: "EXERCISES", u: "completed" },
               { v: durationDisplay, l: "DURATION", u: "recorded" },
               tile4,
             ];
@@ -12294,7 +11636,6 @@ import "./styles.css";
           </div>
         ) : (
           sessions.map((s) => {
-            const vol = sessionVol(s);
             const ic = intColor(s.intensity || 0, th);
             const isPendingDelete = confirmDelete === s.id;
             return (
@@ -12464,8 +11805,10 @@ import "./styles.css";
                     gap: 5,
                   }}
                 >
-                  {s.exercises.map((ex, i) => {
-                    const d = ex.sets.filter((st) => st.done).length;
+                  {(s.exercises || []).map((ex, i) => {
+                    const sets = ex.sets || [];
+                    const d = sets.filter((st) => st.done).length;
+                    const exName = ex.name || "Exercise";
                     return (
                       <span
                         key={i}
@@ -12477,14 +11820,14 @@ import "./styles.css";
                           color: th.muted,
                         }}
                       >
-                        {ex.name.split(" ").slice(-2).join(" ")}{" "}
+                        {exName.split(" ").slice(-2).join(" ")}{" "}
                         <span
                           style={{
-                            color: d === ex.sets.length ? th.accentFg : th.dim,
-                            fontWeight: d === ex.sets.length ? 700 : 400,
+                            color: d === sets.length ? th.accentFg : th.dim,
+                            fontWeight: d === sets.length ? 700 : 400,
                           }}
                         >
-                          {d}/{ex.sets.length}
+                          {d}/{sets.length}
                         </span>
                       </span>
                     );
@@ -12502,6 +11845,7 @@ import "./styles.css";
     const S = useS();
     const vol = sessionVol(session);
     const ic = intColor(session.intensity || 0, th);
+    const exercises = session.exercises || [];
     return (
       <div className="slide-up" style={{ paddingBottom: 60, paddingTop: 4 }}>
         <div style={{ ...S.card, padding: 16, marginBottom: 12 }}>
@@ -12597,13 +11941,15 @@ import "./styles.css";
           </div>
         </div>
         <div style={{ ...S.label, marginBottom: 12, textAlign: "left" }}>
-          EXERCISES ({session.exercises.length})
+          EXERCISES ({exercises.length})
         </div>
-        {session.exercises.map((ex, i) => {
-          const doneS = ex.sets.filter((s) => s.done).length;
-          const exVol = ex.sets
+        {exercises.map((ex, i) => {
+          const sets = ex.sets || [];
+          const muscle = ex.muscle || ex.group || "Exercise";
+          const doneS = sets.filter((s) => s.done).length;
+          const exVol = sets
             .filter((s) => s.done)
-            .reduce((a, s) => a + s.weight * s.reps, 0);
+            .reduce((a, s) => a + (s.weight || 0) * (s.reps || 0), 0);
           return (
             <div key={i} style={{ ...S.card, marginBottom: 8 }}>
               <div style={{ padding: "13px 15px 10px" }}>
@@ -12622,13 +11968,13 @@ import "./styles.css";
                       {ex.name}
                     </div>
                     <div style={{ fontSize: 11, color: th.muted, marginTop: 3 }}>
-                      {doneS}/{ex.sets.length} sets · {exVol}kg volume
+                      {doneS}/{sets.length} sets · {exVol}kg volume
                     </div>
                   </div>
-                  <span style={S.tag(ex.group)}>{ex.muscle.toUpperCase()}</span>
+                  <span style={S.tag(ex.group || muscle)}>{muscle.toUpperCase()}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {ex.sets.map((s, si) => (
+                  {sets.map((s, si) => (
                     <div
                       key={si}
                       style={{
@@ -12986,12 +12332,6 @@ import "./styles.css";
       onSaveMeasurement(measurements.filter((_, i) => i !== idx));
     };
     const latest = measurements[0] || null;
-    const totalVol = sessions.reduce((a, s) => a + sessionVol(s), 0);
-    const avgInt = sessions.length
-      ? Math.round(
-          sessions.reduce((a, s) => a + (s.intensity || 0), 0) / sessions.length
-        )
-      : 0;
     const handleSaveProfile = async () => {
       setEditErr("");
       setEditOk("");
@@ -14568,7 +13908,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.0 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.1 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             DEVELOPED BY AZAD
@@ -14623,12 +13963,6 @@ import "./styles.css";
       ]);
     };
     const removeEx = (id) => updateExs(exs.filter((e) => e.id !== id));
-    const updateEx = (id, f, val) =>
-      updateExs(
-        exs.map((e) =>
-          e.id === id ? { ...e, [f]: Math.max(0, parseFloat(val) || 0) } : e
-        )
-      );
 
     return (
       <>
@@ -14955,7 +14289,7 @@ import "./styles.css";
     const [bellRipple, setBellRipple]                 = useState(false);
     const [notifClosing, setNotifClosing]             = useState(false);
     const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
-    const [lastReadNotif, setLastReadNotif]            = useState(() => parseInt(localStorage.getItem("ib3-lastReadNotif") || "0"));
+    const [, setLastReadNotif]                         = useState(() => parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0);
     const [competitions, setCompetitions]             = useState([]);
     const [pendingCoachRequests, setPendingCoachRequests] = useState([]); // incoming coach requests (user is athlete)
     const [sentCoachRequests, setSentCoachRequests]       = useState([]); // outgoing coach requests (user is coach, pending)
@@ -15217,7 +14551,6 @@ import "./styles.css";
       const unsubFriends  = fsListenFriends(user.id, setFriends);
       // Register/update public profile for user discovery — runs on every app open
       fsRegisterPublicProfile(user.id, user.name || "User", user.photoURL || null, user.email)
-        .then(() => console.log("Public profile registered for", user.email))
         .catch(e => console.warn("Profile register failed:", e));
       const unsubCompete  = fsListenCompetitions(user.id, setCompetitions);
       const unsubCoachReqs  = fsListenIncomingCoachRequests(user.id, setPendingCoachRequests);
@@ -15237,11 +14570,8 @@ import "./styles.css";
             const social = prev.filter(n => n._type === "social");
             return [...social, ...rxns.map(r => ({ ...r, _type: "star" }))];
           });
-          const lastRead = parseInt(localStorage.getItem("ib3-lastReadNotif") || "0");
-          setUnreadStars(prev => {
-            const socialUnread = prev; // will be updated by notifications listener
-            return rxns.filter(r => (r.ts || 0) > lastRead).length;
-          });
+          const lastRead = parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0;
+          setUnreadStars(rxns.filter(r => (r.ts || 0) > lastRead).length);
         }
       );
 
@@ -15257,7 +14587,7 @@ import "./styles.css";
             const merged = [...notifs, ...stars].sort((a, b) => (b.ts || 0) - (a.ts || 0));
             return merged;
           });
-          const lastRead = parseInt(localStorage.getItem("ib3-lastReadNotif") || "0");
+          const lastRead = parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0;
           setUnreadStars(prev => {
             const starUnread = prev;
             const socialUnread = notifs.filter(n => (n.ts || 0) > lastRead).length;
@@ -15401,8 +14731,6 @@ import "./styles.css";
       return clearWorkoutInterval;
     }, [activeWorkoutId, clearWorkoutInterval, paused, syncElapsedFromClock]);
 
-    // No-op shims for any leftover callers (handleFinishWorkout etc.)
-    const startTimer = useCallback(() => {}, []);
     const stopTimer = clearWorkoutInterval;
 
     if (authLoading || !splashDone)
@@ -15564,13 +14892,15 @@ import "./styles.css";
       }, 1000);
     };
     const handleFinishWorkout = (exercises) => {
-      const total = exercises.reduce((a, ex) => a + ex.sets.length, 0);
-      const done = exercises.reduce(
+      const safeExercises = (exercises || []).map(normalizeWorkoutExercise);
+      const total = safeExercises.reduce((a, ex) => a + ex.sets.length, 0);
+      const done = safeExercises.reduce(
         (a, ex) => a + ex.sets.filter((s) => s.done).length,
         0
       );
-      const { timer, ...activeSession } = active || {};
-      setFinished({ ...activeSession, exercises, totalSets: total, doneSets: done });
+      const activeSession = { ...(active || {}) };
+      delete activeSession.timer;
+      setFinished({ ...activeSession, exercises: safeExercises, totalSets: total, doneSets: done });
       stopTimer();
       setView("complete");
     };
@@ -15582,8 +14912,12 @@ import "./styles.css";
     };
 
     const handleSaveSession = async ({ intensity, calories, duration }) => {
-      const s = {
+      const normalizedFinished = {
         ...finished,
+        exercises: (finished?.exercises || []).map(normalizeWorkoutExercise),
+      };
+      const s = {
+        ...normalizedFinished,
         endTime: Date.now(),
         intensity,
         calories,
@@ -15596,7 +14930,7 @@ import "./styles.css";
         const updatedPrograms = programs.map((p) => {
           if (p.id !== active.progId) return p;
           const updatedExs = p.exs.map((pe) => {
-            const workoutEx = finished.exercises.find((we) => we.exId === pe.id);
+            const workoutEx = s.exercises.find((we) => we.exId === pe.id);
             if (!workoutEx || workoutEx.type === "cardio") return pe;
             const doneSets = workoutEx.sets.filter((st) => st.done);
             if (!doneSets.length) return pe;
@@ -15609,14 +14943,15 @@ import "./styles.css";
           });
           // Append any new non-cardio exercises added ad-hoc during the session
           const progExIds = new Set(p.exs.map((pe) => pe.id));
-          const newlyAdded = finished.exercises
+          const newlyAdded = s.exercises
             .filter((we) => !progExIds.has(we.exId) && we.type !== "cardio")
             .map((we) => {
-              const doneSets = we.sets.filter((st) => st.done);
+              const sets = we.sets || [];
+              const doneSets = sets.filter((st) => st.done);
               const lastDone = doneSets[doneSets.length - 1] || {};
               return {
                 id: we.exId,
-                s: we.sets.length,
+                s: sets.length,
                 r: lastDone.reps  || 10,
                 w: lastDone.weight || 20,
                 sets: doneSets.map((st) => ({ reps: st.reps || 0, weight: st.weight || 0 })),
@@ -15653,26 +14988,6 @@ import "./styles.css";
       setPrograms([]);
       setActive(null);
       resetWorkoutTimerState();
-    };
-
-    const handleSync = async () => {
-      if (!user) return;
-      const fsProgs = await fsGetPrograms(user.id);
-      if (fsProgs && fsProgs.length > 0) {
-        setPrograms(fsProgs);
-        lsSet(uKey(user.id, "programs"), fsProgs);
-      }
-      const fsSess = await fsGetSessions(user.id);
-      if (fsSess.length > 0) {
-        setSessions(fsSess);
-        lsSet(uKey(user.id, "sessions"), fsSess);
-      }
-      console.log(
-        "Manual sync complete: programs",
-        fsProgs?.length,
-        "sessions",
-        fsSess?.length
-      );
     };
 
     // Nav is always visible (even during workout — user can minimize)
@@ -15759,12 +15074,13 @@ import "./styles.css";
       theme === "dark" ? "rgba(8,8,9,0.87)" : "rgba(248,246,240,0.77)";
 
     // Workout progress — computed here so header bar can use them
+    const activeExercises = active?.exercises || [];
     const wTotalSets = active
-      ? active.exercises.reduce((a, ex) => a + ex.sets.length, 0)
+      ? activeExercises.reduce((a, ex) => a + (ex.sets || []).length, 0)
       : 0;
     const wDoneSets = active
-      ? active.exercises.reduce(
-          (a, ex) => a + ex.sets.filter((s) => s.done).length,
+      ? activeExercises.reduce(
+          (a, ex) => a + (ex.sets || []).filter((s) => s.done).length,
           0
         )
       : 0;
@@ -15935,7 +15251,7 @@ import "./styles.css";
                         !window.confirm("Finish this workout and save results?")
                       )
                         return;
-                      handleFinishWorkout(active.exercises);
+                      handleFinishWorkout(active?.exercises || []);
                     }}
                     style={{
                       background: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`,
