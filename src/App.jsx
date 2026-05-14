@@ -669,6 +669,33 @@ import "./styles.css";
       "Son 30 gündeki her antrenmanda dakika başına kaldırılan tonaj. Yükselen eğilim, antrenmanlarının daha verimli olduğunu gösterir.",
     "WEEKLY VOLUME": "HAFTALIK HACİM",
     "Weekly Volume": "Haftalık Hacim",
+    "Streak Calendar": "Seri Takvimi",
+    "Calories Burned": "Yakılan Kalori",
+    "Body Trends": "Vücut Trendleri",
+    "Strength Progression": "Güç Gelişimi",
+    "Sets by Muscle Group": "Kas Grubuna Göre Setler",
+    "Sets By Muscle Group": "Kas Grubuna Göre Setler",
+    "Workload Ratio": "İş Yükü Oranı",
+    "Relative Strength": "Göreceli Güç",
+    "Training Density": "Antrenman Yoğunluğu",
+    "Your all-time personal records — the heaviest estimated 1RM (One-Rep Max) achieved per exercise, ranked by weight.":
+      "Tüm zamanların kişisel rekorların — egzersiz başına ulaşılan en ağır tahmini 1RM (Tek Tekrar Maksimum), ağırlığa göre sıralanır.",
+    "Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand.":
+      "Kas grubu başına haftalık set hacmi, kanıta dayalı hipertrofi hedefleriyle (haftada 10-20 set) karşılaştırılır. Çubuklar yapılan setleri, renkli bölgeler nerede olduğunu gösterir.",
+    "Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load.":
+      "Akut-Kronik İş Yükü Oranı (ACWR), son 7 günlük toplam tonajını 4 haftalık ortalamana böler. 0.8-1.3 arası değerler güvenli antrenman yükünü gösterir.",
+    "Estimated 1RM (One-Rep Max) relative to your body weight for key lifts. A squat of 1.5x Bodyweight means you squat 1.5 times your own weight — a meaningful standard regardless of body size.":
+      "Önemli kaldırışlar için vücut ağırlığına göre tahmini 1RM (Tek Tekrar Maksimum). 1.5x Vücut ağırlığı squat'ı, kendi ağırlığının 1.5 katını kaldırdığın anlamına gelir — vücut boyutundan bağımsız anlamlı bir standart.",
+    "Weekly tonnage divided by total session time for that week (kg/min). Tracks whether you're doing more work per hour across 5-week periods.":
+      "O haftanın toplam antrenman süresine bölünen haftalık tonaj (kg/dk). 5 haftalık dönemlerde saatte daha fazla iş yapıp yapmadığını izler.",
+    "Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula.":
+      "İtme, çekme, bacak ve kol hareketleri için tahmini tek tekrar maksimum (1RM) eğilimi. Epley formülü kullanılarak gerçek setlerin ve tekrarlarından hesaplanır.",
+    "Average estimated calories burned per session over the last 7 days, compared to the prior week.":
+      "Son 7 günde antrenman başına yakılan ortalama tahmini kalori, önceki haftayla karşılaştırılır.",
+    "Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section.":
+      "Ölçümler bölümünden en son kaydettiğin ağırlık, kas kütlesi yüzdesi ve vücut yağ yüzdesi.",
+    "Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend.":
+      "Ağırlık, kas % veya yağ % için son 7 vücut ölçümünün grafiği. Her metriğin eğilimini görmek için sekmeleri değiştir.",
     "Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management.":
       "Son 5 haftada haftada kaldırılan toplam tonaj (set x tekrar x ağırlık). Aşamalı yüklenmeyi ve haftalık yük yönetimini izler.",
     "BODY COMPOSITION": "VÜCUT KOMPOZİSYONU",
@@ -5013,7 +5040,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>{t("PERSONAL RECORDS")}</div>
-              <DashInfoBtn title="Personal Records" text="Your all-time personal records — the heaviest estimated 1RM (One-Rep Max) achieved per exercise, ranked by weight." />
+              <DashInfoBtn title={t("Personal Records")} text={t("Your all-time personal records — the heaviest estimated 1RM (One-Rep Max) achieved per exercise, ranked by weight.")} />
             </div>
           {totalPages > 1 && (
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -5178,7 +5205,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>{t("SETS BY MUSCLE GROUP")}</div>
-              <DashInfoBtn title="Sets By Muscle Group" text="Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand." />
+              <DashInfoBtn title={t("Sets By Muscle Group")} text={t("Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand.")} />
             </div>
           <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
             <span style={{ fontSize: 10, color: th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</span>
@@ -5368,7 +5395,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom: 12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>{t("WORKLOAD RATIO")}</div>
-              <DashInfoBtn title="Workload Ratio" text="Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load." />
+              <DashInfoBtn title={t("Workload Ratio")} text={t("Acute-to-Chronic Workload Ratio (ACWR) divides your last 7 days of total tonnage by your 4-week average. Values between 0.8-1.3 indicate a safe training load.")} />
             </div>
           <div style={{ textAlign:"right" }}>
             <span className="bebas" style={{ fontSize: 28, color: status.col, lineHeight: 1 }}>{fmtR(acwr)}</span>
@@ -5485,7 +5512,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>{t("RELATIVE STRENGTH")}</div>
-              <DashInfoBtn title="Relative Strength" text="Estimated 1RM (One-Rep Max) relative to your body weight for key lifts. A squat of 1.5x Bodyweight means you squat 1.5 times your own weight — a meaningful standard regardless of body size." />
+              <DashInfoBtn title={t("Relative Strength")} text={t("Estimated 1RM (One-Rep Max) relative to your body weight for key lifts. A squat of 1.5x Bodyweight means you squat 1.5 times your own weight — a meaningful standard regardless of body size.")} />
             </div>
           <div style={{ fontSize:11, color:th.dim }}>Bodyweight: {bw}kg</div>
         </div>
@@ -5568,7 +5595,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>{t("TRAINING DENSITY")}</div>
-              <DashInfoBtn title="Training Density" text="Weekly tonnage divided by total session time for that week (kg/min). Tracks whether you're doing more work per hour across 5-week periods." />
+              <DashInfoBtn title={t("Training Density")} text={t("Weekly tonnage divided by total session time for that week (kg/min). Tracks whether you're doing more work per hour across 5-week periods.")} />
             </div>
           {latest > 0 && (
             <div style={{ textAlign:"right" }}>
@@ -5652,7 +5679,7 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>{t("STRENGTH PROGRESSION")}</div>
-              <DashInfoBtn title="Strength Progression" text="Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula." />
+              <DashInfoBtn title={t("Strength Progression")} text={t("Estimated one-rep max (1RM) trend for push, pull, leg, and arm movements. Calculated from your actual sets and reps using the Epley formula.")} />
             </div>
           {lift && (() => {
             const allPts = lift.pts;
@@ -6362,7 +6389,7 @@ import "./styles.css";
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
               <div style={{ ...S.label }}>{t("CALORIES BURNED")}</div>
-              <DashInfoBtn title="Calories Burned" text="Average estimated calories burned per session over the last 7 days, compared to the prior week." />
+              <DashInfoBtn title={t("Calories Burned")} text={t("Average estimated calories burned per session over the last 7 days, compared to the prior week.")} />
             </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
@@ -6458,7 +6485,7 @@ import "./styles.css";
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>{t("BODY COMPOSITION")}</div>
-              <DashInfoBtn title="Body Composition" text="Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section." />
+              <DashInfoBtn title={t("Body Composition")} text={t("Your most recently logged weight, muscle mass percentage, and body fat percentage from the measurements section.")} />
             </div>
             
             {(() => {
@@ -6507,7 +6534,7 @@ import "./styles.css";
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
               <div style={{ ...S.label }}>{t("BODY TRENDS")}</div>
-              <DashInfoBtn title="Body Trends" text="Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend." />
+              <DashInfoBtn title={t("Body Trends")} text={t("Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend.")} />
             </div>
             
             <BodyTrendChart measurements={measurements} />
@@ -14842,7 +14869,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.0 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.1 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
