@@ -823,6 +823,7 @@ import "./styles.css";
     "NO EXERCISES": "EGZERSİZ YOK",
     "EDITING PROGRAM": "PROGRAM DÜZENLENİYOR",
     "'s workout": " antrenmanı",
+    "hold ⠿ to reorder": "sıralamak için ⠿ tut",
     "SAVE": "KAYDET",
     "START": "BAŞLA",
     "just now": "şimdi",
