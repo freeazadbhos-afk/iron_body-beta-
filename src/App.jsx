@@ -137,6 +137,13 @@ import "./styles.css";
     "PROFILE": "PROFİL",
     "FRIENDS": "ARKADAŞLAR",
     "COACH": "KOÇ",
+    "SESSION HISTORY": "ANTRENMAN GEÇMİŞİ",
+    "CONFIGURE SESSION": "ANTRENMAN YAPILANDIR",
+    "EDIT PROGRAM": "PROGRAMI DÜZENLE",
+    "NEW PROGRAM": "YENİ PROGRAM",
+    "SESSION DETAIL": "ANTRENMAN AYRINTISI",
+    "SESSION COMPLETE": "ANTRENMAN TAMAMLANDI",
+    "SHORTCUT": "KISA YOL",
 
     // Auth
     "Sign in": "Giriş yap",
@@ -191,7 +198,6 @@ import "./styles.css";
     "Close": "Kapat",
     "Delete": "Sil",
     "Edit": "Düzenle",
-    "Remove": "Kaldır",
     "Add": "Ekle",
     "Done": "Tamam",
     "Next": "İleri",
@@ -500,6 +506,73 @@ import "./styles.css";
     "Wants to share workout progress": "Antrenman ilerlemeni paylaşmak istiyor",
     "LEADERBOARD": "LİDERLİK TABLOSU",
     "Loading scores…": "Skorlar yükleniyor…",
+    "COMPETE INVITATION": "YARIŞMA DAVETİ",
+    "Challenges you to a 7-day workout competition.": "Seni 7 günlük bir antrenman yarışmasına davet ediyor.",
+    "DECLINE": "REDDET",
+    "COACHING REQUEST": "KOÇLUK İSTEĞİ",
+    "wants to be your coach.": "koçun olmak istiyor.",
+    "ACCEPT AS COACH": "KOÇ OLARAK KABUL ET",
+    "AWAITING RESPONSE": "YANIT BEKLENİYOR",
+    "Invitation pending": "Davet beklemede",
+    "Invite": "Davet Et",
+    "REMOVE FRIEND?": "ARKADAŞI KALDIR?",
+    "Remove": "Kaldır",
+    "from your friends list? You'll no longer see each other's activity and will need to re-invite to reconnect.":
+      "arkadaş listenden çıkarmak istiyor musun? Birbirinizin aktivitelerini artık göremeyeceksiniz ve yeniden bağlanmak için yeniden davet etmeniz gerekecek.",
+    "CANCEL": "İPTAL",
+    "REMOVE": "KALDIR",
+    "ACCEPT COACHING?": "KOÇLUĞU KABUL ET?",
+    "will become your coach. Here's what they'll be able to access:":
+      "koçun olacak. İşte erişebileceği bilgiler:",
+    "COACH ACCESS INCLUDES": "KOÇ ERİŞİMİ İÇERİR",
+    "All Dashboards": "Tüm Panolar",
+    "Full analytics: volume, density, pace, muscles trained, PRs and more": "Tüm analizler: hacim, yoğunluk, tempo, çalıştırılan kaslar, PR'lar ve daha fazlası",
+    "Workout Programs": "Antrenman Programları",
+    "They can view, edit and create training programs on your behalf": "Senin adına antrenman programlarını görüntüleyebilir, düzenleyebilir ve oluşturabilirler",
+    "Session History": "Antrenman Geçmişi",
+    "Every session you've logged with full exercise and set details": "Tam egzersiz ve set ayrıntılarıyla kaydettiğin her antrenman",
+    "You can end the coaching relationship at any time from the coaching button in their profile.":
+      "Koçluk ilişkisini istediğin zaman profilindeki koçluk düğmesinden sonlandırabilirsin.",
+    "AS COACH": "KOÇ OLARAK",
+    "TRAIN TOGETHER": "BİRLİKTE ANTRENMAN",
+    "Invite friends to share progress, celebrate wins, and compete on workouts.":
+      "İlerlemeyi paylaşmak, başarıları kutlamak ve antrenmanlarda yarışmak için arkadaşlarını davet et.",
+    "COACHING REQUESTS": "KOÇLUK İSTEKLERİ",
+    "Coach request pending": "Koçluk isteği beklemede",
+    "INVITE A FRIEND": "BİR ARKADAŞ DAVET ET",
+    "Invitation sent!": "Davet gönderildi!",
+    "They'll see it in their Sharing tab.": "Onlar bunu Paylaşım sekmesinde görecek.",
+    "PEOPLE YOU MAY KNOW": "TANIYOR OLABİLECEĞİN KİŞİLER",
+    "No other users found yet": "Henüz başka kullanıcı yok",
+    "OR INVITE BY EMAIL": "VEYA E-POSTAYLA DAVET ET",
+    "Enter your friend's email. Once they accept, you'll both see each other's workouts.":
+      "Arkadaşının e-postasını gir. Kabul ettiğinde, ikiniz de birbirinizin antrenmanlarını göreceksiniz.",
+    "SENDING…": "GÖNDERİLİYOR…",
+    "SEND INVITE →": "DAVETİYE GÖNDER →",
+    "No friends yet": "Henüz arkadaş yok",
+    "Add friends in the Friends tab to see their activity here.": "Aktivitelerini burada görmek için Arkadaşlar sekmesinden arkadaş ekle.",
+    "Loading activity…": "Aktivite yükleniyor…",
+    "No recent workouts from friends yet.": "Henüz arkadaşlardan yeni antrenman yok.",
+    "shared a program with": "şununla bir program paylaştı:",
+    "you": "sen",
+    "Program": "Program",
+    "tap to view": "görmek için dokun",
+    "completed a workout": "bir antrenmanı tamamladı",
+    "SETS": "SETLER",
+
+    // Notifications
+    "NOTIFICATIONS": "BİLDİRİMLER",
+    "No notifications yet.": "Henüz bildirim yok.",
+    "Someone": "Biri",
+    "workout": "antrenman",
+    "starred your": "şuna yıldız verdi:",
+    "starred your program": "programına yıldız verdi",
+    "sent you a friend request": "sana arkadaşlık isteği gönderdi",
+    "accepted your friend request": "arkadaşlık isteğini kabul etti",
+    "challenged you to a competition": "seni bir yarışmaya davet etti",
+    "accepted your competition challenge": "yarışma davetini kabul etti",
+    "wants to be your coach": "koçun olmak istiyor",
+    "accepted your coaching request": "koçluk isteğini kabul etti",
     "just now": "şimdi",
     "m ago": "dk önce",
     "h ago": "sa önce",
@@ -9130,15 +9203,15 @@ import "./styles.css";
                 )}
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{c.fromName}</div>
-                  <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>COMPETE INVITATION</div>
+                  <div style={{ fontSize:13, textAlign:"left", color:"#E8612C", marginTop:1, fontWeight:600 }}>{t("COMPETE INVITATION")}</div>
                 </div>
               </div>
-              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>Challenges you to a 7-day workout competition.</div>
+              <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.5 }}>{t("Challenges you to a 7-day workout competition.")}</div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
-                  style={{ flex:1, ...buttonTexture(th, "danger"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>DECLINE</button>
+                  style={{ flex:1, ...buttonTexture(th, "danger"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>{t("DECLINE")}</button>
                 <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
-                  style={{ flex:1, ...buttonTexture(th, "accent"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>ACCEPT</button>
+                  style={{ flex:1, ...buttonTexture(th, "accent"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>{t("ACCEPT")}</button>
               </div>
             </div>
           );
@@ -9160,18 +9233,18 @@ import "./styles.css";
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontWeight:700, textAlign:"left", fontSize:15, color:th.text }}>{req.fromName}</div>
                   <div style={{ fontSize:13, textAlign:"left", color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
-                    COACHING REQUEST
+                    {t("COACHING REQUEST")}
                   </div>
                 </div>
               </div>
               <div style={{ fontSize:13, textAlign:"left", color:th.muted, marginBottom:12, lineHeight:1.6 }}>
-                <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> wants to be your coach.
+                <span style={{ fontWeight:600, color:th.sub }}>{req.fromName}</span> {t("wants to be your coach.")}
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCoachRequest(req.id); }}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>{t("DECLINE")}</button>
                 <button onClick={() => setPendingCoachAccept(req)}
-                  style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>ACCEPT AS COACH</button>
+                  style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>{t("ACCEPT AS COACH")}</button>
               </div>
             </div>
           );
@@ -9183,13 +9256,13 @@ import "./styles.css";
             {/* Sent friend invitations awaiting response */}
             {sentInvitations.length > 0 && (
               <div style={{ marginBottom:16 }}>
-                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>AWAITING RESPONSE</div>
+                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("AWAITING RESPONSE")}</div>
                 {sentInvitations.map(inv => (
                   <div key={inv.id} style={{ ...S.card, padding:"12px 16px", marginBottom:8, textAlign:"left", display:"flex", alignItems:"center", gap:12 }}>
                     <div style={{ width:34, height:34, borderRadius:"50%", background:th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, color:th.dim }}>⏳</div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{inv.toEmail}</div>
-                      <div style={{ fontSize:13, color:th.dim, marginTop:1 }}>Invitation pending</div>
+                      <div style={{ fontSize:13, color:th.dim, marginTop:1 }}>{t("Invitation pending")}</div>
                     </div>
                     <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
                       style={{ background:"rgba(220,50,50,0.15)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:th.delText, fontSize:15, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}
@@ -9226,7 +9299,7 @@ import "./styles.css";
                   padding: "4px 12px",
                   transition: "background .2s, box-shadow .2s, border-color .2s",
                 }}>
-                {editFriends ? "DONE" : "EDIT"}
+                {editFriends ? t("DONE") : t("EDIT")}
               </button>
             </div>
             {/* Horizontal scroll row */}
@@ -9242,7 +9315,7 @@ import "./styles.css";
                   display:"flex", alignItems:"center", justifyContent:"center",
                   fontSize:22, color: th.accentFg, fontWeight:700,
                 }}>+</div>
-                <div style={{ fontSize:13, fontWeight:700, color:th.accentFg }}>Invite</div>
+                <div style={{ fontSize:13, fontWeight:700, color:th.accentFg }}>{t("Invite")}</div>
               </div>
               {friends.map(f => {
                 const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
@@ -9390,16 +9463,16 @@ import "./styles.css";
                     {(confirmRemoveFriend.name||"?")[0].toUpperCase()}
                   </div>
                 )}
-                <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>REMOVE FRIEND?</div>
+                <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>{t("REMOVE FRIEND?")}</div>
                 <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
-                  Remove <strong style={{ color:th.sub }}>{confirmRemoveFriend.name.split(" ")[0]}</strong> from your friends list? You'll no longer see each other's activity and will need to re-invite to reconnect.
+                  {t("Remove")} <strong style={{ color:th.sub }}>{confirmRemoveFriend.name.split(" ")[0]}</strong> {t("from your friends list? You'll no longer see each other's activity and will need to re-invite to reconnect.")}
                 </div>
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setConfirmRemoveFriend(null)}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>CANCEL</button>
+                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>{t("CANCEL")}</button>
                 <button onClick={() => { onRemoveFriend(confirmRemoveFriend.uid); setConfirmRemoveFriend(null); }}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>REMOVE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>{t("REMOVE")}</button>
               </div>
             </div>
           </div>
@@ -9439,17 +9512,17 @@ import "./styles.css";
                     <line x1="14" y1="26" x2="22" y2="26" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/>
                   </svg>
                 </div>
-                <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>ACCEPT COACHING?</div>
+                <div className="bebas" style={{ fontSize:22, letterSpacing:2, color:th.text, marginBottom:6 }}>{t("ACCEPT COACHING?")}</div>
                 <div style={{ fontSize:13, color:th.muted, lineHeight:1.65, maxWidth:290, margin:"0 auto" }}>
-                  <strong style={{ color:th.sub }}>{pendingCoachAccept.fromName.split(" ")[0]}</strong> will become your coach. Here's what they'll be able to access:
+                  <strong style={{ color:th.sub }}>{pendingCoachAccept.fromName.split(" ")[0]}</strong> {t("will become your coach. Here's what they'll be able to access:")}
                 </div>
               </div>
               <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
-                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACH ACCESS INCLUDES</div>
+                <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("COACH ACCESS INCLUDES")}</div>
                 {[
-                  { icon:"📊", label:"All Dashboards",   desc:"Full analytics: volume, density, pace, muscles trained, PRs and more" },
-                  { icon:"📋", label:"Workout Programs", desc:"They can view, edit and create training programs on your behalf" },
-                  { icon:"📅", label:"Session History",  desc:"Every session you've logged with full exercise and set details" },
+                  { icon:"📊", label:t("All Dashboards"),   desc:t("Full analytics: volume, density, pace, muscles trained, PRs and more") },
+                  { icon:"📋", label:t("Workout Programs"), desc:t("They can view, edit and create training programs on your behalf") },
+                  { icon:"📅", label:t("Session History"),  desc:t("Every session you've logged with full exercise and set details") },
                 ].map(({ icon, label, desc }) => (
                   <div key={label} style={{ display:"flex", gap:12, marginBottom:10, alignItems:"flex-start" }}>
                     <div style={{ fontSize:18, flexShrink:0, lineHeight:1.3 }}>{icon}</div>
@@ -9461,14 +9534,14 @@ import "./styles.css";
                 ))}
               </div>
               <div style={{ fontSize:12, color:th.dim, textAlign:"center", marginBottom:18, lineHeight:1.5 }}>
-                You can end the coaching relationship at any time from the coaching button in their profile.
+                {t("You can end the coaching relationship at any time from the coaching button in their profile.")}
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>DECLINE</button>
+                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>{t("DECLINE")}</button>
                 <button onClick={async () => { await onAcceptCoachRequest(pendingCoachAccept.id); setPendingCoachAccept(null); }}
                   style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
-                  ACCEPT {pendingCoachAccept.fromName.split(" ")[0].toUpperCase()} AS COACH
+                  {t("ACCEPT")} {pendingCoachAccept.fromName.split(" ")[0].toUpperCase()} {t("AS COACH")}
                 </button>
               </div>
             </div>
@@ -9489,9 +9562,9 @@ import "./styles.css";
                 <text x="26" y="38" textAnchor="middle" fontSize="8" fill={th.accentFg} fontFamily="Outfit,sans-serif" fontWeight="700">★</text>
               </svg>
             </div>
-            <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, marginBottom:8 }}>TRAIN TOGETHER</div>
+            <div className="bebas" style={{ fontSize:26, letterSpacing:2, color:th.text, marginBottom:8 }}>{t("TRAIN TOGETHER")}</div>
             <div style={{ fontSize:15, color:th.muted, lineHeight:1.6, maxWidth:280, marginBottom:28 }}>
-              Invite friends to share progress, celebrate wins, and compete on workouts.
+              {t("Invite friends to share progress, celebrate wins, and compete on workouts.")}
             </div>
           </div>
         )}
@@ -9499,7 +9572,7 @@ import "./styles.css";
         {/* ── Coaching requests sent — before leaderboard ── */}
         {sharingTab === "friends" && (sentCoachRequests||[]).length > 0 && (
           <div style={{ marginBottom:16 }}>
-            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>COACHING REQUESTS</div>
+            <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("COACHING REQUESTS")}</div>
             {(sentCoachRequests||[]).map(req => {
               const f = friends.find(fr => fr.uid === req.toUid);
               const initials = (req.toName||"?")[0].toUpperCase();
@@ -9516,7 +9589,7 @@ import "./styles.css";
                     <div style={{ fontSize:15, color:th.text, fontWeight:600, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{req.toName || req.toEmail}</div>
                     <div style={{ fontSize:12, color:"#5B9CF6", marginTop:1, fontWeight:600, display:"flex", alignItems:"center", gap:5 }}>
                       <span style={{ width:5, height:5, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", opacity:0.7 }} />
-                      Coach request pending
+                      {t("Coach request pending")}
                     </div>
                   </div>
                   <button onClick={async () => { await fsWithdrawCoachRequest(req.id); }}
@@ -9543,7 +9616,7 @@ import "./styles.css";
               <line x1="17" y1="11" x2="17" y2="19" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
               <line x1="13" y1="15" x2="21" y2="15" stroke={th.accentT} strokeWidth="2" strokeLinecap="round" />
             </svg>
-            INVITE A FRIEND
+            {t("INVITE A FRIEND")}
           </button>
         ) : null)}
 
@@ -9582,20 +9655,20 @@ import "./styles.css";
                 animation: inviteClosing ? "inviteModalOut 0.22s cubic-bezier(0.4,0,1,1) forwards" : "inviteModalIn 0.28s cubic-bezier(0,0,0.2,1) forwards",
               }}>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
-                <div className="bebas" style={{ fontSize:22, textAlign:"left", letterSpacing:2, color:th.text }}>INVITE A FRIEND</div>
+                <div className="bebas" style={{ fontSize:22, textAlign:"left", letterSpacing:2, color:th.text }}>{t("INVITE A FRIEND")}</div>
                 <button onClick={closeInvitePanel} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:22, lineHeight:1, padding:"2px 4px" }}>✕</button>
               </div>
               {inviteStatus === "sent" ? (
                 <div style={{ textAlign:"center", padding:"18px 0", animation:"sentBounce 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards" }}>
                   <div style={{ fontSize:40, marginBottom:8 }}>✔</div>
-                  <div style={{ color:th.accentFg, fontWeight:700, fontSize:16 }}>Invitation sent!</div>
-                  <div style={{ color:th.muted, fontSize:13, marginTop:4 }}>They'll see it in their Sharing tab.</div>
+                  <div style={{ color:th.accentFg, fontWeight:700, fontSize:16 }}>{t("Invitation sent!")}</div>
+                  <div style={{ color:th.muted, fontSize:13, marginTop:4 }}>{t("They'll see it in their Sharing tab.")}</div>
                 </div>
               ) : (
                 <>
                   {/* ── Suggested users — horizontal bubbles, max 3 ── */}
                   <div style={{ marginBottom:18 }}>
-                    <div style={{ fontSize:11, textAlign:"center", color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:12 }}>PEOPLE YOU MAY KNOW</div>
+                    <div style={{ fontSize:11, textAlign:"center", color:th.dim, letterSpacing:"1px", fontWeight:700, marginBottom:12 }}>{t("PEOPLE YOU MAY KNOW")}</div>
                     {suggestLoading ? (
                       <div style={{ display:"flex", gap:16, justifyContent:"center", padding:"8px 0" }}>
                         {[0,1,2].map(i => (
@@ -9615,19 +9688,19 @@ import "./styles.css";
                       </div>
                     ) : (
                       <div style={{ textAlign:"center", fontSize:12, color:th.dim, padding:"6px 0 4px" }}>
-                        No other users found yet
+                        {t("No other users found yet")}
                       </div>
                     )}
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginTop:16 }}>
                       <div style={{ flex:1, height:1, background:th.border }} />
-                      <div style={{ fontSize:11, color:th.dim, fontWeight:600, letterSpacing:"0.5px" }}>OR INVITE BY EMAIL</div>
+                      <div style={{ fontSize:11, color:th.dim, fontWeight:600, letterSpacing:"0.5px" }}>{t("OR INVITE BY EMAIL")}</div>
                       <div style={{ flex:1, height:1, background:th.border }} />
                     </div>
                   </div>
 
                   {/* Description always visible */}
                   <div style={{ fontSize:13, color:th.muted, marginBottom:14, lineHeight:1.55, textAlign:"left" }}>
-                    Enter your friend's email. Once they accept, you'll both see each other's workouts.
+                    {t("Enter your friend's email. Once they accept, you'll both see each other's workouts.")}
                   </div>
                   <input type="email" placeholder="friend@example.com" value={inviteEmail}
                     onChange={(e) => { setInviteEmail(e.target.value); if (inviteStatus === "error") setInviteStatus("idle"); }}
@@ -9637,7 +9710,7 @@ import "./styles.css";
                   {inviteStatus === "error" && <div style={{ fontSize:13, color:"#CC1F42", marginBottom:10 }}>{inviteError}</div>}
                   <button onClick={handleSendInvite} disabled={!inviteEmail.trim() || inviteStatus === "sending"}
                     style={{ width:"100%", ...buttonTexture(th, "accent", !inviteEmail.trim() || inviteStatus === "sending"), borderRadius:12, padding:"13px 0", cursor: inviteEmail.trim() ? "pointer" : "default", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:15, transition:"background .2s, box-shadow .2s, border-color .2s", letterSpacing:"0.5px" }}>
-                    {inviteStatus === "sending" ? "SENDING…" : "SEND INVITE →"}
+                    {inviteStatus === "sending" ? t("SENDING…") : t("SEND INVITE →")}
                   </button>
                 </>
               )}
@@ -9653,14 +9726,14 @@ import "./styles.css";
             {friends.length === 0 ? (
               <div style={{ ...S.card, padding:"28px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:28, marginBottom:10 }}>👥</div>
-                <div style={{ color:th.text, fontWeight:700, fontSize:15, marginBottom:6 }}>No friends yet</div>
-                <div style={{ color:th.muted, fontSize:13 }}>Add friends in the Friends tab to see their activity here.</div>
+                <div style={{ color:th.text, fontWeight:700, fontSize:15, marginBottom:6 }}>{t("No friends yet")}</div>
+                <div style={{ color:th.muted, fontSize:13 }}>{t("Add friends in the Friends tab to see their activity here.")}</div>
               </div>
             ) : feedLoading ? (
-              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading activity…</div>
+              <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>{t("Loading activity…")}</div>
             ) : feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
-                <div style={{ color:th.muted, fontSize:14, textAlign: "center" }}>No recent workouts from friends yet.</div>
+                <div style={{ color:th.muted, fontSize:14, textAlign: "center" }}>{t("No recent workouts from friends yet.")}</div>
               </div>
             ) : feedItems.map((item, i) => {
               if (item.type === "sharedProg") {
@@ -9690,12 +9763,12 @@ import "./styles.css";
                         </span>
                         {direction === "received" ? (
                           <>
-                            <span style={{ fontSize:13, color:th.muted }}> shared a program with </span>
-                            <span style={{ fontWeight:700, fontSize:14, color:th.text }}>you</span>
+                            <span style={{ fontSize:13, color:th.muted }}> {t("shared a program with")} </span>
+                            <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{t("you")}</span>
                           </>
                         ) : (
                           <>
-                            <span style={{ fontSize:13, color:th.muted }}> shared a program with </span>
+                            <span style={{ fontSize:13, color:th.muted }}> {t("shared a program with")} </span>
                             <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{recipName}</span>
                           </>
                         )}
@@ -9708,13 +9781,13 @@ import "./styles.css";
                       <div style={{ background:th.sect, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
                         <ProgramIcon name={sp.program?.name || ""} size={40} />
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:3 }}>{sp.program?.name || "Program"}</div>
+                          <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:3 }}>{sp.program?.name || t("Program")}</div>
                           <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
                             {[...new Set((sp.program?.exs||[]).map(e => DB.find(d=>d.id===e.id)?.group).filter(Boolean))].slice(0,3).map(g => (
                               <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
                             ))}
                           </div>
-                          <div style={{ fontSize:12, color:th.dim }}>{(sp.program?.exs||[]).length} exercises · tap to view</div>
+                          <div style={{ fontSize:12, color:th.dim }}>{(sp.program?.exs||[]).length} {t("exercises")} · {t("tap to view")}</div>
                         </div>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke={th.muted} strokeWidth="2" strokeLinecap="round"/></svg>
                       </div>
@@ -9785,11 +9858,11 @@ import "./styles.css";
               const muscles = [...new Set((s.exercises||[]).map(e=>e.group).filter(Boolean))];
               const totalSets = (s.exercises||[]).reduce((a,e) => a + (e.sets||[]).filter(st=>st.done).length, 0);
               const stats = [
-                vol > 0       ? { label:"VOLUME",    value: vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg` } : null,
-                totalSets > 0 ? { label:"SETS",       value: totalSets } : null,
-                s.duration    ? { label:"DURATION",   value: `${Math.round(s.duration)}min` } : null,
-                s.calories    ? { label:"CALORIES",   value: `${s.calories}kcal` } : null,
-                s.intensity   ? { label:"INTENSITY",  value: `${s.intensity}/10` } : null,
+                vol > 0       ? { label:t("VOLUME"),    value: vol >= 1000 ? `${(vol/1000).toFixed(1)}t` : `${Math.round(vol)}kg` } : null,
+                totalSets > 0 ? { label:t("SETS"),      value: totalSets } : null,
+                s.duration    ? { label:t("DURATION"),  value: `${Math.round(s.duration)}${t("min")}` } : null,
+                s.calories    ? { label:t("CALORIES"),  value: `${s.calories}kcal` } : null,
+                s.intensity   ? { label:t("INTENSITY"), value: `${s.intensity}/10` } : null,
               ].filter(Boolean);
               const sid = s.id || s.startTime;
               const starKey = `${f.uid}-${sid}`;
@@ -9825,14 +9898,14 @@ import "./styles.css";
                     </div>
                     <div style={{ flex:1 }}>
                       <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name}</span>
-                      <span style={{ fontSize:13, color:th.muted }}> completed a workout</span>
+                      <span style={{ fontSize:13, color:th.muted }}> {t("completed a workout")}</span>
                     </div>
                     <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
                   </div>
                   {/* Session card */}
                   <div style={{ background:th.sect, borderRadius:10, padding:"12px 14px" }}>
                     {/* Session name */}
-                    <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:10 }}>{s.name || "Workout"}</div>
+                    <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:10 }}>{s.name || t("Workout")}</div>
                     {/* Stats grid */}
                     {stats.length > 0 && (
                       <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: muscles.length > 0 ? 10 : 0 }}>
@@ -16162,25 +16235,25 @@ import "./styles.css";
                   }}
                 >
                   {view === "home"
-                    ? "HOME"
+                    ? tLang("HOME")
                     : view === "programs"
-                    ? "WORKOUTS"
+                    ? tLang("WORKOUTS")
                     : view === "history"
-                    ? "SESSION HISTORY"
+                    ? tLang("SESSION HISTORY")
                     : view === "sharing"
-                    ? "SHARING"
+                    ? tLang("SHARING")
                     : view === "create"
-                    ? "CONFIGURE SESSION"
+                    ? tLang("CONFIGURE SESSION")
                     : view === "editProgram"
                     ? editingProg
-                      ? "EDIT PROGRAM"
-                      : "NEW PROGRAM"
+                      ? tLang("EDIT PROGRAM")
+                      : tLang("NEW PROGRAM")
                     : view === "sessionDetail"
-                    ? "SESSION DETAIL"
+                    ? tLang("SESSION DETAIL")
                     : view === "complete"
-                    ? "SESSION COMPLETE"
+                    ? tLang("SESSION COMPLETE")
                     : view === "shortcutDetail"
-                    ? selShortcut?.name || "SHORTCUT"
+                    ? selShortcut?.name || tLang("SHORTCUT")
                     : ""}
                 </div>
 
@@ -16878,22 +16951,22 @@ import "./styles.css";
             overflow:"hidden",
           }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px 10px" }}>
-              <div style={{ fontSize:11, fontWeight:700, letterSpacing:"1.5px", color:th.sub }}>NOTIFICATIONS</div>
+              <div style={{ fontSize:11, fontWeight:700, letterSpacing:"1.5px", color:th.sub }}>{tLang("NOTIFICATIONS")}</div>
               <button onClick={closeNotif} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
             </div>
             {starNotifications.length === 0 ? (
-              <div style={{ padding:"12px 16px 20px", textAlign:"center", color:th.muted, fontSize:13 }}>No notifications yet.</div>
+              <div style={{ padding:"12px 16px 20px", textAlign:"center", color:th.muted, fontSize:13 }}>{tLang("No notifications yet.")}</div>
             ) : (
               <div style={{ maxHeight:300, overflowY:"auto" }}>
                 {starNotifications.map((n, i) => {
                   const diff = Date.now() - (n.ts || 0);
                   const m = Math.floor(diff / 60000);
                   const d = Math.floor(diff / 86400000);
-                  const timeStr = m < 1 ? "just now"
-                    : m < 60 ? `${m}m ago`
-                    : diff < 86400000 ? `${Math.floor(diff/3600000)}h ago`
-                    : d === 1 ? "1 day ago"
-                    : `${d} days ago`;
+                  const timeStr = m < 1 ? tLang("just now")
+                    : m < 60 ? `${m}${tLang("m ago")}`
+                    : diff < 86400000 ? `${Math.floor(diff/3600000)}${tLang("h ago")}`
+                    : d === 1 ? tLang("1 day ago")
+                    : `${d} ${tLang("days ago")}`;
                   const iconBg = n.type === "compete_accepted" || n.type === "compete_invite"
                     ? "rgba(212,175,55,0.18)"
                     : n.type === "coach_request" || n.type === "coach_accepted"
@@ -16908,9 +16981,35 @@ import "./styles.css";
                     : n.type === "friend_accepted"
                     ? <svg width="14" height="14" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="7.5" r="3.5" stroke={th.accentFg} strokeWidth="2"/><path d="M3 19.5c0-4.418 3.582-8 8-8s8 3.582 8 8" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/></svg>
                     : <svg width="14" height="14" viewBox="0 0 22 22" fill={th.accentFg}><polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke={th.accentFg} strokeWidth="1.4" strokeLinejoin="round"/></svg>;
-                  const text = n.text || (n.type === "star"
-                    ? <><span style={{ fontWeight:700 }}>{n.name || "Someone"}</span><span style={{ color:th.muted }}> starred your </span><span style={{ fontWeight:600, color:th.text }}>{n.sessionName || "workout"}</span></>
-                    : <span style={{ color:th.text }}>{n.name || "Someone"}</span>);
+                  const who = n.name || tLang("Someone");
+                  const renderText = () => {
+                    if (n.type === "star") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("starred your")} </span><span style={{ fontWeight:600, color:th.text }}>{n.sessionName || tLang("workout")}</span></>;
+                    }
+                    if (n.type === "program_star") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("starred your program")}</span></>;
+                    }
+                    if (n.type === "friend_request") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("sent you a friend request")}</span></>;
+                    }
+                    if (n.type === "friend_accepted") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("accepted your friend request")}</span></>;
+                    }
+                    if (n.type === "compete_invite") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("challenged you to a competition")}</span></>;
+                    }
+                    if (n.type === "compete_accepted") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("accepted your competition challenge")}</span></>;
+                    }
+                    if (n.type === "coach_request") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("wants to be your coach")}</span></>;
+                    }
+                    if (n.type === "coach_accepted") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("accepted your coaching request")}</span></>;
+                    }
+                    return n.text || <span style={{ color:th.text }}>{who}</span>;
+                  };
+                  const text = renderText();
                   return (
                     <div key={n.id || i} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderTop:`1px solid ${th.border}` }}>
                       <div style={{ width:32, height:32, borderRadius:"50%", background:iconBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
