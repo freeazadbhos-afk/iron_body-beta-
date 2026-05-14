@@ -696,6 +696,58 @@ import "./styles.css";
       "Ölçümler bölümünden en son kaydettiğin ağırlık, kas kütlesi yüzdesi ve vücut yağ yüzdesi.",
     "Chart of your last 7 body measurements for weight, muscle %, or fat %. Switch tabs to view each metric's trend.":
       "Ağırlık, kas % veya yağ % için son 7 vücut ölçümünün grafiği. Her metriğin eğilimini görmek için sekmeleri değiştir.",
+
+    // Strength Progression — movement groups
+    "Push": "İtme",
+    "Pull": "Çekme",
+    "No data yet for this movement group.": "Bu hareket grubu için henüz veri yok.",
+    "Not enough data": "Yeterli veri yok",
+    "Log at least 2 sessions with": "Eğilimi görmek için en az 2 antrenman kaydet:",
+    "to see the trend.": " eğilimi görmek için.",
+
+    // ACWR statuses
+    "DELOAD RECOMMENDED": "DELOAD ÖNERİLİR",
+    "Acute load is significantly above chronic baseline. Risk of overtraining is high.":
+      "Akut yük kronik temelin önemli ölçüde üzerinde. Aşırı antrenman riski yüksek.",
+    "HIGH LOAD": "YÜKSEK YÜK",
+    "Training load is elevated. Monitor recovery closely.": "Antrenman yükü yüksek. Toparlanmayı yakından izle.",
+    "SWEET SPOT": "İDEAL NOKTA",
+    "Load is well-balanced. Ideal for progressive overload.": "Yük iyi dengelenmiş. Aşamalı yüklenme için ideal.",
+    "BELOW BASELINE": "TEMELİN ALTINDA",
+    "Acute load is lower than usual. Good week to ramp back up.": "Akut yük her zamankinden düşük. Tempoyu artırmak için iyi bir hafta.",
+    "VERY LOW": "ÇOK DÜŞÜK",
+    "Minimal training stimulus this week.": "Bu hafta minimal antrenman uyarısı.",
+    "Sweet spot": "İdeal nokta",
+    "High": "Yüksek",
+    "Deload": "Deload",
+
+    // Sets by muscle legend
+    "Maintenance": "Sürdürme",
+    "Optimal": "Optimal",
+    "Excess": "Aşırı",
+
+    // Relative Strength
+    "Back Squat": "Sırtüstü Squat",
+    "Bench Press": "Bench Press",
+    "Deadlift": "Deadlift",
+    "Overhead Press": "Baş Üstü Pres",
+    "Bodyweight:": "Vücut ağırlığı:",
+    "target": "hedef",
+
+    // Training Density
+    "KG/MIN (WEEKLY)": "KG/DK (HAFTALIK)",
+
+    // Muscle names (used in PRs row and other places)
+    "Mid Back": "Orta Sırt",
+    "Upper Back": "Üst Sırt",
+    "Full Back": "Tüm Sırt",
+    "Lower Back": "Alt Sırt",
+    "Traps": "Trapez",
+    "Front Delts": "Ön Omuz",
+    "Side Delts": "Yan Omuz",
+    "Rear Delts": "Arka Omuz",
+    "Brachialis": "Brachialis",
+    "Obliques": "Yan Karın",
     "Total tonnage (sets x reps x weight) lifted per week over the last 5 weeks. Tracks progressive overload and weekly load management.":
       "Son 5 haftada haftada kaldırılan toplam tonaj (set x tekrar x ağırlık). Aşamalı yüklenmeyi ve haftalık yük yönetimini izler.",
     "BODY COMPOSITION": "VÜCUT KOMPOZİSYONU",
@@ -3937,7 +3989,7 @@ import "./styles.css";
                 </div>
                 {/* Row 3: sets info */}
                 <div style={{ fontSize:11, color:th.muted, marginTop:4 }}>
-                  {isCardio ? "Cardio" : `${sets.length} sets · ${sets[0]?.reps ?? "?"}reps · ${sets[0]?.weight ?? "?"}kg`}
+                  {isCardio ? t("Cardio") : `${sets.length} ${t("sets")} · ${sets[0]?.reps ?? "?"}${t("reps")} · ${sets[0]?.weight ?? "?"}kg`}
                 </div>
               </div>
             </div>
@@ -5068,7 +5120,7 @@ import "./styles.css";
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:700, color:th.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{pr.name}</div>
                   <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>
-                    {pr.muscle}{pr.reps ? ` · ${pr.reps} reps` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
+                    {pr.muscle ? t(pr.muscle) : ""}{pr.reps ? ` · ${pr.reps} ${t("reps")}` : ""} · {new Date(pr.t).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})}
                   </div>
                 </div>
                 <div style={{ textAlign:"right", flexShrink:0 }}>
@@ -5152,16 +5204,16 @@ import "./styles.css";
     const [dir, setDir] = useState(1);
 
     const GROUPS = [
-      { label: "Chest",      muscles: ["Chest","Upper Chest","Lower Chest"],                           min: 10, max: 20 },
-      { label: "Back",       muscles: ["Lats","Mid Back","Upper Back","Full Back","Lower Back","Traps"], min: 10, max: 20 },
-      { label: "Shoulders",  muscles: ["Shoulders","Front Delts","Side Delts","Rear Delts"],            min: 12, max: 22 },
-      { label: "Biceps",     muscles: ["Biceps","Brachialis"],                                          min: 8,  max: 16 },
-      { label: "Triceps",    muscles: ["Triceps"],                                                      min: 8,  max: 16 },
-      { label: "Quads",      muscles: ["Quads"],                                                        min: 8,  max: 16 },
-      { label: "Hamstrings", muscles: ["Hamstrings"],                                                   min: 6,  max: 14 },
-      { label: "Glutes",     muscles: ["Glutes"],                                                       min: 6,  max: 14 },
-      { label: "Abs",        muscles: ["Abs","Core"],                                                   min: 6,  max: 14 },
-      { label: "Calves",     muscles: ["Calves"],                                                       min: 6,  max: 14 },
+      { label: t("Chest"),      muscles: ["Chest","Upper Chest","Lower Chest"],                           min: 10, max: 20 },
+      { label: t("Back"),       muscles: ["Lats","Mid Back","Upper Back","Full Back","Lower Back","Traps"], min: 10, max: 20 },
+      { label: t("Shoulders"),  muscles: ["Shoulders","Front Delts","Side Delts","Rear Delts"],            min: 12, max: 22 },
+      { label: t("Biceps"),     muscles: ["Biceps","Brachialis"],                                          min: 8,  max: 16 },
+      { label: t("Triceps"),    muscles: ["Triceps"],                                                      min: 8,  max: 16 },
+      { label: t("Quads"),      muscles: ["Quads"],                                                        min: 8,  max: 16 },
+      { label: t("Hamstrings"), muscles: ["Hamstrings"],                                                   min: 6,  max: 14 },
+      { label: t("Glutes"),     muscles: ["Glutes"],                                                       min: 6,  max: 14 },
+      { label: t("Abs"),        muscles: ["Abs","Core"],                                                   min: 6,  max: 14 },
+      { label: t("Calves"),     muscles: ["Calves"],                                                       min: 6,  max: 14 },
     ];
 
     const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -5208,7 +5260,7 @@ import "./styles.css";
               <DashInfoBtn title={t("Sets By Muscle Group")} text={t("Weekly set volume per muscle group compared to evidence-based hypertrophy targets (10-20 sets/week). Bars show actual sets done, colored zones show where you stand.")} />
             </div>
           <div style={{ display:"flex", alignItems:"center", gap: 8 }}>
-            <span style={{ fontSize: 10, color: th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</span>
+            <span style={{ fontSize: 10, color: th.dim, letterSpacing:"0.5px" }}>{t("LAST 7 DAYS")}</span>
             {totalPages > 1 && (
               <>
                 <button onClick={() => goTo(Math.max(0, page-1))} disabled={page===0}
@@ -5322,15 +5374,15 @@ import "./styles.css";
         <div style={{ display:"flex", gap:10, marginTop:6, flexWrap:"wrap", borderTop:`1px solid ${th.border}`, paddingTop:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:"rgba(128,128,128,0.15)" }} />
-            <span style={{ fontSize:11, color:th.dim }}>Maintenance</span>
+            <span style={{ fontSize:11, color:th.dim }}>{t("Maintenance")}</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:`${th.accentBg}20`, border:`1px solid ${th.accentBg}55` }} />
-            <span style={{ fontSize:11, color:th.dim }}>Optimal</span>
+            <span style={{ fontSize:11, color:th.dim }}>{t("Optimal")}</span>
           </div>
           <div style={{ display:"flex", alignItems:"center", gap:4 }}>
             <div style={{ width:14, height:10, borderRadius:2, background:`${th.delText}22` }} />
-            <span style={{ fontSize:11, color:th.dim }}>Excess</span>
+            <span style={{ fontSize:11, color:th.dim }}>{t("Excess")}</span>
           </div>
         </div>
       </div>
@@ -5363,11 +5415,11 @@ import "./styles.css";
     const APP_ORANGE = "#E8612C";
     const APP_RED    = "#CC1F42";
     const status =
-      acwr > 1.5  ? { label: "DELOAD RECOMMENDED", col: APP_RED,    desc: "Acute load is significantly above chronic baseline. Risk of overtraining is high." } :
-      acwr > 1.3  ? { label: "HIGH LOAD",           col: APP_ORANGE, desc: "Training load is elevated. Monitor recovery closely." } :
-      acwr >= 0.8 ? { label: "SWEET SPOT",          col: th.accentBg,desc: "Load is well-balanced. Ideal for progressive overload." } :
-      acwr >= 0.5 ? { label: "BELOW BASELINE",      col: th.accentFg,desc: "Acute load is lower than usual. Good week to ramp back up." } :
-                    { label: "VERY LOW",             col: th.muted,   desc: "Minimal training stimulus this week." };
+      acwr > 1.5  ? { label: t("DELOAD RECOMMENDED"), col: APP_RED,    desc: t("Acute load is significantly above chronic baseline. Risk of overtraining is high.") } :
+      acwr > 1.3  ? { label: t("HIGH LOAD"),           col: APP_ORANGE, desc: t("Training load is elevated. Monitor recovery closely.") } :
+      acwr >= 0.8 ? { label: t("SWEET SPOT"),          col: th.accentBg,desc: t("Load is well-balanced. Ideal for progressive overload.") } :
+      acwr >= 0.5 ? { label: t("BELOW BASELINE"),      col: th.accentFg,desc: t("Acute load is lower than usual. Good week to ramp back up.") } :
+                    { label: t("VERY LOW"),             col: th.muted,   desc: t("Minimal training stimulus this week.") };
 
     // Build 4-week ACWR history for chart
     const weeks = Array.from({ length: 5 }, (_, i) => {
@@ -5457,9 +5509,9 @@ import "./styles.css";
         {/* Legend */}
         <div style={{ display:"flex", gap: 14, marginTop: 6, flexWrap: "wrap" }}>
           {[
-            { col: th.accentBg, label: "Sweet spot  0.8-1.3" },
-            { col: APP_ORANGE, label: "High  1.3-1.5" },
-            { col: APP_RED,    label: "Deload  >1.5" },
+            { col: th.accentBg, label: `${t("Sweet spot")}  0.8-1.3` },
+            { col: APP_ORANGE, label: `${t("High")}  1.3-1.5` },
+            { col: APP_RED,    label: `${t("Deload")}  >1.5` },
           ].map(({ col, label }) => (
             <div key={label} style={{ display:"flex", alignItems:"center", gap: 5 }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
@@ -5481,10 +5533,10 @@ import "./styles.css";
     if (!bw) return null;
 
     const KEY_LIFTS = [
-      { ids: ["e92","e93","lg1"], label: "Back Squat",          target: 1.5 },
-      { ids: ["e1","e2","e51"],   label: "Bench Press",         target: 1.25 },
-      { ids: ["e59","e60"],       label: "Deadlift",            target: 2.0 },
-      { ids: ["e28","e29","e90"], label: "Overhead Press",      target: 0.75 },
+      { ids: ["e92","e93","lg1"], label: t("Back Squat"),          target: 1.5 },
+      { ids: ["e1","e2","e51"],   label: t("Bench Press"),         target: 1.25 },
+      { ids: ["e59","e60"],       label: t("Deadlift"),            target: 2.0 },
+      { ids: ["e28","e29","e90"], label: t("Overhead Press"),      target: 0.75 },
     ];
 
     const pr = {};
@@ -5514,7 +5566,7 @@ import "./styles.css";
               <div style={{ ...S.label }}>{t("RELATIVE STRENGTH")}</div>
               <DashInfoBtn title={t("Relative Strength")} text={t("Estimated 1RM (One-Rep Max) relative to your body weight for key lifts. A squat of 1.5x Bodyweight means you squat 1.5 times your own weight — a meaningful standard regardless of body size.")} />
             </div>
-          <div style={{ fontSize:11, color:th.dim }}>Bodyweight: {bw}kg</div>
+          <div style={{ fontSize:11, color:th.dim }}>{t("Bodyweight:")} {bw}kg</div>
         </div>
         {rows.map(({ label, mult, target, best }) => {
           const pct = Math.min((mult / (target * 1.5)) * 100, 100);
@@ -5525,7 +5577,7 @@ import "./styles.css";
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:5 }}>
                 <div>
                   <span style={{ fontSize:13, fontWeight:600, color:th.text }}>{label}</span>
-                  <span style={{ fontSize:12, color:th.dim, marginLeft:6 }}>target {target}x</span>
+                  <span style={{ fontSize:12, color:th.dim, marginLeft:6 }}>{t("target")} {target}x</span>
                 </div>
                 <span className="bebas" style={{ fontSize:24, color: hit ? th.accentFg : th.muted, lineHeight:1 }}>
                   {mult.toFixed(2)}x
@@ -5603,7 +5655,7 @@ import "./styles.css";
                 {arrow && <span style={{ fontSize:14, color:arrowCol, fontWeight:700 }}>{arrow}</span>}
                 <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{fmtD(latest)}</span>
               </div>
-              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>KG/MIN (WEEKLY)</div>
+              <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>{t("KG/MIN (WEEKLY)")}</div>
             </div>
           )}
         </div>
@@ -5631,18 +5683,22 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const t = useT();
-    // Map DB groups to movement categories
+    // Map DB groups to movement categories.
+    // Every non-cardio DB group routes to one of these buckets so no logged
+    // exercise is left out of the strength progression chart.
     const GROUP_MAP = {
       "Chest":"Push","Shoulders":"Push",
       "Back":"Pull",
       "Legs":"Legs",
       "Arms":"Arms",
+      "Core":"Core",
     };
     const GROUPS = [
-      { key: "Push", label: "Push", col: th.accentBg },
-      { key: "Pull", label: "Pull", col: "#5B9CF6"   },
-      { key: "Legs", label: "Legs", col: "#E8612C"   },
-      { key: "Arms", label: "Arms", col: "#ff7675"   },
+      { key: "Push", label: t("Push"), col: th.accentBg },
+      { key: "Pull", label: t("Pull"), col: "#5B9CF6"   },
+      { key: "Legs", label: t("Legs"), col: "#E8612C"   },
+      { key: "Arms", label: t("Arms"), col: "#ff7675"   },
+      { key: "Core", label: t("Core"), col: "#a29bfe"   },
     ];
     const [selGroup, setSelGroup] = useState("Push");
     const [selId, setSelId] = useState("");
@@ -5709,7 +5765,7 @@ import "./styles.css";
           ))}
         </div>
         {shownLifts.length === 0 && (
-          <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>No data yet for this movement group.</div>
+          <div style={{ fontSize:12, color:th.muted, padding:"10px 0" }}>{t("No data yet for this movement group.")}</div>
         )}
         {shownLifts.length > 1 && (
           <div style={{ display:"flex", gap:4, marginBottom:10, flexWrap:"wrap" }}>
@@ -5735,8 +5791,8 @@ import "./styles.css";
           const pts = allPts.slice(-7);
           if (pts.length < 2) return (
             <div key={selGroup+selId} style={{ height:80, display:"flex", flexDirection:"column", justifyContent:"center", gap:4, animation:"tabSlideIn 0.2s ease-out" }}>
-              <div style={{ fontSize:12, color:th.muted, fontWeight:600 }}>Not enough data</div>
-              <div style={{ fontSize:11, color:th.dim }}>Log at least 2 sessions with <span style={{ color:th.sub }}>{lift.name}</span> to see the trend.</div>
+              <div style={{ fontSize:12, color:th.muted, fontWeight:600 }}>{t("Not enough data")}</div>
+              <div style={{ fontSize:11, color:th.dim }}>{t("Log at least 2 sessions with")} <span style={{ color:th.sub }}>{lift.name}</span> {t("to see the trend.")}</div>
             </div>
           );
           const vals = pts.map(p => p.w);
@@ -6373,9 +6429,9 @@ import "./styles.css";
               })()}
               <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {[
-                  { label: "Resistance", swatch: th.accentBg },
-                  { label: "Cardio", swatch: "#5B9CF6" },
-                  { label: "Mix", swatch: "#E8612C" },
+                  { label: t("Resistance"), swatch: th.accentBg },
+                  { label: t("Cardio"), swatch: "#5B9CF6" },
+                  { label: t("Mix"), swatch: "#E8612C" },
                 ].map(({ label, swatch }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
@@ -6466,9 +6522,9 @@ import "./styles.css";
               })()}
               <div style={{ display: "flex", gap: 12, marginTop: 8, justifyContent: "center", flexWrap: "wrap" }}>
                 {[
-                  { label: "Resistance", swatch: th.accentBg },
-                  { label: "Cardio", swatch: "#5B9CF6" },
-                  { label: "Mix", swatch: "#E8612C" },
+                  { label: t("Resistance"), swatch: th.accentBg },
+                  { label: t("Cardio"), swatch: "#5B9CF6" },
+                  { label: t("Mix"), swatch: "#E8612C" },
                 ].map(({ label, swatch }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                     <div style={{ width: 22, height: 8, borderRadius: 2, background: swatch }} />
@@ -6889,7 +6945,7 @@ import "./styles.css";
           })}
         </div>
         <div style={{display:"flex",gap:10,marginTop:8,justifyContent:"center"}}>
-          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+          {[{l:t("Resistance"),c:th.accentBg},{l:t("Cardio"),c:"#5B9CF6"},{l:t("Mix"),c:"#E8612C"}].map(({l,c})=>(
             <div key={l} style={{display:"flex",alignItems:"center",gap:4}}><div style={{width:8,height:8,borderRadius:"50%",background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
           ))}
         </div>
@@ -6957,7 +7013,7 @@ import "./styles.css";
           })}
         </div>
         <div style={{display:"flex",gap:12,marginTop:8,justifyContent:"center",flexWrap:"wrap"}}>
-          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+          {[{l:t("Resistance"),c:th.accentBg},{l:t("Cardio"),c:"#5B9CF6"},{l:t("Mix"),c:"#E8612C"}].map(({l,c})=>(
             <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:22,height:8,borderRadius:2,background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
           ))}
         </div>
@@ -7005,7 +7061,7 @@ import "./styles.css";
           })}
         </div>
         <div style={{display:"flex",gap:12,marginTop:8,justifyContent:"center",flexWrap:"wrap"}}>
-          {[{l:"Resistance",c:th.accentBg},{l:"Cardio",c:"#5B9CF6"},{l:"Mix",c:"#E8612C"}].map(({l,c})=>(
+          {[{l:t("Resistance"),c:th.accentBg},{l:t("Cardio"),c:"#5B9CF6"},{l:t("Mix"),c:"#E8612C"}].map(({l,c})=>(
             <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:22,height:8,borderRadius:2,background:c}}/><span style={{fontSize:10,color:th.dim}}>{l}</span></div>
           ))}
         </div>
@@ -17135,9 +17191,9 @@ import "./styles.css";
                     {/* Legend */}
                     <div style={{ display: "flex", gap: 10, marginTop: 12, justifyContent: "center", flexWrap: "wrap" }}>
                       {[
-                        { col: STRENGTH_COL, label: "Resistance" },
-                        { col: CARDIO_COL,   label: "Cardio" },
-                        { col: BOTH_COL,     label: "Mix" },
+                        { col: STRENGTH_COL, label: tLang("Resistance") },
+                        { col: CARDIO_COL,   label: tLang("Cardio") },
+                        { col: BOTH_COL,     label: tLang("Mix") },
                       ].map(({ col, label }) => (
                         <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                           <div style={{ width: 8, height: 8, borderRadius: "50%", background: col }} />
