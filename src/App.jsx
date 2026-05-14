@@ -295,6 +295,7 @@ import "./styles.css";
     "Search exercises...": "Egzersiz ara...",
     "No exercises found.": "Egzersiz bulunamadı.",
     "Remove this exercise?": "Bu egzersizi kaldırmak istiyor musun?",
+    "Remove set": "Seti kaldır",
     "Add Exercises": "Egzersiz Ekle",
     "Tap 'Add Exercise' to browse and select exercises. You can add multiple at once — they'll appear as cards below.":
       "Egzersiz seçmek için 'Egzersiz Ekle'ye dokun. Birden fazla seçebilirsin — kart olarak aşağıda görünecekler.",
@@ -500,7 +501,6 @@ import "./styles.css";
     "Are you sure?": "Emin misin?",
     "This action cannot be undone": "Bu işlem geri alınamaz",
     "Coming soon": "Yakında",
-    "TRACK · LIFT · PROGRESS": "TAKİP · KALDIR · İLERLE",
     "Got it ✔︎": "Tamam ✔︎",
     "Next →": "İleri →",
 
@@ -4576,7 +4576,7 @@ import "./styles.css";
               letterSpacing: "3px",
             }}
           >
-            {t("TRACK · LIFT · PROGRESS")}
+            TRACK · LIFT · PROGRESS
           </div>
           <div
             style={{
@@ -11920,7 +11920,7 @@ import "./styles.css";
                     fontWeight: 600,
                   }}
                 >
-                  REMOVE
+                  {t("REMOVE")}
                 </button>
               </div>
 
@@ -12040,7 +12040,7 @@ import "./styles.css";
                         />
                         <button
                           onClick={() => removeSet(eIdx, sIdx)}
-                          title="Remove set"
+                          title={t("Remove set")}
                           style={{
                             background: "rgba(220,50,50,0.12)",
                             border: "1px solid rgba(220,50,50,0.3)",
@@ -15715,7 +15715,7 @@ import "./styles.css";
                 IRON<br />BODY
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:0, fontFamily:"'Outfit',sans-serif", fontSize:12, letterSpacing:"3px", color:"rgba(255,255,255,0.45)" }}>
-                {(lang === "tr" ? ["TAKİP","·","KALDIR","·","İLERLE"] : ["TRACK","·","LIFT","·","PROGRESS"]).map((word, i) => (
+                {["TRACK","·","LIFT","·","PROGRESS"].map((word, i) => (
                   <span key={word + i} style={{
                     display:"inline-block",
                     marginRight: word === "·" ? 0 : 0,
