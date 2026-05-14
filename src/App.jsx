@@ -119,6 +119,527 @@ import "./styles.css";
   };
   const ThemeCtx = createContext(DARK);
   const useTheme = () => useContext(ThemeCtx);
+
+  /* ─── i18n (English / Türkçe) ───────────────────────────────────────────────── */
+  const TR = {
+    // Nav
+    "Home": "Ana Sayfa",
+    "Programs": "Programlar",
+    "Workout": "Antrenman",
+    "Profile": "Profil",
+    "Friends": "Arkadaşlar",
+    "Coach": "Koç",
+    "HOME": "ANA SAYFA",
+    "WORKOUTS": "ANTRENMANLAR",
+    "HISTORY": "GEÇMİŞ",
+    "SHARING": "PAYLAŞIM",
+    "PROGRAMS": "PROGRAMLAR",
+    "PROFILE": "PROFİL",
+    "FRIENDS": "ARKADAŞLAR",
+    "COACH": "KOÇ",
+
+    // Auth
+    "Sign in": "Giriş yap",
+    "Sign up": "Kayıt ol",
+    "Log in": "Giriş yap",
+    "Log out": "Çıkış yap",
+    "Sign out": "Çıkış yap",
+    "LOG IN": "GİRİŞ",
+    "SIGN UP": "KAYIT OL",
+    "LOG IN →": "GİRİŞ →",
+    "CREATE ACCOUNT →": "HESAP OLUŞTUR →",
+    "PLEASE WAIT...": "LÜTFEN BEKLE...",
+    "SENDING...": "GÖNDERİLİYOR...",
+    "SEND RESET EMAIL": "SIFIRLAMA E-POSTASI GÖNDER",
+    "Reset email sent!": "Sıfırlama e-postası gönderildi!",
+    "Check your inbox and follow the link to reset your password.": "Gelen kutunu kontrol et ve parolanı sıfırlamak için bağlantıyı takip et.",
+    "Back to login": "Girişe dön",
+    "Enter your email and we'll send a reset link.": "E-postanı gir, sana sıfırlama bağlantısı gönderelim.",
+    "No account? Sign up →": "Hesabın yok mu? Kayıt ol →",
+    "Already registered? Log in →": "Zaten kayıtlı mısın? Giriş yap →",
+    "First name": "Ad",
+    "Password (6+ chars)": "Parola (en az 6 karakter)",
+    "New password (6+ chars)": "Yeni parola (en az 6 karakter)",
+    "Verify current password": "Mevcut parolanı doğrula",
+    "Email": "E-posta",
+    "Password": "Parola",
+    "Confirm password": "Parolayı onayla",
+    "Forgot password?": "Parolanı mı unuttun?",
+    "Forgot password": "Parolamı unuttum",
+    "Reset password": "Parolayı sıfırla",
+    "Continue": "Devam et",
+    "Continue as guest": "Misafir olarak devam et",
+    "Create account": "Hesap oluştur",
+    "Welcome back": "Tekrar hoş geldin",
+    "Welcome": "Hoş geldin",
+    "Name": "İsim",
+    "Full name": "Tam isim",
+    "Age": "Yaş",
+    "Gender": "Cinsiyet",
+    "Male": "Erkek",
+    "Female": "Kadın",
+    "Other": "Diğer",
+    "Already have an account?": "Hesabın var mı?",
+    "Don't have an account?": "Hesabın yok mu?",
+    "or": "ya da",
+    "Send reset link": "Sıfırlama bağlantısı gönder",
+    "Reset link sent": "Sıfırlama bağlantısı gönderildi",
+
+    // Common buttons / actions
+    "Save": "Kaydet",
+    "Cancel": "İptal",
+    "Close": "Kapat",
+    "Delete": "Sil",
+    "Edit": "Düzenle",
+    "Remove": "Kaldır",
+    "Add": "Ekle",
+    "Done": "Tamam",
+    "Next": "İleri",
+    "Skip": "Atla",
+    "Yes": "Evet",
+    "No": "Hayır",
+    "OK": "Tamam",
+    "Search": "Ara",
+    "Loading...": "Yükleniyor...",
+    "Loading": "Yükleniyor",
+    "Saving...": "Kaydediliyor...",
+    "Saving": "Kaydediliyor",
+    "View All": "Tümünü Gör",
+    "View all": "Tümünü gör",
+    "See all": "Tümünü gör",
+    "Send": "Gönder",
+    "Submit": "Gönder",
+    "Update": "Güncelle",
+    "Apply": "Uygula",
+    "Reset": "Sıfırla",
+    "Settings": "Ayarlar",
+    "Options": "Seçenekler",
+
+    // Home / Stats
+    "Good morning": "Günaydın",
+    "Good afternoon": "İyi günler",
+    "Good evening": "İyi akşamlar",
+    "Good night": "İyi geceler",
+    "This week": "Bu hafta",
+    "This month": "Bu ay",
+    "All time": "Tüm zamanlar",
+    "Today": "Bugün",
+    "Yesterday": "Dün",
+    "Week": "Hafta",
+    "Month": "Ay",
+    "Year": "Yıl",
+    "Sessions": "Antrenmanlar",
+    "Workouts": "Antrenmanlar",
+    "Sets": "Setler",
+    "Reps": "Tekrar",
+    "Weight": "Ağırlık",
+    "Volume": "Hacim",
+    "Duration": "Süre",
+    "Calories": "Kalori",
+    "Intensity": "Yoğunluk",
+    "Distance": "Mesafe",
+    "min": "dk",
+    "FROM WEARABLE / APPLE WATCH": "AKILLI SAATTEN / APPLE WATCH",
+    "Streak": "Seri",
+    "day streak": "günlük seri",
+    "Personal records": "Kişisel rekorlar",
+    "Personal Records": "Kişisel Rekorlar",
+    "Recent activity": "Son aktiviteler",
+    "Recent Activity": "Son Aktiviteler",
+    "Recent sessions": "Son antrenmanlar",
+    "No sessions yet": "Henüz antrenman yok",
+    "Start your first workout": "İlk antrenmanına başla",
+    "Start workout": "Antrenmana başla",
+    "Start Workout": "Antrenmana Başla",
+    "START WORKOUT →": "ANTRENMANA BAŞLA →",
+    "Quick start": "Hızlı başla",
+    "Quick Start": "Hızlı Başla",
+    "Resume workout": "Antrenmana devam et",
+    "Resume": "Devam et",
+    "Pause": "Duraklat",
+    "Paused": "Duraklatıldı",
+    "Finish": "Bitir",
+    "Finish workout": "Antrenmanı bitir",
+    "Abandon": "Vazgeç",
+    "Abandon workout": "Antrenmandan vazgeç",
+    "Minimize": "Küçült",
+
+    // Programs / Create
+    "New program": "Yeni program",
+    "New Program": "Yeni Program",
+    "Create program": "Program oluştur",
+    "Create Program": "Program Oluştur",
+    "Edit program": "Programı düzenle",
+    "Delete program": "Programı sil",
+    "Save changes": "Değişiklikleri kaydet",
+    "Program name": "Program adı",
+    "Programs are your saved workout templates — a list of exercises, sets, and reps ready to go whenever you are.":
+      "Programlar kaydettiğin antrenman şablonlarıdır — egzersizler, setler ve tekrar sayıları her an hazır.",
+    "No programs yet": "Henüz program yok",
+    "NO PROGRAMS": "PROGRAM YOK",
+    "Create your first workout program": "İlk antrenman programını oluştur",
+    "exercise": "egzersiz",
+    "exercises": "egzersiz",
+    "Add exercises below": "Aşağıdan egzersiz ekle",
+    "Add exercise": "Egzersiz ekle",
+    "Add exercises": "Egzersiz ekle",
+    "Add set": "Set ekle",
+    "Add lap / segment": "Tur / bölüm ekle",
+    "Search exercises or muscles...": "Egzersiz veya kas grubu ara...",
+    "Search exercises...": "Egzersiz ara...",
+    "No exercises found.": "Egzersiz bulunamadı.",
+    "Remove this exercise?": "Bu egzersizi kaldırmak istiyor musun?",
+    "Add Exercises": "Egzersiz Ekle",
+    "Tap 'Add Exercise' to browse and select exercises. You can add multiple at once — they'll appear as cards below.":
+      "Egzersiz seçmek için 'Egzersiz Ekle'ye dokun. Birden fazla seçebilirsin — kart olarak aşağıda görünecekler.",
+    "Tap below to build your session": "Antrenmanını oluşturmak için aşağıya dokun",
+    "Session name...": "Antrenman adı...",
+    "e.g. Push Day": "ör. İtiş Günü",
+
+    // Muscle filters
+    "All": "Tümü",
+    "Chest": "Göğüs",
+    "Back": "Sırt",
+    "Legs": "Bacak",
+    "Shoulders": "Omuz",
+    "Arms": "Kol",
+    "Biceps": "Biceps",
+    "Triceps": "Triceps",
+    "Core": "Karın",
+    "Abs": "Karın",
+    "Glutes": "Kalça",
+    "Cardio": "Kardiyo",
+    "Full Body": "Tüm Vücut",
+    "Upper Chest": "Üst Göğüs",
+    "Lower Chest": "Alt Göğüs",
+    "Lats": "Latissimus",
+    "Forearms": "Ön kol",
+    "Quads": "Quadriceps",
+    "Hamstrings": "Hamstring",
+    "Calves": "Baldır",
+
+    // Workout view
+    "20% done — keep moving!": "%20 tamam — devam et!",
+    "Great start, stay focused.": "Harika başlangıç, odakta kal.",
+    "40% in — you're building momentum.": "%40 — momentum kazanıyorsun.",
+    "Keep that pace up!": "Tempoyu koru!",
+    "Over halfway — the hardest part is behind you.": "Yarıdan fazlası — en zor kısım geride.",
+    "60% done. Don't stop now.": "%60 tamam. Şimdi durma.",
+    "80%! Almost there — finish strong.": "%80! Az kaldı — güçlü bitir.",
+    "The last stretch separates the dedicated.": "Son düzlük adanmışları ayırır.",
+    "100%! Every rep counted.": "%100! Her tekrar değerliydi.",
+    "Full program complete — respect.": "Programı tamamladın — saygı.",
+    "Complete": "Tamamlandı",
+    "Completed": "Tamamlandı",
+    "Workout complete": "Antrenman tamamlandı",
+    "Workout Complete": "Antrenman Tamamlandı",
+    "Save session": "Antrenmanı kaydet",
+    "Save Session": "Antrenmanı Kaydet",
+    "SESSION": "ANTRENMAN",
+    "COMPLETE": "TAMAMLANDI",
+    "SAVE SESSION →": "ANTRENMANI KAYDET →",
+    "SETS DONE": "SET YAPILDI",
+    "EXERCISES": "EGZERSİZ",
+    "DURATION": "SÜRE",
+    "CALORIES": "KALORİ",
+    "VOLUME": "HACİM",
+    "burned": "yakıldı",
+    "lifted": "kaldırıldı",
+    "completed": "tamamlandı",
+    "recorded": "kaydedildi",
+    "of": "/",
+    "sets": "set",
+    "intensity": "yoğunluk",
+    "nothing left": "her şey verildi",
+    "SET INTENSITY": "YOĞUNLUĞU AYARLA",
+    "WORKOUT INTENSITY": "ANTRENMAN YOĞUNLUĞU",
+    "AUTO-ESTIMATED": "OTO-TAHMİN",
+    "Reset to estimate": "Tahmine sıfırla",
+    "How hard was your cardio session overall?": "Kardiyo seansın genel olarak ne kadar zorluydu?",
+    "Easy": "Kolay",
+    "Max": "Maks",
+    "APPLE WATCH DATA (optional)": "APPLE WATCH VERİSİ (isteğe bağlı)",
+    "DURATION (min)": "SÜRE (dk)",
+    "CALORIES (kcal)": "KALORİ (kcal)",
+    "e.g. 450": "ör. 450",
+    // Tier messages — celebration banner
+    "Absolutely elite. That session will be remembered.": "Mutlak elit. Bu antrenman hatırlanacak.",
+    "Perfect execution. The iron gods are pleased.": "Kusursuz uygulama. Demir tanrılar memnun.",
+    "That wasn't a workout. That was a statement.": "Bu bir antrenman değildi. Bir bildiriydi.",
+    "You didn't just train today — you dominated.": "Bugün sadece antrenman yapmadın — hükmettin.",
+    "Beast mode on. Everything else off. Perfection.": "Canavar modu açık. Diğer her şey kapalı. Mükemmellik.",
+    "Strong session. You left very little on the table.": "Güçlü antrenman. Çok az şey bıraktın.",
+    "That's how it's done. Consistent, powerful, focused.": "İşte böyle yapılır. Tutarlı, güçlü, odaklı.",
+    "The numbers don't lie — that was a great workout.": "Sayılar yalan söylemez — harika bir antrenmandı.",
+    "You showed up and you delivered. Respect.": "Geldin ve yaptın. Saygı.",
+    "Hard work compounding in real time. Well done.": "Sıkı çalışma anlık olarak birikiyor. Aferin.",
+    "Decent work. The bar is there — now raise it.": "İyi iş. Çıta orada — şimdi yükselt.",
+    "Solid session. A bit more gas next time and it's perfect.": "Sağlam antrenman. Bir dahaki sefere biraz daha gaz ve mükemmel.",
+    "You did the work. Could've pushed harder, but it counts.": "İşi yaptın. Daha fazla zorlayabilirdin, ama sayılır.",
+    "Good foundation. Build on it next session.": "İyi temel. Sonraki antrenmanda üzerine inşa et.",
+    "Middle of the road today. Which road are you taking tomorrow?": "Bugün ortalama. Yarın hangi yolu seçeceksin?",
+    "That was... a workout. Technically.": "Bu... teknik olarak bir antrenmandı.",
+    "The bar was there. You were also there. Occasionally.": "Bar oradaydı. Sen de oradaydın. Ara sıra.",
+    "Mediocre is just excellence in disguise. Wait, no it isn't.": "Sıradanlık mükemmelliğin kılığıdır. Dur, hayır değil.",
+    "Your muscles are confused. Your future self is disappointed.": "Kasların kafası karışık. Gelecekteki sen hayal kırıklığında.",
+    "You showed up. That's the most generous thing I can say.": "Geldin. Söyleyebileceğim en cömert şey bu.",
+    "The gym saw you today. It was not impressed.": "Spor salonu bugün seni gördü. Etkilenmedi.",
+    "Half-effort noted. Logged. Judged.": "Yarım çaba kaydedildi. Notlandı. Yargılandı.",
+    "You came, you barely conquered, you left early.": "Geldin, zar zor fethettin, erken çıktın.",
+    "Somewhere, your future gains are weeping quietly.": "Bir yerlerde, gelecekteki kazanımların sessizce ağlıyor.",
+    "On a scale of 1 to 10, this was a 3. And that's generous.": "1'den 10'a kadar bu bir 3'tü. Ve bu cömertçe.",
+    "Were you even here? The weights didn't notice.": "Burada mıydın gerçekten? Ağırlıklar fark etmedi.",
+    "You hit the gym so lightly it bounced you back.": "Spor salonuna o kadar hafif vurdun ki seni geri sektirdi.",
+    "This session happened. I can't say much else.": "Bu antrenman gerçekleşti. Daha fazla bir şey söyleyemem.",
+    "Your body asked for a workout. You sent a strongly worded letter instead.": "Vücudun antrenman istedi. Sen onun yerine sert bir mektup gönderdin.",
+    "The bar barely moved. Just like this session.": "Bar zar zor hareket etti. Tıpkı bu antrenman gibi.",
+    "Discard": "Vazgeç",
+    "Notes": "Notlar",
+    "Note": "Not",
+    "How did it feel?": "Nasıl hissettin?",
+
+    // Profile
+    "Appearance": "Görünüm",
+    "APPEARANCE": "GÖRÜNÜM",
+    "Language": "Dil",
+    "LANGUAGE": "DİL",
+    "Dark mode": "Koyu mod",
+    "Auto: dark 19:00-06:00": "Otomatik: koyu 19:00-06:00",
+    "RESET TO AUTO (TIME-BASED)": "OTOMATİĞE DÖN (SAATE GÖRE)",
+    "Currently auto —": "Şu an otomatik —",
+    "dark until 06:00": "06:00'a kadar koyu",
+    "light until 19:00": "19:00'a kadar açık",
+    "User Feedback": "Kullanıcı Geri Bildirimi",
+    "Send Feedback": "Geri Bildirim Gönder",
+    "All submitted reports": "Gönderilen tüm raporlar",
+    "Report bugs or suggest features": "Hata bildir veya özellik öner",
+    "Feedback sent!": "Geri bildirim gönderildi!",
+    "Thank you for helping improve Iron Body.": "Iron Body'yi geliştirmeye yardım ettiğin için teşekkürler.",
+    "Send another →": "Bir tane daha gönder →",
+    "Measurements": "Ölçümler",
+    "Body measurements": "Vücut ölçüleri",
+    "SAVE MEASUREMENT": "ÖLÇÜMÜ KAYDET",
+    "Save measurement": "Ölçümü kaydet",
+    "Edit profile": "Profili düzenle",
+    "You're signed in as a guest": "Misafir olarak giriş yaptın",
+    "Create an account to sync your data across devices.": "Verilerini cihazlar arasında senkronize etmek için hesap oluştur.",
+    "CREATE ACCOUNT & SAVE DATA": "HESAP OLUŞTUR & VERİYİ KAYDET",
+    "SAVE & CREATE": "KAYDET & OLUŞTUR",
+    "DISPLAY NAME": "GÖRÜNEN AD",
+    "EMAIL": "E-POSTA",
+    "AGE": "YAŞ",
+    "GENDER": "CİNSİYET",
+    "PROFILE PHOTO": "PROFİL FOTOĞRAFI",
+    "(optional)": "(isteğe bağlı)",
+    "Change photo": "Fotoğrafı değiştir",
+    "Upload from camera roll": "Galeriden yükle",
+    "Tap to choose an image": "Resim seçmek için dokun",
+    "Remove photo": "Fotoğrafı kaldır",
+    "NEW PASSWORD": "YENİ PAROLA",
+    "(leave blank to keep)": "(aynı kalsın istiyorsan boş bırak)",
+    "CONFIRM NEW PASSWORD": "YENİ PAROLAYI ONAYLA",
+    "CURRENT PASSWORD": "MEVCUT PAROLA",
+    "*required": "*zorunlu",
+    "DELETE MY ACCOUNT": "HESABIMI SİL",
+    "Permanently delete your account and all data? This cannot be undone.":
+      "Hesabını ve tüm verilerini kalıcı olarak silmek istiyor musun? Bu işlem geri alınamaz.",
+    "Please log out and log back in, then try again.": "Lütfen çıkış yapıp yeniden giriş yap, sonra tekrar dene.",
+    "Could not delete account:": "Hesap silinemedi:",
+    "Body Measurements": "Vücut Ölçüleri",
+    "Last Record:": "Son Kayıt:",
+    "years": "yaş",
+    "e.g. 28": "ör. 28",
+    "All fields required.": "Tüm alanlar zorunlu.",
+    "Password must be 6+ characters.": "Parola en az 6 karakter olmalı.",
+    "Password must be 6+ chars.": "Parola en az 6 karakter olmalı.",
+    "Email and password required.": "E-posta ve parola gerekli.",
+    "Enter your email address first.": "Önce e-posta adresini gir.",
+    "Profile updated!": "Profil güncellendi!",
+    "Edit Profile": "Profili Düzenle",
+    "Change password": "Parolayı değiştir",
+    "Current password": "Mevcut parola",
+    "New password": "Yeni parola",
+    "Account": "Hesap",
+    "Delete account": "Hesabı sil",
+    "Stats": "İstatistikler",
+    "Achievements": "Başarımlar",
+
+    // Picker / list helpers
+    "Already in workout": "Zaten antrenmanda",
+    "Already added": "Zaten eklendi",
+    "ADD EXERCISE": "EGZERSİZ EKLE",
+    "ADD EXERCISES": "EGZERSİZ EKLE",
+    "CREATE PROGRAM": "PROGRAM OLUŞTUR",
+    "SAVE CHANGES": "DEĞİŞİKLİKLERİ KAYDET",
+    "SAVING…": "KAYDEDİLİYOR…",
+    "FINISH": "BİTİR",
+    "PAUSE": "DURAKLAT",
+    "RESUME": "DEVAM ET",
+    "ABANDON": "VAZGEÇ",
+    "MINIMIZE": "KÜÇÜLT",
+    "QUIT": "ÇIK",
+    "Finish this workout and save results?": "Bu antrenmanı bitirip sonuçları kaydet?",
+    "A workout is currently in progress. Please finish or quit the current session before starting a new one.":
+      "Şu anda devam eden bir antrenman var. Yenisine başlamadan önce mevcut antrenmanı bitir veya çık.",
+
+    // Misc / errors
+    "Something went wrong": "Bir şeyler ters gitti",
+    "Try again": "Tekrar dene",
+    "Please try again": "Lütfen tekrar dene",
+    "Network error": "Ağ hatası",
+    "Required": "Zorunlu",
+    "Invalid email": "Geçersiz e-posta",
+    "Password too short": "Parola çok kısa",
+    "Passwords don't match": "Parolalar eşleşmiyor",
+    "Are you sure?": "Emin misin?",
+    "This action cannot be undone": "Bu işlem geri alınamaz",
+    "Coming soon": "Yakında",
+    "FEED": "AKIŞ",
+    "PENDING FOR YOU": "BEKLEYEN İSTEKLER",
+    "ACCEPT": "KABUL ET",
+    "Wants to share workout progress": "Antrenman ilerlemeni paylaşmak istiyor",
+    "LEADERBOARD": "LİDERLİK TABLOSU",
+    "Loading scores…": "Skorlar yükleniyor…",
+    "just now": "şimdi",
+    "m ago": "dk önce",
+    "h ago": "sa önce",
+    "1 day ago": "1 gün önce",
+    "days ago": "gün önce",
+    "JANUARY": "OCAK",
+    "FEBRUARY": "ŞUBAT",
+    "MARCH": "MART",
+    "APRIL": "NİSAN",
+    "MAY": "MAYIS",
+    "JUNE": "HAZİRAN",
+    "JULY": "TEMMUZ",
+    "AUGUST": "AĞUSTOS",
+    "SEPTEMBER": "EYLÜL",
+    "OCTOBER": "EKİM",
+    "NOVEMBER": "KASIM",
+    "DECEMBER": "ARALIK",
+    "January": "Ocak",
+    "February": "Şubat",
+    "March": "Mart",
+    "April": "Nisan",
+    "May": "Mayıs",
+    "June": "Haziran",
+    "July": "Temmuz",
+    "August": "Ağustos",
+    "September": "Eylül",
+    "October": "Ekim",
+    "November": "Kasım",
+    "December": "Aralık",
+    "NO SESSIONS": "ANTRENMAN YOK",
+    "Complete a workout to see history": "Geçmişini görmek için bir antrenman tamamla",
+    "Delete this session?": "Bu antrenmanı silmek istiyor musun?",
+    "tap for details →": "ayrıntılar için dokun →",
+    "INT": "YOĞ",
+
+    // Home labels
+    "MY DASHBOARDS": "PANOLARIM",
+    "EDIT": "DÜZENLE",
+    "EDITING": "DÜZENLENİYOR",
+    "DONE": "TAMAM",
+    "MUSCLES TRAINED": "ÇALIŞILAN KASLAR",
+    "Muscles Trained": "Çalışılan Kaslar",
+    "LAST 7 DAYS": "SON 7 GÜN",
+    "STREAK": "SERİ",
+    "INTENSITY": "YOĞUNLUK",
+    "STRENGTH": "GÜÇ",
+    "DAYS": "GÜN",
+    "Mon": "Pzt",
+    "Tue": "Sal",
+    "Wed": "Çar",
+    "Thu": "Per",
+    "Fri": "Cum",
+    "Sat": "Cmt",
+    "Sun": "Paz",
+    "AVG /10": "ORT /10",
+    "Resistance": "Direnç",
+    "Mix": "Karışık",
+    "Muscles you have trained in the last 7 days, based on exercises logged in your workouts.":
+      "Antrenmanlarına kaydettiğin egzersizlere dayanarak son 7 günde çalıştığın kaslar.",
+    "Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout.":
+      "Antrenman günlerini gösteren takvimin. Seri, en az bir tamamlanmış antrenmanı olan ardışık günleri sayar.",
+    "Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period.":
+      "Son 7 gündeki tüm antrenmanların ortalama yoğunluk skoru (1-10), önceki 7 günlük dönemle karşılaştırılır.",
+    "MY SHORTCUTS": "KISA YOLLARIM",
+    "PERSONAL RECORDS": "KİŞİSEL REKORLAR",
+    "HIGHLIGHTS": "ÖZET",
+    "YOUR HIGHLIGHTS": "ÖZETİN",
+    "Your Highlights": "Özetin",
+    "A summary of your key training stats for the selected time period — sessions, volume, calories, and more.":
+      "Seçilen dönem için temel antrenman istatistiklerinin özeti — antrenmanlar, hacim, kalori ve daha fazlası.",
+    "RESISTANCE": "DİRENÇ",
+    "CARDIO": "KARDİYO",
+    "HOURS TRAINED": "ANTRENMAN SAATİ",
+    "CALS BURNED": "YAKILAN KALORİ",
+    "AVG INTENSITY": "ORT YOĞUNLUK",
+    "LOADS LIFTED": "KALDIRILAN YÜK",
+    "7 Days": "7 Gün",
+    "7d": "7g",
+    "month": "ay",
+    "year": "yıl",
+    "Hours": "Saat",
+    "Volume (kg)": "Hacim (kg)",
+    "Sessions logged": "Kaydedilen antrenman",
+    "Resistance sessions": "Direnç antrenmanı",
+    "Cardio sessions": "Kardiyo antrenmanı",
+    "Avg intensity": "Ort yoğunluk",
+    "Avg session": "Ort süre",
+    "Min/session": "Dk/antrenman",
+    "kg lifted": "kg kaldırıldı",
+    "kcal burned": "kcal yakıldı",
+
+    // Mottos / GREETINGS
+    "Iron builds character.": "Demir karakter inşa eder.",
+    "No excuses. Just reps.": "Bahane yok. Sadece tekrar.",
+    "Earn your rest.": "Dinlenmeyi hak et.",
+    "The bar is waiting.": "Bar seni bekliyor.",
+    "Strength over comfort.": "Konfor değil güç.",
+    "Every rep counts.": "Her tekrar önemlidir.",
+    "Champions train today.": "Şampiyonlar bugün antrenman yapar.",
+    "Results don't lie.": "Sonuçlar yalan söylemez.",
+    "Pain is temporary. Pride is forever.": "Acı geçici. Gurur sonsuza dek.",
+    "Your only competition is yesterday's you.": "Tek rakibin dünkü sensin.",
+    "The weight doesn't care about your mood.": "Ağırlık ruh halini umursamaz.",
+    "Show up. Lift. Repeat.": "Gel. Kaldır. Tekrarla.",
+    "Discipline beats motivation every time.": "Disiplin motivasyonu her zaman yener.",
+    "One more rep. Always.": "Bir tekrar daha. Her zaman.",
+    "You don't find willpower — you build it.": "İrade bulunmaz — inşa edilir.",
+    "Hard work compounds.": "Sıkı çalışma birikir.",
+    "The gym is the one place excuses don't walk in.": "Spor salonu, bahanelerin giremediği tek yerdir.",
+    "Progress, not perfection.": "Mükemmellik değil ilerleme.",
+    "Heavy is a matter of mind.": "Ağırlık bir akıl meselesidir.",
+    "Train like you mean it.": "Kararlı çalış.",
+    "Consistency is the real secret.": "Gerçek sır tutarlılıktır.",
+    "Your future self is watching.": "Gelecekteki sen seni izliyor.",
+    "The only bad workout is the one you skipped.": "Kötü olan tek antrenman, atladığın antrenmandır.",
+    "Be stronger than your excuses.": "Bahanelerinden güçlü ol.",
+    "Sweat is just fat crying.": "Ter, yağın ağlamasıdır.",
+    "You've survived 100% of your hard days.": "Zor günlerinin %100'ünden sağ çıktın.",
+    "Push past the voice that says stop.": "Dur diyen sesin ötesine geç.",
+    "Make today's workout better than yesterday's.": "Bugünkü antrenmanını dünkünden daha iyi yap.",
+    "Rest days are earned. Now earn them.": "Dinlenme günleri kazanılır. Şimdi onları kazan.",
+    "The barbell doesn't negotiate.": "Halter pazarlık etmez.",
+  };
+  const LANGS = ["en", "tr"];
+  const LANG_LABELS = { en: "English", tr: "Türkçe" };
+  const LangCtx = createContext("en");
+  const useLang = () => useContext(LangCtx);
+  function useT() {
+    const lang = useLang();
+    return (en, params) => {
+      const dict = lang === "tr" ? TR : null;
+      let s = dict && dict[en] != null ? dict[en] : en;
+      if (params) {
+        for (const k in params) {
+          s = s.replace(new RegExp("\\{" + k + "\\}", "g"), String(params[k]));
+        }
+      }
+      return s;
+    };
+  }
   function useS() {
     const th = useTheme();
     return {
@@ -3273,6 +3794,7 @@ import "./styles.css";
   function ExercisePicker({ onAdd, onClose, added = [] }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [q, setQ] = useState("");
     const [flt, setFlt] = useState("All");
     const [pending, setPending] = useState([]); // ids selected this session
@@ -3348,7 +3870,7 @@ import "./styles.css";
                 className="bebas"
                 style={{ fontSize: 24, letterSpacing: 2, color: th.text }}
               >
-                ADD EXERCISES
+                {t("ADD EXERCISES")}
               </span>
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 {pending.length > 0 && (
@@ -3368,7 +3890,7 @@ import "./styles.css";
                       fontFamily: "'Outfit',sans-serif",
                     }}
                   >
-                    ADD {pending.length} →
+                    {t("ADD")} {pending.length} →
                   </button>
                 )}
                 <button
@@ -3388,7 +3910,7 @@ import "./styles.css";
             </div>
             <input
               type="text"
-              placeholder="Search exercises or muscles..."
+              placeholder={t("Search exercises or muscles...")}
               value={q}
               onChange={(e) => setQ(e.target.value)}
               style={{ ...S.input, marginBottom: 10 }}
@@ -3423,7 +3945,7 @@ import "./styles.css";
                     flexShrink: 0,
                   }}
                 >
-                  {f.label}
+                  {t(f.label)}
                 </button>
               ))}
             </div>
@@ -3438,7 +3960,7 @@ import "./styles.css";
                   fontSize: 13,
                 }}
               >
-                No exercises found.
+                {t("No exercises found.")}
               </div>
             )}
             {filtered.map((e) => {
@@ -3560,6 +4082,7 @@ import "./styles.css";
     AUTH VIEW — with workout photo background
   ═══════════════════════════════════════════════════════════════════════════════ */
   function AuthView() {
+    const t = useT();
     const [tab, setTab] = useState("login");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -3745,11 +4268,11 @@ import "./styles.css";
               border: "1px solid rgba(255,255,255,0.1)",
             }}
           >
-            {["login", "signup"].map((t) => (
+            {["login", "signup"].map((tabKey) => (
               <button
-                key={t}
+                key={tabKey}
                 onClick={() => {
-                  setTab(t);
+                  setTab(tabKey);
                   setErr("");
                 }}
                 style={{
@@ -3763,19 +4286,19 @@ import "./styles.css";
                   fontWeight: 700,
                   letterSpacing: 1,
                   background:
-                    tab === t ? "rgba(255,255,255,0.12)" : "transparent",
-                  color: tab === t ? "#f0f0f0" : "rgba(255,255,255,0.35)",
+                    tab === tabKey ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: tab === tabKey ? "#f0f0f0" : "rgba(255,255,255,0.35)",
                   transition: "all .2s",
                 }}
               >
-                {t === "login" ? "LOG IN" : "SIGN UP"}
+                {tabKey === "login" ? t("LOG IN") : t("SIGN UP")}
               </button>
             ))}
           </div>
           {tab === "signup" && (
             <input
               type="text"
-              placeholder="First name"
+              placeholder={t("First name")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               style={{
@@ -3796,7 +4319,7 @@ import "./styles.css";
           )}
           <input
             type="email"
-            placeholder="Email"
+            placeholder={t("Email")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={{
@@ -3818,7 +4341,7 @@ import "./styles.css";
             <div style={{ position:"relative", marginBottom:12 }}>
               <input
                 type={showPw ? "text" : "password"}
-                placeholder="Password"
+                placeholder={t("Password")}
                 value={pw}
                 onChange={(e) => setPw(e.target.value)}
                 style={{
@@ -3859,7 +4382,7 @@ import "./styles.css";
                 style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)",
                   fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: "pointer", padding: 0 }}
               >
-                Forgot password?
+                {t("Forgot password?")}
               </button>
             </div>
           )}
@@ -3870,20 +4393,20 @@ import "./styles.css";
               {resetSent ? (
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontSize: 22, marginBottom: 8 }}>✉️</div>
-                  <div style={{ color: "#c8f030", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>Reset email sent!</div>
+                  <div style={{ color: "#c8f030", fontWeight: 700, fontSize: 14, marginBottom: 6 }}>{t("Reset email sent!")}</div>
                   <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginBottom: 12 }}>
-                    Check your inbox and follow the link to reset your password.
+                    {t("Check your inbox and follow the link to reset your password.")}
                   </div>
                   <button onClick={() => { setForgotMode(false); setResetSent(false); }}
                     style={{ background: "none", border: "none", color: "rgba(255,255,255,0.5)",
                       fontSize: 12, fontFamily: "'Outfit',sans-serif", cursor: "pointer" }}>
-                    Back to login
+                    {t("Back to login")}
                   </button>
                 </div>
               ) : (
                 <>
                   <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 13, marginBottom: 10 }}>
-                    Enter your email and we'll send a reset link.
+                    {t("Enter your email and we'll send a reset link.")}
                   </div>
                   <button onClick={handleResetPassword} disabled={loading}
                     style={{ width: "100%", background: "rgba(200,240,48,0.85)",
@@ -3891,13 +4414,13 @@ import "./styles.css";
                       padding: "12px", cursor: loading ? "not-allowed" : "pointer",
                       fontFamily: "'Outfit',sans-serif", fontSize: 14, fontWeight: 700,
                       letterSpacing: 0.5, color: "#080809", marginBottom: 8 }}>
-                    {loading ? "SENDING..." : "SEND RESET EMAIL"}
+                    {loading ? t("SENDING...") : t("SEND RESET EMAIL")}
                   </button>
                   <button onClick={() => { setForgotMode(false); setErr(""); }}
                     style={{ width: "100%", background: "none", border: "none",
                       color: "rgba(255,255,255,0.45)", fontSize: 12,
                       fontFamily: "'Outfit',sans-serif", cursor: "pointer" }}>
-                    Cancel
+                    {t("Cancel")}
                   </button>
                 </>
               )}
@@ -3932,10 +4455,10 @@ import "./styles.css";
             }}
           >
             {loading
-              ? "PLEASE WAIT..."
+              ? t("PLEASE WAIT...")
               : tab === "login"
-              ? "LOG IN →"
-              : "CREATE ACCOUNT →"}
+              ? t("LOG IN →")
+              : t("CREATE ACCOUNT →")}
           </button>}
           <button
             onClick={() => {
@@ -3955,8 +4478,8 @@ import "./styles.css";
             }}
           >
             {tab === "login"
-              ? "No account? Sign up →"
-              : "Already registered? Log in →"}
+              ? t("No account? Sign up →")
+              : t("Already registered? Log in →")}
           </button>
           {/* Guest sign in */}
           <button
@@ -3975,7 +4498,7 @@ import "./styles.css";
               fontFamily: "'Outfit',sans-serif",
             }}
           >
-            Continue as guest
+            {t("Continue as guest")}
           </button>
           <div
             style={{
@@ -4000,6 +4523,7 @@ import "./styles.css";
   function HighlightsCard({ sessions, sessionVol }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [range, setRange] = useState("7d");
     const now = Date.now();
     const cutoff = range === "7d"
@@ -4020,24 +4544,24 @@ import "./styles.css";
     const totalKg = ws.reduce((a,s) => a+sessionVol(s),0);
     const loadsDisplay = totalKg >= 1000 ? `${(totalKg/1000).toFixed(1)}t` : `${Math.round(totalKg)}kg`;
     const tiles = [
-      { v: resistSess.length, l: "RESISTANCE", col: th.accentFg },
-      { v: cardioSess.length, l: "CARDIO",     col: "#5B9CF6"   },
-      { v: hrsDisplay,        l: "HOURS TRAINED", col: th.accentFg },
-      { v: totalCals ? totalCals.toLocaleString() + " kcal" : "—", l: "CALS BURNED", col: "#E8612C" },
-      { v: avgInt !== "—" ? avgInt + "/10" : "—", l: "AVG INTENSITY", col: th.accentFg },
-      { v: loadsDisplay,      l: "LOADS LIFTED", col: th.accentFg },
+      { v: resistSess.length, l: t("RESISTANCE"), col: th.accentFg },
+      { v: cardioSess.length, l: t("CARDIO"),     col: "#5B9CF6"   },
+      { v: hrsDisplay,        l: t("HOURS TRAINED"), col: th.accentFg },
+      { v: totalCals ? totalCals.toLocaleString() + " kcal" : "—", l: t("CALS BURNED"), col: "#E8612C" },
+      { v: avgInt !== "—" ? avgInt + "/10" : "—", l: t("AVG INTENSITY"), col: th.accentFg },
+      { v: loadsDisplay,      l: t("LOADS LIFTED"), col: th.accentFg },
     ];
     const RANGES = [
-      { key: "7d",    label: "7 Days"  },
-      { key: "month", label: "Month"   },
-      { key: "year",  label: "Year"    },
+      { key: "7d",    label: t("7 Days")  },
+      { key: "month", label: t("Month")   },
+      { key: "year",  label: t("Year")    },
     ];
     return (
       <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <div style={{ ...S.label }}>YOUR HIGHLIGHTS</div>
-              <DashInfoBtn title="Your Highlights" text="A summary of your key training stats for the selected time period — sessions, volume, calories, and more." />
+              <div style={{ ...S.label }}>{t("YOUR HIGHLIGHTS")}</div>
+              <DashInfoBtn title={t("Your Highlights")} text={t("A summary of your key training stats for the selected time period — sessions, volume, calories, and more.")} />
             </div>
           <div style={{ display:"flex", gap:4 }}>
             {RANGES.map(r => (
@@ -5131,6 +5655,7 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
     const [streakDir, setStreakDir] = useState(1);
     const [editingDashboards, setEditingDashboards] = useState(false);
@@ -5166,15 +5691,15 @@ import "./styles.css";
               lineHeight: 1,
             }}
           >
-            {getTimeGreeting()}, {firstName}!
+            {t(getTimeGreeting())}, {firstName}!
           </div>
           <div style={{ fontSize: 16, color: th.muted, marginTop: 4, textAlign: "left", }}>
-            {
+            {t(
               GREETINGS[
                 (new Date().getDay() * 3 + new Date().getHours()) %
                   GREETINGS.length
               ]
-            }
+            )}
           </div>
         </div>
 
@@ -5184,7 +5709,7 @@ import "./styles.css";
         {/* ── My Dashboards header ── */}
         {!editingDashboards && (
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12, marginTop:16 }}>
-            <div style={S.label}>MY DASHBOARDS</div>
+            <div style={S.label}>{t("MY DASHBOARDS")}</div>
             <button
               onClick={() => setEditingDashboards(true)}
               style={{
@@ -5203,7 +5728,7 @@ import "./styles.css";
                 transition: "background .2s, color .2s, border-color .2s",
               }}
             >
-              EDIT
+              {t("EDIT")}
             </button>
           </div>
         )}
@@ -5227,10 +5752,10 @@ import "./styles.css";
           <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
             <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-              <div style={{ ...S.label }}>MUSCLES TRAINED</div>
-              <DashInfoBtn title="Muscles Trained" text="Muscles you have trained in the last 7 days, based on exercises logged in your workouts." />
+              <div style={{ ...S.label }}>{t("MUSCLES TRAINED")}</div>
+              <DashInfoBtn title={t("Muscles Trained")} text={t("Muscles you have trained in the last 7 days, based on exercises logged in your workouts.")} />
             </div>
-            <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.5px" }}>LAST 7 DAYS</div>
+            <div style={{ fontSize:10, color:th.dim, letterSpacing:"0.5px" }}>{t("LAST 7 DAYS")}</div>
           </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
               {ALL_MUSCLES.map((m) => {
@@ -5277,7 +5802,7 @@ import "./styles.css";
           for (let i = 0; i < firstDow; i++) cells.push(null);
           for (let d = 1; d <= daysInMonth; d++) cells.push(d);
           while (cells.length < 42) cells.push(null);
-          const DOW = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+          const DOW = [t("Mon"),t("Tue"),t("Wed"),t("Thu"),t("Fri"),t("Sat"),t("Sun")];
 
           return (
             <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
@@ -5288,12 +5813,12 @@ import "./styles.css";
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
-              <div style={{ ...S.label }}>STREAK</div>
-              <DashInfoBtn title="Streak" text="Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout." />
+              <div style={{ ...S.label }}>{t("STREAK")}</div>
+              <DashInfoBtn title={t("Streak")} text={t("Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout.")} />
             </div>
                 <div style={{ textAlign: "right" }}>
                   <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
-                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>DAYS</div>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>{t("DAYS")}</div>
                 </div>
               </div>
               {/* Month nav */}
@@ -5336,7 +5861,7 @@ import "./styles.css";
                 })}
               </div>
               <div style={{ display:"flex", gap:10, marginTop:8, justifyContent:"center" }}>
-                {[{ label:"Resistance",col:th.accentBg },{ label:"Cardio",col:"#5B9CF6" },{ label:"Mix",col:"#E8612C" }].map(({label,col})=>(
+                {[{ label:t("Resistance"),col:th.accentBg },{ label:t("Cardio"),col:"#5B9CF6" },{ label:t("Mix"),col:"#E8612C" }].map(({label,col})=>(
                   <div key={label} style={{ display:"flex",alignItems:"center",gap:4 }}>
                     <div style={{ width:8,height:8,borderRadius:"50%",background:col }} />
                     <span style={{ fontSize:10,color:th.dim }}>{label}</span>
@@ -5363,8 +5888,8 @@ import "./styles.css";
                 }}
               >
                 <div style={{ display:"flex", alignItems:"center", gap:6, position: "relative", top: -15 }}>
-              <div style={{ ...S.label }}>INTENSITY</div>
-              <DashInfoBtn title="Intensity" text="Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period." />
+              <div style={{ ...S.label }}>{t("INTENSITY")}</div>
+              <DashInfoBtn title={t("Intensity")} text={t("Average self-reported intensity score (1-10) across all sessions in the last 7 days, compared to the previous 7-day period.")} />
             </div>
                 {(() => {
                   const cut7 = Date.now() - 7*24*60*60*1000;
@@ -5382,7 +5907,7 @@ import "./styles.css";
                         {intArrow && <span style={{ fontSize:14, color:intArrowCol, fontWeight:700 }}>{intArrow}</span>}
                         <span className="bebas" style={{ fontSize:28, color:th.accentFg, lineHeight:1 }}>{avgI}</span>
                       </div>
-                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>AVG /10</div>
+                      <div style={{ fontSize:9, color:th.dim, letterSpacing:"1px" }}>{t("AVG /10")}</div>
                     </div>
                   );
                 })()}
@@ -8185,6 +8710,7 @@ import "./styles.css";
   function IronBoard({ user, friends, mySessions, onGetFriendSessions, boardScores, setBoardScores }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [loading, setLoading] = useState(true);
 
     // Month window
@@ -8241,9 +8767,9 @@ import "./styles.css";
 
     return (
       <div style={{ marginBottom:20 }}>
-        <div style={{ ...S.label, marginBottom:12, textAlign:"left" }}>{monthName.toUpperCase()} LEADERBOARD</div>
+        <div style={{ ...S.label, marginBottom:12, textAlign:"left" }}>{t(monthName.toUpperCase())} {t("LEADERBOARD")}</div>
         {loading ? (
-          <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>Loading scores…</div>
+          <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>{t("Loading scores…")}</div>
         ) : entries.map((e, i) => {
           // Empty placeholder: explicitly marked, or medal slot with 0 score
           const isMedalSlot = i < 3;
@@ -8338,6 +8864,7 @@ import "./styles.css";
   function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, starNotifications, unreadStars, onMarkNotifsRead, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [inviteEmail, setInviteEmail] = useState("");
     const [inviteStatus, setInviteStatus] = useState("idle");
     const [inviteError, setInviteError] = useState("");
@@ -8498,13 +9025,13 @@ import "./styles.css";
       if (!ts) return "";
       const diff = Date.now() - ts;
       const m = Math.floor(diff / 60000);
-      if (m < 1) return "just now";
-      if (m < 60) return `${m}m ago`;
+      if (m < 1) return t("just now");
+      if (m < 60) return `${m}${t("m ago")}`;
       const h = Math.floor(diff / 3600000);
-      if (h < 24) return `${h}h ago`;
+      if (h < 24) return `${h}${t("h ago")}`;
       const d = Math.floor(diff / 86400000);
-      if (d === 1) return "1 day ago";
-      return `${d} days ago`;
+      if (d === 1) return t("1 day ago");
+      return `${d} ${t("days ago")}`;
     };
 
     return (
@@ -8549,15 +9076,15 @@ import "./styles.css";
                 transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
                 pointerEvents:"none",
               }} />
-              {tabs.map(t => (
-                <button key={t} onClick={() => setSharingTab(t)} style={{
+              {tabs.map(tabId => (
+                <button key={tabId} onClick={() => setSharingTab(tabId)} style={{
                   flex:1, padding:"9px 0", border:"none", cursor:"pointer",
                   borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
                   letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
-                  color: sharingTab === t ? th.accentT : th.dim,
+                  color: sharingTab === tabId ? th.accentT : th.dim,
                   transition:"color 0.22s ease",
                 }}>
-                  {t === "feed" ? "FEED" : "FRIENDS"}
+                  {tabId === "feed" ? t("FEED") : t("FRIENDS")}
                 </button>
               ))}
             </div>
@@ -8567,7 +9094,7 @@ import "./styles.css";
         {/* ── Pending invitations / requests received — BELOW TAB, FRIENDS TAB ONLY ── */}
         {sharingTab === "friends" && pendingInvitations.length > 0 && (
           <div style={{ marginBottom:20, textAlign:"left", animation:"sharingFadeUp 0.3s ease both" }}>
-            <div style={{ ...S.label, marginBottom:10 }}>PENDING FOR YOU ({pendingInvitations.length})</div>
+            <div style={{ ...S.label, marginBottom:10 }}>{t("PENDING FOR YOU")} ({pendingInvitations.length})</div>
             {pendingInvitations.map(inv => (
               <div key={inv.id} style={{ ...S.card, padding:"14px 16px", marginBottom:8 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -8577,12 +9104,12 @@ import "./styles.css";
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontWeight:700, fontSize:15, color:th.text }}>{inv.fromName}</div>
                     <div style={{ fontSize:13, color:th.muted, marginTop:1 }}>{inv.fromEmail}</div>
-                    <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>Wants to share workout progress</div>
+                    <div style={{ fontSize:13, color:th.dim, marginTop:2 }}>{t("Wants to share workout progress")}</div>
                   </div>
                   <button onClick={() => handleAction(inv.id, inv, "decline")} disabled={actioning[inv.id]}
                     style={{ ...buttonTexture(th, "danger", actioning[inv.id]), borderRadius:8, width:30, height:30, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:14, lineHeight:1, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>✕</button>
                   <button onClick={() => handleAction(inv.id, inv, "accept")} disabled={actioning[inv.id]}
-                    style={{ ...buttonTexture(th, "accent", actioning[inv.id]), borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : "ACCEPT"}</button>
+                    style={{ ...buttonTexture(th, "accent", actioning[inv.id]), borderRadius:10, padding:"7px 12px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, flexShrink:0, opacity:actioning[inv.id]?0.4:1 }}>{actioning[inv.id] ? "…" : t("ACCEPT")}</button>
                 </div>
               </div>
             ))}
@@ -8679,7 +9206,7 @@ import "./styles.css";
         {sharingTab === "friends" && friends.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-              <div style={S.label}>FRIENDS ({friends.length})</div>
+              <div style={S.label}>{t("FRIENDS")} ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
                 style={{
                   background: editFriends ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
@@ -9532,6 +10059,7 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [editing, setEditing] = useState(false);
     const dismissProgramOnboarding = () => {
       onUpdateSettings && onUpdateSettings({ ...settings, hasProgramOnboarded: true });
@@ -9547,8 +10075,8 @@ import "./styles.css";
         {!settings?.hasProgramOnboarded && <ProgramOnboarding onDismiss={dismissProgramOnboarding} />}
         {programs.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 18px" }}>
-            <div className="bebas" style={{ fontSize: 44, color: th.border }}>NO PROGRAMS</div>
-            <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>Create your first workout program</div>
+            <div className="bebas" style={{ fontSize: 44, color: th.border }}>{t("NO PROGRAMS")}</div>
+            <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>{t("Create your first workout program")}</div>
           </div>
         ) : (
           <>
@@ -9574,7 +10102,7 @@ import "./styles.css";
                 letterSpacing: "0.5px",
                 padding: "4px 12px",
                 transition: "background .2s, box-shadow .2s, border-color .2s",
-              }}>{editing ? "DONE" : "EDIT"}</button>
+              }}>{editing ? t("DONE") : t("EDIT")}</button>
             </div>
             {programs.map((p) => (
               <div key={p.id} id={"prog-card-" + p.id}
@@ -9604,7 +10132,7 @@ import "./styles.css";
                     <ProgramIcon name={p.name} size={44} />
                     <div>
                       <div style={{ fontWeight:700, fontSize:16, textAlign:"left", color:th.text, marginBottom:5 }}>{p.name}</div>
-                      <div style={{ fontSize:12, color:th.muted, marginBottom:8, textAlign:"left" }}>{p.exs.length} exercise{p.exs.length !== 1 ? "s" : ""}</div>
+                      <div style={{ fontSize:12, color:th.muted, marginBottom:8, textAlign:"left" }}>{p.exs.length} {t(p.exs.length === 1 ? "exercise" : "exercises")}</div>
                       <div style={{ display:"flex", flexWrap:"wrap", gap:4 }}>
                         {[...new Set(p.exs.map(e => DB.find(d => d.id === e.id)?.group).filter(Boolean))].slice(0,4).map(g => (
                           <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
@@ -10169,6 +10697,7 @@ import "./styles.css";
   function CreateView({ draft, onStart, onBack }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [name, setName] = useState(draft.name);
     const [exercises, setExercises] = useState(draft.exercises);
     const [showPicker, setShowPicker] = useState(false);
@@ -10265,7 +10794,7 @@ import "./styles.css";
         <div className="slide-up" style={{ paddingBottom: 100, paddingTop: 4 }}>
           <input
             type="text"
-            placeholder="Session name..."
+            placeholder={t("Session name...")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             style={{ ...S.input, marginBottom: 16 }}
@@ -10273,10 +10802,10 @@ import "./styles.css";
           {exercises.length === 0 ? (
             <div style={{ textAlign: "center", padding: "40px 16px" }}>
               <div className="bebas" style={{ fontSize: 36, color: th.dim }}>
-                ADD EXERCISES
+                {t("ADD EXERCISES")}
               </div>
               <div style={{ fontSize: 13, marginTop: 5, color: th.muted }}>
-                Tap below to build your session
+                {t("Tap below to build your session")}
               </div>
             </div>
           ) : (
@@ -10586,7 +11115,7 @@ import "./styles.css";
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round"/></svg>
-            ADD EXERCISE
+            {t("ADD EXERCISE")}
           </button>
         </div>
         <div style={{ position: "sticky", bottom: 0, padding: "12px 0 20px" }}>
@@ -10595,7 +11124,7 @@ import "./styles.css";
             disabled={exercises.length === 0}
             style={{ width: "100%", fontSize: 14, fontFamily: "'Outfit',sans-serif", letterSpacing: 0.5 }}
           >
-            START WORKOUT →
+            {t("START WORKOUT →")}
           </Btn>
         </div>
       </>
@@ -10605,13 +11134,14 @@ import "./styles.css";
   /* ─── Cardio Log Row — used inside WorkoutView for cardio exercises ──────────── */
   function CardioLogRow({ set, onChange, onRemove, setIdx }) {
     const th = useTheme();
+    const t = useT();
     const upd = (f, v) => onChange({ ...set, [f]: parseFloat(v) || 0 });
     const fields = [
-      { l: "Duration", k: "duration", unit: "min", step: 1, placeholder: "0" },
-      { l: "Distance", k: "distance", unit: "km", step: 0.1, placeholder: "0.0" },
-      { l: "Calories", k: "calories", unit: "kcal", step: 1, placeholder: "0" },
+      { l: t("Duration"), k: "duration", unit: t("min"), step: 1, placeholder: "0" },
+      { l: t("Distance"), k: "distance", unit: "km", step: 0.1, placeholder: "0.0" },
+      { l: t("Calories"), k: "calories", unit: "kcal", step: 1, placeholder: "0" },
       {
-        l: "Intensity",
+        l: t("Intensity"),
         k: "intensity",
         unit: "/10",
         step: 1,
@@ -10653,7 +11183,7 @@ import "./styles.css";
             #{setIdx + 1}
           </span>
           <span style={{ fontSize: 10,textAlign:"left", color: th.muted, flex: 1 }}>
-            FROM WEARABLE / APPLE WATCH
+            {t("FROM WEARABLE / APPLE WATCH")}
           </span>
           <button
             onClick={onRemove}
@@ -10748,6 +11278,7 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [exercises, setExercises] = useState(() =>
       (session.exercises || []).map(normalizeWorkoutExercise)
     );
@@ -10757,11 +11288,11 @@ import "./styles.css";
     const lastMilestoneRef = useRef(0);
     const lastToggledExIdxRef = useRef(0);
     const MILESTONES = [
-      { pct: 0.2, msgs: ["20% done — keep moving!", "Great start, stay focused."] },
-      { pct: 0.4, msgs: ["40% in — you're building momentum.", "Keep that pace up!"] },
-      { pct: 0.6, msgs: ["Over halfway — the hardest part is behind you.", "60% done. Don't stop now."] },
-      { pct: 0.8, msgs: ["80%! Almost there — finish strong.", "The last stretch separates the dedicated."] },
-      { pct: 1.0, msgs: ["100%! Every rep counted.", "Full program complete — respect."] },
+      { pct: 0.2, msgs: [t("20% done — keep moving!"), t("Great start, stay focused.")] },
+      { pct: 0.4, msgs: [t("40% in — you're building momentum."), t("Keep that pace up!")] },
+      { pct: 0.6, msgs: [t("Over halfway — the hardest part is behind you."), t("60% done. Don't stop now.")] },
+      { pct: 0.8, msgs: [t("80%! Almost there — finish strong."), t("The last stretch separates the dedicated.")] },
+      { pct: 1.0, msgs: [t("100%! Every rep counted."), t("Full program complete — respect.")] },
     ];
 
     // Compute live done/total from local exercises state
@@ -10861,7 +11392,7 @@ import "./styles.css";
     const [removingExIdx, setRemovingExIdx] = useState(null);
     const [removingSetKey, setRemovingSetKey] = useState(null);
     const removeEx = (eIdx) => {
-      if (!window.confirm("Remove this exercise?")) return;
+      if (!window.confirm(t("Remove this exercise?"))) return;
       setRemovingExIdx(eIdx);
       setTimeout(() => {
         upd(exercises.filter((_, i) => i !== eIdx));
@@ -11205,7 +11736,7 @@ import "./styles.css";
                   >
                     +
                   </span>
-                  {ex.type === "cardio" ? "Add lap / segment" : "Add set"}
+                  {ex.type === "cardio" ? t("Add lap / segment") : t("Add set")}
                 </div>
               </div>
             </div>
@@ -11240,7 +11771,7 @@ import "./styles.css";
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
             <path d="M12 5v14M5 12h14" stroke="#5B9CF6" strokeWidth="2.5" strokeLinecap="round" />
           </svg>
-          ADD EXERCISE
+          {t("ADD EXERCISE")}
         </button>
 
       </div>
@@ -11253,6 +11784,7 @@ import "./styles.css";
   function CompleteView({ finished, elapsed, onSave }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const vol = sessionVol(finished);
     const finishedExercises = finished.exercises || [];
 
@@ -11423,16 +11955,16 @@ import "./styles.css";
             },
           };
 
-          const t = tiers[tier];
-          const msg = t.msgs[Math.floor((finished.doneSets + elapsed + intensity) % t.msgs.length)];
+          const tier_ = tiers[tier];
+          const msg = t(tier_.msgs[Math.floor((finished.doneSets + elapsed + intensity) % tier_.msgs.length)]);
 
           return (
             <div style={{
               textAlign: "center",
               padding: "14px 20px 16px",
               marginBottom: 20,
-              background: `linear-gradient(135deg, ${t.bg} 0%, transparent 100%)`,
-              border: `1px solid ${t.border}`,
+              background: `linear-gradient(135deg, ${tier_.bg} 0%, transparent 100%)`,
+              border: `1px solid ${tier_.border}`,
               borderRadius: 16,
               animation: "celebIn 0.6s cubic-bezier(0.34,1.4,0.64,1) both",
               animationDelay: "0.15s",
@@ -11447,8 +11979,8 @@ import "./styles.css";
                   50%       { transform: scale(1.18); }
                 }
               `}</style>
-              <div style={{ fontSize: 28, animation: "celebPulse 1.4s ease-in-out 0.4s 2", display: "inline-block" }}>{t.emoji}</div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: t.color, marginTop: 6, letterSpacing: "0.3px" }}>{msg}</div>
+              <div style={{ fontSize: 28, animation: "celebPulse 1.4s ease-in-out 0.4s 2", display: "inline-block" }}>{tier_.emoji}</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: tier_.color, marginTop: 6, letterSpacing: "0.3px" }}>{msg}</div>
               <div style={{ fontSize: 11, color: th.muted, marginTop: 5 }}>
                 {(() => {
                   if (allCardio) {
@@ -11457,14 +11989,14 @@ import "./styles.css";
                     const totDur = dSets.reduce((a,s) => a + (s.duration||0), 0);
                     const totCal = dSets.reduce((a,s) => a + (s.calories||0), 0);
                     const parts = [];
-                    if (totDur > 0) parts.push(`${totDur}min`);
+                    if (totDur > 0) parts.push(`${totDur}${t("min")}`);
                     if (totCal > 0) parts.push(`${totCal.toLocaleString()} kcal`);
-                    parts.push(`intensity ${intensity}/10`);
+                    parts.push(`${t("intensity")} ${intensity}/10`);
                     return parts.join(" · ");
                   }
                   return pct >= 1
-                    ? `${finished.doneSets} sets · ${volT} · intensity ${intensity}/10 · ${durMin}min — nothing left`
-                    : `${finished.doneSets}/${finished.totalSets} sets · ${volT} · intensity ${intensity}/10 · ${durMin}min`;
+                    ? `${finished.doneSets} ${t("sets")} · ${volT} · ${t("intensity")} ${intensity}/10 · ${durMin}${t("min")} — ${t("nothing left")}`
+                    : `${finished.doneSets}/${finished.totalSets} ${t("sets")} · ${volT} · ${t("intensity")} ${intensity}/10 · ${durMin}${t("min")}`;
                 })()}
               </div>
             </div>
@@ -11480,9 +12012,9 @@ import "./styles.css";
               letterSpacing: 3,
             }}
           >
-            SESSION
+            {t("SESSION")}
             <br />
-            COMPLETE
+            {t("COMPLETE")}
           </div>
           <div style={{ fontSize: 13, color: th.muted, marginTop: 6 }}>
             {finished.name}
@@ -11505,12 +12037,12 @@ import "./styles.css";
               ? totalDurFromData + "min"
               : fmtTime(elapsed);
             const tile4 = allCardio
-              ? { v: totalCalFromData > 0 ? totalCalFromData.toLocaleString() + " kcal" : "—", l: "CALORIES", u: "burned" }
-              : { v: Math.round(vol).toLocaleString() + "kg", l: "VOLUME", u: "lifted" };
+              ? { v: totalCalFromData > 0 ? totalCalFromData.toLocaleString() + " kcal" : "—", l: t("CALORIES"), u: t("burned") }
+              : { v: Math.round(vol).toLocaleString() + "kg", l: t("VOLUME"), u: t("lifted") };
             return [
-              { v: finished.doneSets, l: "SETS DONE", u: `of ${finished.totalSets}` },
-              { v: finishedExercises.length, l: "EXERCISES", u: "completed" },
-              { v: durationDisplay, l: "DURATION", u: "recorded" },
+              { v: finished.doneSets, l: t("SETS DONE"), u: `${t("of")} ${finished.totalSets}` },
+              { v: finishedExercises.length, l: t("EXERCISES"), u: t("completed") },
+              { v: durationDisplay, l: t("DURATION"), u: t("recorded") },
               tile4,
             ];
           })().map((s) => (
@@ -11537,19 +12069,19 @@ import "./styles.css";
         </div>
         <div style={{ marginBottom: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <div style={{ ...S.label }}>{allCardio ? "SET INTENSITY" : "WORKOUT INTENSITY"}</div>
+            <div style={{ ...S.label }}>{allCardio ? t("SET INTENSITY") : t("WORKOUT INTENSITY")}</div>
             {!allCardio && intensity === autoIntensity && (
-              <span style={{ fontSize: 10, color: th.accentFg, fontWeight: 700, letterSpacing: "1px" }}>AUTO-ESTIMATED</span>
+              <span style={{ fontSize: 10, color: th.accentFg, fontWeight: 700, letterSpacing: "1px" }}>{t("AUTO-ESTIMATED")}</span>
             )}
             {!allCardio && intensity !== autoIntensity && (
               <button onClick={() => setIntensity(autoIntensity)}
                 style={{ background: "none", border: "none", color: th.muted, fontSize: 10, cursor: "pointer", fontFamily: "'Outfit',sans-serif", textDecoration: "underline" }}>
-                Reset to estimate ({autoIntensity})
+                {t("Reset to estimate")} ({autoIntensity})
               </button>
             )}
           </div>
           {allCardio && (
-            <div style={{ fontSize: 12, color: th.muted, marginBottom: 10 }}>How hard was your cardio session overall?</div>
+            <div style={{ fontSize: 12, color: th.muted, marginBottom: 10 }}>{t("How hard was your cardio session overall?")}</div>
           )}
           <div style={{ display: "flex", gap: 4, marginBottom: 5 }}>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
@@ -11576,21 +12108,21 @@ import "./styles.css";
             })}
           </div>
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 12, color: th.dim }}>Easy</span>
-            <span style={{ fontSize: 12, color: th.dim }}>Max</span>
+            <span style={{ fontSize: 12, color: th.dim }}>{t("Easy")}</span>
+            <span style={{ fontSize: 12, color: th.dim }}>{t("Max")}</span>
           </div>
         </div>
         {!allCardio ? (
           <div style={{ ...S.card, padding: 15, marginBottom: 20 }}>
             <div style={{ ...S.label, marginBottom: 12 }}>
-              APPLE WATCH DATA (optional)
+              {t("APPLE WATCH DATA (optional)")}
             </div>
             <div
               style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
             >
               <div>
                 <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
-                  DURATION (min)
+                  {t("DURATION (min)")}
                 </div>
                 <input
                   type="number"
@@ -11602,12 +12134,12 @@ import "./styles.css";
               </div>
               <div>
                 <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
-                  CALORIES (kcal)
+                  {t("CALORIES (kcal)")}
                 </div>
                 <input
                   type="number"
                   value={calories}
-                  placeholder="e.g. 450"
+                  placeholder={t("e.g. 450")}
                   onChange={(e) => setCalories(e.target.value)}
                   style={S.input}
                 />
@@ -11625,7 +12157,7 @@ import "./styles.css";
           }
           style={{ width: "100%" }}
         >
-          SAVE SESSION →
+          {t("SAVE SESSION →")}
         </Btn>
       </div>
     );
@@ -11642,16 +12174,17 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [confirmDelete, setConfirmDelete] = useState(null); // session id pending delete
     return (
       <div style={{ paddingBottom: 90 }} className="slide-up">
         {sessions.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 16px" }}>
             <div className="bebas" style={{ fontSize: 42, color: th.dim }}>
-              NO SESSIONS
+              {t("NO SESSIONS")}
             </div>
             <div style={{ fontSize: 13, color: th.muted, marginTop: 10 }}>
-              Complete a workout to see history
+              {t("Complete a workout to see history")}
             </div>
           </div>
         ) : (
@@ -11683,7 +12216,7 @@ import "./styles.css";
                     <span
                       style={{ fontSize: 13, color: th.delText, fontWeight: 600 }}
                     >
-                      Delete this session?
+                      {t("Delete this session?")}
                     </span>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button
@@ -11699,7 +12232,7 @@ import "./styles.css";
                           fontFamily: "'Outfit',sans-serif",
                         }}
                       >
-                        Cancel
+                        {t("Cancel")}
                       </button>
                       <button
                         onClick={() => {
@@ -11720,7 +12253,7 @@ import "./styles.css";
                           fontFamily: "'Outfit',sans-serif",
                         }}
                       >
-                        Delete
+                        {t("Delete")}
                       </button>
                     </div>
                   </div>
@@ -11749,13 +12282,13 @@ import "./styles.css";
                       {s.name}
                     </div>
                     <div style={{ fontSize: 12, color: th.muted, textAlign: "left", }}>
-                      {fmtDate(s.startTime)} · {s.doneSets}/{s.totalSets} sets ·{" "}
-                      {s.duration || "?"}min
+                      {fmtDate(s.startTime)} · {s.doneSets}/{s.totalSets} {t("sets")} ·{" "}
+                      {s.duration || "?"}{t("min")}
                       {s.calories ? ` · ${s.calories}kcal` : ""}
                     </div>
                     <div style={{ fontSize: 12, color: th.dim, marginTop: 2,textAlign: "left", }}>
                       <span style={{ color: th.accentFg, fontWeight: 700 }}>
-                        tap for details →
+                        {t("tap for details →")}
                       </span>
                     </div>
                   </div>
@@ -11790,7 +12323,7 @@ import "./styles.css";
                             letterSpacing: "1px",
                           }}
                         >
-                          INT
+                          {t("INT")}
                         </div>
                       </div>
                     )}
@@ -12164,6 +12697,8 @@ import "./styles.css";
     onSaveMeasurement,
     theme,
     themeAuto,
+    lang,
+    onLangChange,
     active,
     elapsed,
     onLogout,
@@ -12177,6 +12712,7 @@ import "./styles.css";
   }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [editMode, setEditMode] = useState(false);
     const [eName, setEName] = useState(user.name);
     const [eEmail, setEEmail] = useState(user.email);
@@ -12488,10 +13024,10 @@ import "./styles.css";
             }}
           >
             <div style={{ fontWeight: 700, color: th.text, marginBottom: 4 }}>
-              You're signed in as a guest
+              {t("You're signed in as a guest")}
             </div>
             <div style={{ fontSize: 12, color: th.muted, marginBottom: 12 }}>
-              Create an account to sync your data across devices.
+              {t("Create an account to sync your data across devices.")}
             </div>
             {!showUpgrade ? (
               <button
@@ -12511,27 +13047,27 @@ import "./styles.css";
                   width: "100%",
                 }}
               >
-                CREATE ACCOUNT & SAVE DATA
+                {t("CREATE ACCOUNT & SAVE DATA")}
               </button>
             ) : (
               <div>
                 <input
                   type="text"
-                  placeholder="First name"
+                  placeholder={t("First name")}
                   value={upgName}
                   onChange={(e) => setUpgName(e.target.value)}
                   style={{ ...S.input, marginBottom: 8 }}
                 />
                 <input
                   type="email"
-                  placeholder="Email"
+                  placeholder={t("Email")}
                   value={upgEmail}
                   onChange={(e) => setUpgEmail(e.target.value)}
                   style={{ ...S.input, marginBottom: 8 }}
                 />
                 <input
                   type="password"
-                  placeholder="Password (6+ chars)"
+                  placeholder={t("Password (6+ chars)")}
                   value={upgPw}
                   onChange={(e) => setUpgPw(e.target.value)}
                   style={{ ...S.input, marginBottom: 8 }}
@@ -12561,13 +13097,13 @@ import "./styles.css";
                       fontFamily: "'Outfit',sans-serif",
                     }}
                   >
-                    Cancel
+                    {t("Cancel")}
                   </button>
                   <Btn
                     onClick={handleUpgrade}
                     style={{ flex: 2, fontSize: 14, padding: "11px" }}
                   >
-                    SAVE & CREATE
+                    {t("SAVE & CREATE")}
                   </Btn>
                 </div>
               </div>
@@ -12622,7 +13158,7 @@ import "./styles.css";
               <div style={{ fontSize: 14, color: th.muted, textAlign: "left" }}>{user.email}</div>
               {(user.age || user.gender) && (
                 <div style={{ fontSize: 13, color: th.dim, textAlign: "left", marginTop: 3 }}>
-                  {[user.gender, user.age ? `${user.age} years` : null].filter(Boolean).join(" · ")}
+                  {[user.gender ? t(user.gender) : null, user.age ? `${user.age} ${t("years")}` : null].filter(Boolean).join(" · ")}
                 </div>
               )}
             </div>
@@ -12651,21 +13187,21 @@ import "./styles.css";
                 fontWeight: 700,
               }}
             >
-              {editMode ? "Cancel" : "Edit"}
+              {editMode ? t("Cancel") : t("Edit")}
             </button>
           </div>
           {/* name/email/edit row ends above */}
 
           <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
-              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>DISPLAY NAME</div>
+              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>{t("DISPLAY NAME")}</div>
               <input
                 type="text"
                 value={eName}
                 onChange={(e) => setEName(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
               />
-              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>EMAIL</div>
+              <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>{t("EMAIL")}</div>
               <input
                 type="email"
                 value={eEmail}
@@ -12675,19 +13211,19 @@ import "./styles.css";
               {/* Age & Gender side by side */}
               <div style={{ display:"flex", gap:10, marginBottom:12 }}>
                 <div style={{ flex:1 }}>
-                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>AGE</div>
+                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("AGE")}</div>
                   <input
                     type="number"
                     min="1"
                     max="120"
-                    placeholder="e.g. 28"
+                    placeholder={t("e.g. 28")}
                     value={eAge}
                     onChange={(e) => setEAge(e.target.value)}
                     style={{ ...S.input }}
                   />
                 </div>
                 <div style={{ flex:1 }}>
-                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>GENDER</div>
+                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("GENDER")}</div>
                   <div style={{ display:"flex", gap:6 }}>
                     {["Male","Female","Other"].map(g => (
                       <button
@@ -12710,13 +13246,13 @@ import "./styles.css";
                           cursor: "pointer",
                           transition: "all .15s",
                         }}
-                      >{g}</button>
+                      >{t(g)}</button>
                     ))}
                   </div>
                 </div>
               </div>
               <div style={{ ...S.label, marginBottom: 8, textAlign: "left", }}>
-                PROFILE PHOTO{" "}
+                {t("PROFILE PHOTO")}{" "}
                 <span
                   style={{
                     color: th.dim,
@@ -12725,7 +13261,7 @@ import "./styles.css";
                     letterSpacing: 0,
                   }}
                 >
-                  (optional)
+                  {t("(optional)")}
                 </span>
               </div>
               <label
@@ -12770,10 +13306,10 @@ import "./styles.css";
                 </div>
                 <div>
                   <div style={{ fontSize: 13, textAlign: "left", fontWeight: 700, color: th.text }}>
-                    {ePhoto ? "Change photo" : "Upload from camera roll"}
+                    {ePhoto ? t("Change photo") : t("Upload from camera roll")}
                   </div>
                   <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
-                    Tap to choose an image
+                    {t("Tap to choose an image")}
                   </div>
                 </div>
                 <input
@@ -12808,18 +13344,18 @@ import "./styles.css";
                     padding: 0,
                   }}
                 >
-                  ✕ Remove photo
+                  ✕ {t("Remove photo")}
                 </button>
               )}
               <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>
-                NEW PASSWORD{" "}
+                {t("NEW PASSWORD")}{" "}
                 <span style={{ color: th.dim, fontSize: 9, letterSpacing: 0 }}>
-                  (leave blank to keep)
+                  {t("(leave blank to keep)")}
                 </span>
               </div>
               <input
                 type="password"
-                placeholder="New password (6+ chars)"
+                placeholder={t("New password (6+ chars)")}
                 value={ePw}
                 onChange={(e) => setEPw(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
@@ -12827,11 +13363,11 @@ import "./styles.css";
               {ePw && (
                 <>
                   <div style={{ ...S.label, marginBottom: 6 }}>
-                    CONFIRM NEW PASSWORD
+                    {t("CONFIRM NEW PASSWORD")}
                   </div>
                   <input
                     type="password"
-                    placeholder="Confirm"
+                    placeholder={t("Confirm")}
                     value={eConfirm}
                     onChange={(e) => setEConfirm(e.target.value)}
                     style={{ ...S.input, marginBottom: 12 }}
@@ -12841,16 +13377,16 @@ import "./styles.css";
               {(eEmail !== user.email || ePw) && (
                 <>
                   <div style={{ ...S.label, marginBottom: 6 }}>
-                    CURRENT PASSWORD{" "}
+                    {t("CURRENT PASSWORD")}{" "}
                     <span
                       style={{ color: "#CC1F42", fontSize: 9, letterSpacing: 0 }}
                     >
-                      *required
+                      {t("*required")}
                     </span>
                   </div>
                   <input
                     type="password"
-                    placeholder="Verify current password"
+                    placeholder={t("Verify current password")}
                     value={eCurrent}
                     onChange={(e) => setECurrent(e.target.value)}
                     style={{ ...S.input, marginBottom: 12 }}
@@ -12878,7 +13414,7 @@ import "./styles.css";
                 onClick={handleSaveProfile}
                 style={{ width: "100%", fontSize: 14, padding: "13px", fontFamily: "'Outfit',sans-serif", letterSpacing: 0.5 }}
               >
-                SAVE CHANGES
+                {t("SAVE CHANGES")}
               </Btn>
               <div style={{ marginTop: 20, paddingTop: 16, borderTop: `1px solid ${th.border}` }}>
                 <div style={{ fontSize: 10, color: th.dim, letterSpacing: "1.5px", marginBottom: 10 }}> </div>
@@ -12886,7 +13422,7 @@ import "./styles.css";
                   onClick={async () => {
                     if (
                       !window.confirm(
-                        "Permanently delete your account and all data? This cannot be undone."
+                        t("Permanently delete your account and all data? This cannot be undone.")
                       )
                     )
                       return;
@@ -12907,9 +13443,9 @@ import "./styles.css";
                       onLogout();
                     } catch (e) {
                       if (e.code === "auth/requires-recent-login") {
-                        alert("Please log out and log back in, then try again.");
+                        alert(t("Please log out and log back in, then try again."));
                       } else {
-                        alert("Could not delete account: " + e.message);
+                        alert(t("Could not delete account:") + " " + e.message);
                       }
                     }
                   }}
@@ -12939,7 +13475,7 @@ import "./styles.css";
                     marginBottom: 10,
                   }}
                 >
-                  DELETE MY ACCOUNT
+                  {t("DELETE MY ACCOUNT")}
                 </button>
               </div>
             </div>
@@ -12963,11 +13499,11 @@ import "./styles.css";
           >
             <div>
               <div style={{ fontWeight: 700, fontSize: 15, color: th.text }}>
-                Body Measurements
+                {t("Body Measurements")}
               </div>
               {latest && (
                 <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>
-                  Last Record: {fmtDate(latest.date)}
+                  {t("Last Record:")} {fmtDate(latest.date)}
                 </div>
               )}
             </div>
@@ -13284,7 +13820,7 @@ import "./styles.css";
         {!editMode && (
           <>
             <div style={{ ...S.card, padding: 16, marginBottom: 12, textAlign: "left", }}>
-              <div style={{ ...S.label, marginBottom: 14 }}>APPEARANCE</div>
+              <div style={{ ...S.label, marginBottom: 14 }}>{t("APPEARANCE")}</div>
               <div
                 style={{
                   display: "flex",
@@ -13295,10 +13831,10 @@ import "./styles.css";
               >
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: th.text, textAlign: "left", }}>
-                    Dark mode
+                    {t("Dark mode")}
                   </div>
                   <div style={{ fontSize: 11, color: th.muted, marginTop: 2, textAlign: "left", }}>
-                    Auto: dark 19:00-06:00
+                    {t("Auto: dark 19:00-06:00")}
                   </div>
                 </div>
                 {/* Toggle pill */}
@@ -13348,7 +13884,7 @@ import "./styles.css";
                     letterSpacing: 1,
                   }}
                 >
-                  RESET TO AUTO (TIME-BASED)
+                  {t("RESET TO AUTO (TIME-BASED)")}
                 </button>
               )}
               {themeAuto && (
@@ -13360,10 +13896,44 @@ import "./styles.css";
                     letterSpacing: "1px",
                   }}
                 >
-                  Currently auto —{" "}
-                  {theme === "dark" ? "dark until 06:00" : "light until 19:00"}
+                  {t("Currently auto —")}{" "}
+                  {theme === "dark" ? t("dark until 06:00") : t("light until 19:00")}
                 </div>
               )}
+            </div>
+
+            {/* Language card — mirrors Appearance card */}
+            <div style={{ ...S.card, padding: 16, marginBottom: 12, textAlign: "left" }}>
+              <div style={{ ...S.label, marginBottom: 14 }}>{t("LANGUAGE")}</div>
+              <div style={{ display: "flex", gap: 8 }}>
+                {LANGS.map((code) => {
+                  const isActive = (lang || "en") === code;
+                  return (
+                    <button
+                      key={code}
+                      onClick={() => onLangChange && onLangChange(code)}
+                      style={{
+                        flex: 1,
+                        background: isActive
+                          ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)`
+                          : th.input,
+                        border: `1px solid ${isActive ? th.accentBg : th.inputB}`,
+                        borderRadius: 12,
+                        padding: "12px 0",
+                        cursor: "pointer",
+                        color: isActive ? th.accentT : th.text,
+                        fontFamily: "'Outfit',sans-serif",
+                        fontWeight: 700,
+                        fontSize: 14,
+                        letterSpacing: "0.3px",
+                        transition: "all .2s",
+                      }}
+                    >
+                      {LANG_LABELS[code]}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </>
         )}
@@ -13379,12 +13949,12 @@ import "./styles.css";
           >
             <div>
               <div style={{ fontWeight: 700, fontSize: 15, color: th.text, textAlign: "left", }}>
-                {isAdmin ? "User Feedback" : "Send Feedback"}
+                {isAdmin ? t("User Feedback") : t("Send Feedback")}
               </div>
               <div style={{ fontSize: 12, color: th.muted, marginTop: 2, textAlign: "left", }}>
                 {isAdmin
-                  ? "All submitted reports"
-                  : "Report bugs or suggest features"}
+                  ? t("All submitted reports")
+                  : t("Report bugs or suggest features")}
               </div>
             </div>
             <button
@@ -13407,7 +13977,7 @@ import "./styles.css";
                 fontWeight: 700,
               }}
             >
-              {showFeedback ? "Close" : isAdmin ? "View All" : "Send"}
+              {showFeedback ? t("Close") : isAdmin ? t("View All") : t("Send")}
             </button>
           </div>
 
@@ -13424,10 +13994,10 @@ import "./styles.css";
                   <div
                     style={{ fontWeight: 700, color: th.accentFg, fontSize: 14 }}
                   >
-                    Feedback sent!
+                    {t("Feedback sent!")}
                   </div>
                   <div style={{ fontSize: 12, color: th.muted, marginTop: 4 }}>
-                    Thank you for helping improve Iron Body.
+                    {t("Thank you for helping improve Iron Body.")}
                   </div>
                   <button
                     onClick={() => setFeedbackSent(false)}
@@ -13441,7 +14011,7 @@ import "./styles.css";
                       fontFamily: "'Outfit',sans-serif",
                     }}
                   >
-                    Send another →
+                    {t("Send another →")}
                   </button>
                 </div>
               ) : (
@@ -14169,6 +14739,7 @@ import "./styles.css";
   export default function App() {
     const [theme, setTheme] = useState(getAutoTheme);
     const [themeAuto, setThemeAuto] = useState(true);
+    const [lang, setLang] = useState("en");
     const th = theme === "dark" ? DARK : LIGHT;
 
     // Re-evaluate auto theme every minute if in auto mode
@@ -14354,6 +14925,8 @@ import "./styles.css";
       setSessions(ls(uKey(user.id, "sessions"), []));
       setSettings(ls(uKey(user.id, "settings"), DEFAULT_SETTINGS));
       setMeasurements(getMeasurements(user.id));
+      const savedLang = ls(uKey(user.id, "lang"), "en");
+      if (LANGS.includes(savedLang)) setLang(savedLang);
 
       // ── Step 2: Sync Firestore in background (no spinner) ──────────────────────
       const loadFromFirestore = async () => {
@@ -14756,6 +15329,7 @@ import "./styles.css";
     if (authLoading || !splashDone)
       return (
         <ThemeCtx.Provider value={th}>
+         <LangCtx.Provider value={lang}>
           <div style={{ position: "fixed", inset: 0, background: "#0a0a0c", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
             {/* Gym photo — same as sign-in */}
             <div style={{
@@ -14807,12 +15381,15 @@ import "./styles.css";
               </div>
             </div>
           </div>
+         </LangCtx.Provider>
         </ThemeCtx.Provider>
       );
     if (!user)
       return (
         <ThemeCtx.Provider value={th}>
+         <LangCtx.Provider value={lang}>
           <AuthView />
+         </LangCtx.Provider>
         </ThemeCtx.Provider>
       );
     const handleTemplate = (prog) => {
@@ -15019,15 +15596,16 @@ import "./styles.css";
       "shortcutDetail",
     ].includes(view);
 
+    const tLang = (en) => (lang === "tr" && TR[en] != null ? TR[en] : en);
     const NAV = [
       {
         id: "home",
-        label: "HOME",
+        label: tLang("HOME"),
         icon: (c) => <HomeIcon color={c} size={22} />,
       },
       {
         id: "programs",
-        label: "WORKOUTS",
+        label: tLang("WORKOUTS"),
         icon: (c) => (
           <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
             {/* Left collar */}
@@ -15049,7 +15627,7 @@ import "./styles.css";
       },
       {
         id: "history",
-        label: "HISTORY",
+        label: tLang("HISTORY"),
         icon: (c) => (
           <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
             <circle cx="11" cy="11" r="8.5" stroke={c} strokeWidth="2" />
@@ -15060,7 +15638,7 @@ import "./styles.css";
       },
       {
         id: "sharing",
-        label: "SHARING",
+        label: tLang("SHARING"),
         icon: (c) => (
           <div style={{ position: "relative", display: "inline-flex" }}>
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -15108,6 +15686,7 @@ import "./styles.css";
 
     return (
       <ThemeCtx.Provider value={th}>
+       <LangCtx.Provider value={lang}>
         {/* Background layers — fixed, never affect layout */}
         <div
           style={{
@@ -15245,7 +15824,7 @@ import "./styles.css";
                       fontWeight: 700,
                     }}
                   >
-                    {paused ? "RESUME" : "PAUSE"}
+                    {paused ? tLang("RESUME") : tLang("PAUSE")}
                   </button>
                   <button
                     onClick={handleAbandon}
@@ -15263,12 +15842,12 @@ import "./styles.css";
                       fontWeight: 700,
                     }}
                   >
-                    QUIT
+                    {tLang("QUIT")}
                   </button>
                   <button
                     onClick={() => {
                       if (
-                        !window.confirm("Finish this workout and save results?")
+                        !window.confirm(tLang("Finish this workout and save results?"))
                       )
                         return;
                       handleFinishWorkout(active?.exercises || []);
@@ -15284,7 +15863,7 @@ import "./styles.css";
                       letterSpacing: 0.5,
                     }}
                   >
-                    FINISH
+                    {tLang("FINISH")}
                   </button>
                 </div>
               </div>
@@ -16448,6 +17027,12 @@ import "./styles.css";
                   onSaveMeasurement={saveMeasurements}
                   theme={theme}
                   themeAuto={themeAuto}
+                  lang={lang}
+                  onLangChange={(l) => {
+                    if (!LANGS.includes(l)) return;
+                    setLang(l);
+                    if (user?.id) lsSet(uKey(user.id, "lang"), l);
+                  }}
                   active={active}
                   elapsed={elapsed}
                   onLogout={handleLogout}
@@ -16564,6 +17149,7 @@ import "./styles.css";
         </>
       )}
 
+       </LangCtx.Provider>
       </ThemeCtx.Provider>
     );
   }
