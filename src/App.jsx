@@ -500,6 +500,72 @@ import "./styles.css";
     "Are you sure?": "Emin misin?",
     "This action cannot be undone": "Bu işlem geri alınamaz",
     "Coming soon": "Yakında",
+    "TRACK · LIFT · PROGRESS": "TAKİP · KALDIR · İLERLE",
+    "Got it ✔︎": "Tamam ✔︎",
+    "Next →": "İleri →",
+
+    // Onboarding — Home / Dashboards
+    "Your Home Screen": "Ana Ekranın",
+    "Your home is built from dashboards — each one tracks a different aspect of your training. You start with a few essentials.":
+      "Ana ekranın panolardan oluşur — her biri antrenmanının farklı bir yönünü takip eder. Birkaç temel panoyla başlarsın.",
+    "Customise What You See": "Gördüğünü Özelleştir",
+    "Tap EDIT next to MY DASHBOARDS to add, remove, or reorder your dashboards however you like.":
+      "Panoları eklemek, kaldırmak veya yeniden sıralamak için PANOLARIM yanındaki DÜZENLE'ye dokun.",
+    "Drag to Reorder": "Yeniden Sıralamak İçin Sürükle",
+    "Inside the editor, grab the grip handle on the left of any dashboard and drag it to the position you want.":
+      "Düzenleyicide, herhangi bir panonun solundaki tutamağı yakalayıp istediğin konuma sürükle.",
+    "Remove Anytime": "Her Zaman Kaldır",
+    "Tap the ✕ on a dashboard to remove it from your home screen. You can always add it back from the ADD TO HOME section.":
+      "Ana ekrandan kaldırmak için bir panodaki ✕'ya dokun. Daha sonra ANA EKRANA EKLE bölümünden geri ekleyebilirsin.",
+
+    // Onboarding — Programs
+    "Your Workout Programs": "Antrenman Programların",
+    "Start a Workout": "Antrenmana Başla",
+    "Tap the START button on any program card to kick off a live session. The timer starts automatically.":
+      "Canlı antrenmana başlamak için herhangi bir program kartındaki BAŞLA düğmesine dokun. Zamanlayıcı otomatik başlar.",
+    "Log Sets as You Go": "Setleri Yaparken Kaydet",
+    "Tap the circle next to each set to mark it done. Adjust weight and reps on the fly — the session saves your actual numbers.":
+      "Tamamlandı olarak işaretlemek için her setin yanındaki daireye dokun. Ağırlık ve tekrarları anında ayarla — antrenman gerçek sayılarını kaydeder.",
+    "Rate Your Intensity": "Yoğunluğunu Puanla",
+    "After finishing, rate how hard you pushed (1-10). This feeds your Intensity dashboard and helps you spot patterns over time.":
+      "Bitirdikten sonra ne kadar zorladığını puanla (1-10). Bu, Yoğunluk panosunu besler ve zaman içinde örüntüleri görmene yardımcı olur.",
+    "Review & Save": "İncele ve Kaydet",
+    "The summary screen shows your total sets, duration, and volume lifted. Hit SAVE to lock it into your history.":
+      "Özet ekranı toplam setlerini, süreni ve kaldırdığın hacmi gösterir. Geçmişine kilitlemek için KAYDET'e bas.",
+
+    // Onboarding — Create Program guide
+    "Name Your Program": "Programını Adlandır",
+    "Give your program a clear name like 'Push Day' or 'Full Body A'. You can create as many programs as you need.":
+      "Programına 'İtiş Günü' veya 'Tüm Vücut A' gibi net bir ad ver. İstediğin kadar program oluşturabilirsin.",
+    "Set Your Reps & Weight": "Tekrar ve Ağırlığını Ayarla",
+    "Expand each exercise card to adjust sets, reps, and starting weight. These become your defaults when you start a workout.":
+      "Set, tekrar ve başlangıç ağırlığını ayarlamak için her egzersiz kartını genişlet. Antrenmana başladığında bunlar varsayılan olur.",
+    "Or Use a Suggested Program": "Veya Önerilen Bir Programı Kullan",
+    "Scroll down to find ready-made programs. Tap one to load it as a starting point — you can then edit it however you like.":
+      "Hazır programları bulmak için aşağı kaydır. Birini başlangıç noktası olarak yüklemek için dokun — sonra istediğin gibi düzenleyebilirsin.",
+    "Save & Go": "Kaydet ve Başla",
+    "Hit SAVE PROGRAM when done. It will appear on your Programs tab ready to start any time.":
+      "Bittiğinde PROGRAMI KAYDET'e bas. İstediğin zaman başlamaya hazır olarak Programlar sekmesinde görünür.",
+
+    // Onboarding — Sharing
+    "Feed & Friends Tabs": "Akış ve Arkadaşlar Sekmeleri",
+    "Sharing has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections, pending requests, and the monthly Iron Board leaderboard.":
+      "Paylaşımın iki bölümü vardır. AKIŞ, arkadaşlarının son antrenmanlarını, paylaşılan programları ve tepkileri gösterir. ARKADAŞLAR, bağlantılarını, bekleyen istekleri ve aylık Iron Board liderlik tablosunu gösterir.",
+    "Add Friends": "Arkadaş Ekle",
+    "Tap the + bubble or INVITE A FRIEND to connect. Once accepted you'll see each other's workouts in your feeds. Pending invites and coach requests appear in the Friends tab, above the leaderboard.":
+      "Bağlanmak için + balonuna veya BİR ARKADAŞ DAVET ET'e dokun. Kabul edilince akışlarınızda birbirinizin antrenmanlarını göreceksiniz. Bekleyen davetler ve koçluk istekleri Arkadaşlar sekmesinde, liderlik tablosunun üstünde görünür.",
+    "Request Coaching": "Koçluk İste",
+    "Tap a friend's profile and hit REQUEST COACHING to become their coach. Once they accept, you unlock their full dashboards, session history, and workout programs — and can edit or create programs for them.":
+      "Bir arkadaşın profiline dokun ve KOÇLUK İSTE'ye bas. Kabul edince tüm panoları, antrenman geçmişi ve programlarına erişim açılır — onlar için program düzenleyebilir veya oluşturabilirsin.",
+    "Share Workouts": "Antrenmanları Paylaş",
+    "Inside any program in the Workouts tab, tap the share icon to send it to a friend. They'll see it in their Feed and can save it to their own Workouts with one tap.":
+      "Antrenmanlar sekmesindeki herhangi bir programın içinde, bir arkadaşına göndermek için paylaş simgesine dokun. Onlar bunu Akışlarında görür ve tek dokunuşla kendi Antrenmanlarına kaydedebilirler.",
+    "Iron Board & Compete": "Iron Board ve Yarış",
+    "The Friends tab shows the monthly Iron Board — top 3 ranked by intensity, calories, consistency and volume. Tap a friend bubble to view their dashboards and send a 7-day competition challenge.":
+      "Arkadaşlar sekmesi aylık Iron Board'u gösterir — yoğunluk, kalori, tutarlılık ve hacme göre sıralanan ilk 3. Bir arkadaş balonuna dokunarak panolarını görüntüle ve 7 günlük yarışma daveti gönder.",
+    "Notifications": "Bildirimler",
+    "The bell icon at the top right shows friend requests, coach requests, competition invites, program reactions, and accepted coaching — all in one place.":
+      "Sağ üstteki zil simgesi arkadaşlık isteklerini, koçluk isteklerini, yarışma davetlerini, program tepkilerini ve kabul edilen koçlukları tek yerde gösterir.",
     "FEED": "AKIŞ",
     "PENDING FOR YOU": "BEKLEYEN İSTEKLER",
     "ACCEPT": "KABUL ET",
@@ -4510,7 +4576,7 @@ import "./styles.css";
               letterSpacing: "3px",
             }}
           >
-            TRACK · LIFT · PROGRESS
+            {t("TRACK · LIFT · PROGRESS")}
           </div>
           <div
             style={{
@@ -5004,6 +5070,7 @@ import "./styles.css";
   /* ─── Dashboard info button ────────────────────────────────────────────────── */
   function DashInfoBtn({ text, title }) {
     const th = useTheme();
+    const t = useT();
     const [open, setOpen] = useState(false);
     return (
       <>
@@ -5039,7 +5106,7 @@ import "./styles.css";
               <button onClick={() => setOpen(false)} style={{
                 display:"block", marginTop:12, background:"none", border:"none",
                 cursor:"pointer", fontSize:12, color:th.accentFg, fontWeight:700, padding:0,
-              }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
+              }}><span style={{color:"inherit"}}>{t("Got it ✔︎")}</span></button>
             </div>
           </div>,
           document.body
@@ -5682,6 +5749,7 @@ import "./styles.css";
   function DashboardOnboarding({ onDismiss }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [step, setStep] = useState(0);
     const [leaving, setLeaving] = useState(false);
     const [dir, setDir] = useState(1);
@@ -5689,23 +5757,23 @@ import "./styles.css";
     const STEPS = [
       {
         icon: "▦",
-        title: "Your Home Screen",
-        body: "Your home is built from dashboards — each one tracks a different aspect of your training. You start with a few essentials.",
+        title: t("Your Home Screen"),
+        body: t("Your home is built from dashboards — each one tracks a different aspect of your training. You start with a few essentials."),
       },
       {
         icon: "✎",
-        title: "Customise What You See",
-        body: "Tap EDIT next to MY DASHBOARDS to add, remove, or reorder your dashboards however you like.",
+        title: t("Customise What You See"),
+        body: t("Tap EDIT next to MY DASHBOARDS to add, remove, or reorder your dashboards however you like."),
       },
       {
         icon: "⠿",
-        title: "Drag to Reorder",
-        body: "Inside the editor, grab the grip handle on the left of any dashboard and drag it to the position you want.",
+        title: t("Drag to Reorder"),
+        body: t("Inside the editor, grab the grip handle on the left of any dashboard and drag it to the position you want."),
       },
       {
         icon: "✕",
-        title: "Remove Anytime",
-        body: "Tap the ✕ on a dashboard to remove it from your home screen. You can always add it back from the ADD TO HOME section.",
+        title: t("Remove Anytime"),
+        body: t("Tap the ✕ on a dashboard to remove it from your home screen. You can always add it back from the ADD TO HOME section."),
       },
     ];
 
@@ -5776,7 +5844,7 @@ import "./styles.css";
                   background: "none", border: "none",
                   color: th.dim, fontSize: 12, cursor: "pointer",
                   fontFamily: "'Outfit',sans-serif", fontWeight: 600, padding: "6px 0",
-                }}>Skip</button>
+                }}>{t("Skip")}</button>
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
@@ -5784,14 +5852,14 @@ import "./styles.css";
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Next →</button>
+                }}>{t("Next →")}</button>
               ) : (
                 <button onClick={onDismiss} style={{
                   ...buttonTexture(th, "accent"),
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
+                }}><span style={{color:"inherit"}}>{t("Got it ✔︎")}</span></button>
               )}
             </div>
           </div>
@@ -8447,6 +8515,7 @@ import "./styles.css";
   function SharingOnboarding({ onDismiss }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [step, setStep] = useState(0);
     const [leaving, setLeaving] = useState(false);
     const [dir, setDir] = useState(1);
@@ -8461,8 +8530,8 @@ import "./styles.css";
             <line x1="7" y1="15" x2="15" y2="15" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
           </svg>
         ),
-        title: "Feed & Friends Tabs",
-        body: "Sharing has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections, pending requests, and the monthly Iron Board leaderboard.",
+        title: t("Feed & Friends Tabs"),
+        body: t("Sharing has two sections. FEED shows your friends' recent workouts, shared programs, and reactions. FRIENDS shows your connections, pending requests, and the monthly Iron Board leaderboard."),
       },
       {
         icon: (
@@ -8473,8 +8542,8 @@ import "./styles.css";
             <line x1="13" y1="15" x2="21" y2="15" stroke={th.accentFg} strokeWidth="2" strokeLinecap="round"/>
           </svg>
         ),
-        title: "Add Friends",
-        body: "Tap the + bubble or INVITE A FRIEND to connect. Once accepted you'll see each other's workouts in your feeds. Pending invites and coach requests appear in the Friends tab, above the leaderboard.",
+        title: t("Add Friends"),
+        body: t("Tap the + bubble or INVITE A FRIEND to connect. Once accepted you'll see each other's workouts in your feeds. Pending invites and coach requests appear in the Friends tab, above the leaderboard."),
       },
       {
         icon: (
@@ -8488,8 +8557,8 @@ import "./styles.css";
             <path d="M15 20c0-1.6 1.3-3 3-3s3 1.4 3 3" stroke="#5B9CF6" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
         ),
-        title: "Request Coaching",
-        body: "Tap a friend's profile and hit REQUEST COACHING to become their coach. Once they accept, you unlock their full dashboards, session history, and workout programs — and can edit or create programs for them.",
+        title: t("Request Coaching"),
+        body: t("Tap a friend's profile and hit REQUEST COACHING to become their coach. Once they accept, you unlock their full dashboards, session history, and workout programs — and can edit or create programs for them."),
       },
       {
         icon: (
@@ -8500,8 +8569,8 @@ import "./styles.css";
             <path d="M13 16h6M16 13v6" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
           </svg>
         ),
-        title: "Share Workouts",
-        body: "Inside any program in the Workouts tab, tap the share icon to send it to a friend. They'll see it in their Feed and can save it to their own Workouts with one tap.",
+        title: t("Share Workouts"),
+        body: t("Inside any program in the Workouts tab, tap the share icon to send it to a friend. They'll see it in their Feed and can save it to their own Workouts with one tap."),
       },
       {
         icon: (
@@ -8509,8 +8578,8 @@ import "./styles.css";
             <polygon points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3" stroke="#D4AF37" strokeWidth="1.8" strokeLinejoin="round"/>
           </svg>
         ),
-        title: "Iron Board & Compete",
-        body: "The Friends tab shows the monthly Iron Board — top 3 ranked by intensity, calories, consistency and volume. Tap a friend bubble to view their dashboards and send a 7-day competition challenge.",
+        title: t("Iron Board & Compete"),
+        body: t("The Friends tab shows the monthly Iron Board — top 3 ranked by intensity, calories, consistency and volume. Tap a friend bubble to view their dashboards and send a 7-day competition challenge."),
       },
       {
         icon: (
@@ -8520,8 +8589,8 @@ import "./styles.css";
             <path d="M15.6 5l1 1 2-2" stroke={th.accentFg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         ),
-        title: "Notifications",
-        body: "The bell icon at the top right shows friend requests, coach requests, competition invites, program reactions, and accepted coaching — all in one place.",
+        title: t("Notifications"),
+        body: t("The bell icon at the top right shows friend requests, coach requests, competition invites, program reactions, and accepted coaching — all in one place."),
       },
     ];
 
@@ -8591,7 +8660,7 @@ import "./styles.css";
                   background: "none", border: "none",
                   color: th.dim, fontSize: 12, cursor: "pointer",
                   fontFamily: "'Outfit',sans-serif", fontWeight: 600, padding: "6px 0",
-                }}>Skip</button>
+                }}>{t("Skip")}</button>
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
@@ -8599,14 +8668,14 @@ import "./styles.css";
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Next →</button>
+                }}>{t("Next →")}</button>
               ) : (
                 <button onClick={onDismiss} style={{
                   ...buttonTexture(th, "accent"),
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
+                }}><span style={{color:"inherit"}}>{t("Got it ✔︎")}</span></button>
               )}
             </div>
           </div>
@@ -10192,6 +10261,7 @@ import "./styles.css";
   function ProgramOnboarding({ onDismiss }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [step, setStep] = useState(0);
     const [leaving, setLeaving] = useState(false);
     const [dir, setDir] = useState(1);
@@ -10199,28 +10269,28 @@ import "./styles.css";
     const STEPS = [
       {
         icon: "≡",
-        title: "Your Workout Programs",
-        body: "Programs are your saved workout templates — a list of exercises, sets, and reps ready to go whenever you are.",
+        title: t("Your Workout Programs"),
+        body: t("Programs are your saved workout templates — a list of exercises, sets, and reps ready to go whenever you are."),
       },
       {
         icon: "▶",
-        title: "Start a Workout",
-        body: "Tap the START button on any program card to kick off a live session. The timer starts automatically.",
+        title: t("Start a Workout"),
+        body: t("Tap the START button on any program card to kick off a live session. The timer starts automatically."),
       },
       {
         icon: "✔",
-        title: "Log Sets as You Go",
-        body: "Tap the circle next to each set to mark it done. Adjust weight and reps on the fly — the session saves your actual numbers.",
+        title: t("Log Sets as You Go"),
+        body: t("Tap the circle next to each set to mark it done. Adjust weight and reps on the fly — the session saves your actual numbers."),
       },
       {
         icon: "⚡",
-        title: "Rate Your Intensity",
-        body: "After finishing, rate how hard you pushed (1-10). This feeds your Intensity dashboard and helps you spot patterns over time.",
+        title: t("Rate Your Intensity"),
+        body: t("After finishing, rate how hard you pushed (1-10). This feeds your Intensity dashboard and helps you spot patterns over time."),
       },
       {
         icon: "✦",
-        title: "Review & Save",
-        body: "The summary screen shows your total sets, duration, and volume lifted. Hit SAVE to lock it into your history.",
+        title: t("Review & Save"),
+        body: t("The summary screen shows your total sets, duration, and volume lifted. Hit SAVE to lock it into your history."),
       },
     ];
 
@@ -10291,7 +10361,7 @@ import "./styles.css";
                   background: "none", border: "none",
                   color: th.dim, fontSize: 12, cursor: "pointer",
                   fontFamily: "'Outfit',sans-serif", fontWeight: 600, padding: "6px 0",
-                }}>Skip</button>
+                }}>{t("Skip")}</button>
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
@@ -10299,14 +10369,14 @@ import "./styles.css";
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}>Next →</button>
+                }}>{t("Next →")}</button>
               ) : (
                 <button onClick={onDismiss} style={{
                   ...buttonTexture(th, "accent"),
                   borderRadius: 9,
                   padding: "6px 16px", cursor: "pointer", fontSize: 12,
                   fontFamily: "'Outfit',sans-serif", fontWeight: 700,
-                }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
+                }}><span style={{color:"inherit"}}>{t("Got it ✔︎")}</span></button>
               )}
             </div>
           </div>
@@ -10455,6 +10525,7 @@ import "./styles.css";
   function CreateProgramGuide({ onDismiss }) {
     const th = useTheme();
     const S = useS();
+    const t = useT();
     const [step, setStep] = useState(0);
     const [leaving, setLeaving] = useState(false);
     const [dir, setDir] = useState(1);
@@ -10462,28 +10533,28 @@ import "./styles.css";
     const STEPS = [
       {
         icon: "✎",
-        title: "Name Your Program",
-        body: "Give your program a clear name like 'Push Day' or 'Full Body A'. You can create as many programs as you need.",
+        title: t("Name Your Program"),
+        body: t("Give your program a clear name like 'Push Day' or 'Full Body A'. You can create as many programs as you need."),
       },
       {
         icon: "⊞",
-        title: "Add Exercises",
-        body: "Tap 'Add Exercise' to browse and select exercises. You can add multiple at once — they'll appear as cards below.",
+        title: t("Add Exercises"),
+        body: t("Tap 'Add Exercise' to browse and select exercises. You can add multiple at once — they'll appear as cards below."),
       },
       {
         icon: "⚙",
-        title: "Set Your Reps & Weight",
-        body: "Expand each exercise card to adjust sets, reps, and starting weight. These become your defaults when you start a workout.",
+        title: t("Set Your Reps & Weight"),
+        body: t("Expand each exercise card to adjust sets, reps, and starting weight. These become your defaults when you start a workout."),
       },
       {
         icon: "◈",
-        title: "Or Use a Suggested Program",
-        body: "Scroll down to find ready-made programs. Tap one to load it as a starting point — you can then edit it however you like.",
+        title: t("Or Use a Suggested Program"),
+        body: t("Scroll down to find ready-made programs. Tap one to load it as a starting point — you can then edit it however you like."),
       },
       {
         icon: "✔",
-        title: "Save & Go",
-        body: "Hit SAVE PROGRAM when done. It will appear on your Programs tab ready to start any time.",
+        title: t("Save & Go"),
+        body: t("Hit SAVE PROGRAM when done. It will appear on your Programs tab ready to start any time."),
       },
     ];
 
@@ -10548,7 +10619,7 @@ import "./styles.css";
                   background:"none", border:"none",
                   color:th.dim, fontSize:12, cursor:"pointer",
                   fontFamily:"'Outfit',sans-serif", fontWeight:600, padding:"6px 0",
-                }}>Skip</button>
+                }}>{t("Skip")}</button>
               )}
               {!isLast ? (
                 <button onClick={() => goTo(step + 1)} style={{
@@ -10557,7 +10628,7 @@ import "./styles.css";
                   border:"none", borderRadius:9, color:th.accentT,
                   padding:"6px 16px", cursor:"pointer", fontSize:12,
                   fontFamily:"'Outfit',sans-serif", fontWeight:700,
-                }}>Next →</button>
+                }}>{t("Next →")}</button>
               ) : (
                 <button onClick={onDismiss} style={{
                   background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
@@ -10565,7 +10636,7 @@ import "./styles.css";
                   border:"none", borderRadius:9, color:th.accentT,
                   padding:"6px 16px", cursor:"pointer", fontSize:12,
                   fontFamily:"'Outfit',sans-serif", fontWeight:700,
-                }}><span style={{color:"inherit"}}>Got it ✔︎</span></button>
+                }}><span style={{color:"inherit"}}>{t("Got it ✔︎")}</span></button>
               )}
             </div>
           </div>
@@ -15644,7 +15715,7 @@ import "./styles.css";
                 IRON<br />BODY
               </div>
               <div style={{ display:"flex", alignItems:"center", gap:0, fontFamily:"'Outfit',sans-serif", fontSize:12, letterSpacing:"3px", color:"rgba(255,255,255,0.45)" }}>
-                {["TRACK","·","LIFT","·","PROGRESS"].map((word, i) => (
+                {(lang === "tr" ? ["TAKİP","·","KALDIR","·","İLERLE"] : ["TRACK","·","LIFT","·","PROGRESS"]).map((word, i) => (
                   <span key={word + i} style={{
                     display:"inline-block",
                     marginRight: word === "·" ? 0 : 0,
@@ -16858,9 +16929,10 @@ import "./styles.css";
                       alignItems: "center",
                       gap: 6,
                       fontFamily: "'Outfit',sans-serif",
-                      fontSize: 10,
+                      // Turkish labels are longer — shrink slightly so they fit on narrow screens
+                      fontSize: lang === "tr" ? 8.5 : 10,
                       fontWeight: 700,
-                      letterSpacing: "1.5px",
+                      letterSpacing: lang === "tr" ? "0.6px" : "1.5px",
                       color: col,
                       transition: "color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                       position: "relative",
