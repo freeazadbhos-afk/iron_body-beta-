@@ -2364,7 +2364,7 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false, earnedAwards: [] };
   const ALL_DASHBOARDS = [
     { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
     { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
@@ -13200,11 +13200,14 @@ import "./styles.css";
     ];
 
     // Persist any newly-earned persistable awards so they survive a broken streak.
+    // Union with any prior earnedAwards rather than replacing, so we never lose
+    // historical achievements even if `settings` is briefly stale.
     useEffect(() => {
       if (!onUpdateSettings) return;
       const newlyEarned = awards.filter(a => a.persistable && a.earned && !persistedEarned.includes(a.id)).map(a => a.id);
       if (newlyEarned.length) {
-        onUpdateSettings({ ...settings, earnedAwards: [...persistedEarned, ...newlyEarned] });
+        const union = Array.from(new Set([...persistedEarned, ...newlyEarned]));
+        onUpdateSettings({ ...settings, earnedAwards: union });
       }
     }, [bestStreak, streak, persistedEarned.join(",")]);
 
@@ -15649,6 +15652,11 @@ import "./styles.css";
               if (Array.isArray(prev.homePrograms) && !Array.isArray(remote.homePrograms)) {
                 merged.homePrograms = prev.homePrograms;
               }
+              // Earned awards are append-only — union local + remote so an older device
+              // without earnedAwards in its snapshot can't wipe previously-unlocked awards.
+              const prevAwards   = Array.isArray(prev.earnedAwards)   ? prev.earnedAwards   : [];
+              const remoteAwards = Array.isArray(remote.earnedAwards) ? remote.earnedAwards : [];
+              merged.earnedAwards = Array.from(new Set([...prevAwards, ...remoteAwards]));
               // Onboarding flags are sticky — once dismissed locally, never revert
               // even if a stale snapshot still has the old false value
               ["hasDashOnboarded", "hasProgramOnboarded", "hasProgramBuildOnboarded", "hasSharingOnboarded", "hasSharingOnboardedV2", "hasSharingOnboardedV3"].forEach(k => {
@@ -15657,6 +15665,7 @@ import "./styles.css";
               const changed =
                 JSON.stringify(merged.homeDashboards) !== JSON.stringify(prev.homeDashboards) ||
                 JSON.stringify(merged.homePrograms)   !== JSON.stringify(prev.homePrograms)   ||
+                JSON.stringify(merged.earnedAwards)   !== JSON.stringify(prevAwards)          ||
                 merged.hasDashOnboarded         !== prev.hasDashOnboarded         ||
                 merged.hasProgramOnboarded      !== prev.hasProgramOnboarded      ||
                 merged.hasProgramBuildOnboarded !== prev.hasProgramBuildOnboarded ||
