@@ -7582,6 +7582,76 @@ import "./styles.css";
       return { streak, last7, thisMonth, allPrs: Object.values(prMap).sort((a,b)=>b.w-a.w) };
     })() : null;
 
+    // ── Friend's awards (derived from their session history) ──
+    // Same logic as the user's own AwardsDashboard, but computed from the friend's
+    // sessions so the viewer can see what their friend has unlocked. Earned awards
+    // appear vibrant; not-yet-earned ones are dimmed — same visual treatment as the
+    // user's own profile awards card.
+    const friendAwards = (!loading && sessions) ? (() => {
+      const sessionDays = new Set((sessions || []).map(s => { const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
+      const sortedDays = [...sessionDays].sort((a,b) => b - a);
+      let bestStreak = 0;
+      if (sortedDays.length) {
+        let run = 1; bestStreak = 1;
+        for (let i = 1; i < sortedDays.length; i++) {
+          const prev = new Date(sortedDays[i - 1]);
+          const expectedPrior = new Date(prev); expectedPrior.setDate(expectedPrior.getDate() - 1);
+          if (sortedDays[i] === expectedPrior.getTime()) { run++; if (run > bestStreak) bestStreak = run; }
+          else run = 1;
+        }
+      }
+      const now3 = new Date();
+      const monthStart = new Date(now3.getFullYear(), now3.getMonth(), 1).getTime();
+      const monthName = now3.toLocaleString("en-US", { month:"long" });
+      const daysThisMonth = new Set(
+        (sessions || []).filter(s => (s.startTime||0) >= monthStart)
+          .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
+      ).size;
+      const dayOfWeek = (now3.getDay() + 6) % 7;
+      const weekStart = new Date(now3); weekStart.setHours(0,0,0,0); weekStart.setDate(weekStart.getDate() - dayOfWeek);
+      const daysThisWeek = new Set(
+        (sessions || []).filter(s => (s.startTime||0) >= weekStart.getTime())
+          .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
+      ).size;
+      return [
+        { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),   earned: bestStreak >= 7 },
+        { id:"streak14", icon:"⚡", label:t("14-Day Streak"),  earned: bestStreak >= 14 },
+        { id:"streak21", icon:"💎", label:t("21-Day Streak"),  earned: bestStreak >= 21 },
+        { id:"streak30", icon:"👑", label:t("1-Month Streak"), earned: bestStreak >= 30 },
+        { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), earned: daysThisMonth >= 20 },
+        { id:"weekly",   icon:"🗓️", label:t("Week {n} Challenge", { n: Math.ceil(now3.getDate()/7) }), earned: daysThisWeek >= 5 },
+      ];
+    })() : [];
+
+    const friendAwardsJSX = friendAwards.length ? (
+      <div style={{ marginBottom:16 }}>
+        <div style={{ ...S.label, marginBottom:8, textAlign:"left", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <span>{t("AWARDS")}</span>
+          <span style={{ fontSize:12, color:th.dim, fontWeight:600, letterSpacing:0 }}>
+            {friendAwards.filter(a => a.earned).length}/{friendAwards.length}
+          </span>
+        </div>
+        <div style={{ overflowX:"auto", WebkitOverflowScrolling:"touch", paddingBottom:4, scrollbarWidth:"none" }}>
+          <style>{`.friend-awards-row::-webkit-scrollbar{display:none}`}</style>
+          <div className="friend-awards-row" style={{ display:"flex", gap:8 }}>
+            {friendAwards.map(a => (
+              <div key={a.id} style={{
+                flexShrink:0, minWidth:88, display:"flex", flexDirection:"column", alignItems:"center", gap:6,
+                padding:"10px 10px",
+                background: a.earned ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.sect})` : th.sect,
+                borderRadius:12,
+                border: a.earned ? `1.5px solid color-mix(in srgb, ${th.accentBg} 40%, transparent)` : `1.5px solid ${th.border}`,
+                opacity: a.earned ? 1 : 0.38,
+              }}>
+                <div style={{ width:40, height:40, borderRadius:10, background: a.earned ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.card})` : th.row, display:"flex", alignItems:"center", justifyContent:"center", fontSize:22, boxShadow: a.earned ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none" }}>{a.icon}</div>
+                <div style={{ fontSize:10, fontWeight:700, color: a.earned ? th.accentBg : th.dim, textAlign:"center", lineHeight:1.2, whiteSpace:"nowrap" }}>{a.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    ) : null;
+
     // ── Normal friendship: streak calendar, calories, intensity, PRs, weekly volume ──
     const dashboardsJSX = noSessionsJSX || (() => {
       const { streak, last7, thisMonth, allPrs } = dashStats;
@@ -7600,6 +7670,7 @@ import "./styles.css";
               </div>
             ))}
           </div>
+          {friendAwardsJSX}
           <StreakDashboard sessions={sessions} />
           <IntensityDashboard sessions={sessions} sessionVol={sessionVol} />
           <CaloriesDashboard sessions={sessions} />
@@ -7631,6 +7702,7 @@ import "./styles.css";
               </div>
             ))}
           </div>
+          {friendAwardsJSX}
 
           {/* ── Streak & training frequency ── */}
           <StreakDashboard sessions={sessions} />
