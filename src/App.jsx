@@ -894,7 +894,7 @@ import "./styles.css";
     "Win a 7-day challenge": "7 günlük bir meydan okumayı kazan",
     "{month} Challenge": "{month} Meydan Okuması",
     "20 workouts in {month}": "{month} ayında 20 antrenman",
-    "Week {n} Challenge": "{n}. Hafta Meydan Okuması",
+    "Perfect Week": "Mükemmel Hafta",
     "5 workouts this week": "Bu hafta 5 antrenman",
 
     // Suggestions / NEW PROGRAM editor (deduped subset)
@@ -7619,7 +7619,7 @@ import "./styles.css";
         { id:"streak21", icon:"💎", label:t("21-Day Streak"),  earned: bestStreak >= 21 },
         { id:"streak30", icon:"👑", label:t("1-Month Streak"), earned: bestStreak >= 30 },
         { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), earned: daysThisMonth >= 20 },
-        { id:"weekly",   icon:"🗓️", label:t("Week {n} Challenge", { n: Math.ceil(now3.getDate()/7) }), earned: daysThisWeek >= 5 },
+        { id:"weekly",   icon:"🗓️", label:t("Perfect Week"), earned: daysThisWeek >= 5 },
       ];
     })() : [];
 
@@ -13254,7 +13254,7 @@ import "./styles.css";
       sessions.filter(s => (s.startTime||0) >= weekStart.getTime())
         .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
     ).size;
-    const weekLabel = t("Week {n} Challenge", { n: Math.ceil(now.getDate()/7) });
+    const weekLabel = t("Perfect Week");
 
     // Persisted earned streak awards: once unlocked, they stay earned forever
     // regardless of whether the current live streak has since dropped.
