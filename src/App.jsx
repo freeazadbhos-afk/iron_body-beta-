@@ -8559,8 +8559,8 @@ import "./styles.css";
                         {[
                           { pct:"30%", label:t("Intensity"), desc:t("Avg self-reported intensity rating per session (0–10)") },
                           { pct:"30%", label:t("Calories"), desc:t("Total calories burned across all sessions") },
-                          { pct:"25%", label:t("Consistency"),       desc:t("5+ sessions = max score") },
-                          { pct:"25%", label:t("Activity"),          desc:t("Duration or volume if calories not logged") },
+                          { pct:"20%", label:t("Consistency"), desc:t("Every session logged earns points. 7 sessions = max") },
+                          { pct:"20%", label:t("Activity"), desc:t("Total duration or volume when calories not logged") },
                         ].map(({ pct, label, desc }) => (
                           <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                             <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
@@ -9594,7 +9594,7 @@ import "./styles.css";
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={async () => { await onDeclineCompeteInvite(c.id); }}
                   style={{ flex:1, ...buttonTexture(th, "danger"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>{t("DECLINE")}</button>
-                <button onClick={async () => { await onAcceptCompeteInvite(c.id); }}
+                <button onClick={() => setCompeteFriend(f || { uid: c.fromUid, name: c.fromName, photoURL: f?.photoURL || null })}
                   style={{ flex:1, ...buttonTexture(th, "accent"), borderRadius:11, padding:"10px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}>{t("ACCEPT")}</button>
               </div>
             </div>
