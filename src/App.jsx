@@ -8293,7 +8293,7 @@ import "./styles.css";
     const endAt   = toMs(comp?.endAt) || Infinity;
     const now     = Date.now();
     const isExpired = isActive && endAt !== Infinity && now > endAt;
-    const daysLeft = isActive && !isExpired ? Math.max(0, Math.floor((endAt - now) / 86400000)) : 0;
+    const daysLeft = isActive && !isExpired ? Math.max(0, Math.ceil((endAt - now) / 86400000)) : 0;
 
     // Auto-mark expired competitions as finished
     useEffect(() => {
