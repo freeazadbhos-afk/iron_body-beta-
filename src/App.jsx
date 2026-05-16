@@ -8017,8 +8017,10 @@ import "./styles.css";
                   textShadow: isCompActive ? "none" : "0 1px 2px rgba(100,80,0,0.5)",
                 }}>{compLabel}</button>
 
-                {/* COACH REQUEST — hidden if this user is already the athlete */}
-                {!(coachRelation && coachRelation.fromUid === friend.uid) && (
+                {/* COACH REQUEST — hidden only when friend has a pending request to coach me
+                    (that's handled inline in the Friends tab). When the relation is accepted, the
+                    athlete sees a "BEING COACHED" pulsing pill that opens the same stop confirmation. */}
+                {!(coachRelation && coachRelation.fromUid === friend.uid && coachRelation.status !== "accepted") && (
                   <button
                     onClick={handleCoachBtnClick}
                     disabled={coachBtnState === "sending"}
@@ -8046,7 +8048,7 @@ import "./styles.css";
                     {coachBtnState === "sending" ? "…"
                       : coachBtnState === "pending" ? t("REQUEST PENDING")
                       : coachBtnState === "active"
-                        ? <><span style={{ width:6, height:6, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", animation:"coachPulse 2s ease-in-out infinite" }} />{t("COACHING")}</>
+                        ? <><span style={{ width:6, height:6, borderRadius:"50%", background:"#5B9CF6", display:"inline-block", animation:"coachPulse 2s ease-in-out infinite" }} />{iAmCoach ? t("COACHING") : t("BEING COACHED")}</>
                         : t("REQUEST COACHING")}
                   </button>
                 )}
@@ -8215,11 +8217,15 @@ import "./styles.css";
                   </svg>
                 </div>
                 <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
-                  {coachBtnState === "active" ? t("STOP COACHING?") : t("WITHDRAW REQUEST?")}
+                  {coachBtnState === "active"
+                    ? (iAmCoach ? t("STOP COACHING?") : t("STOP BEING COACHED?"))
+                    : t("WITHDRAW REQUEST?")}
                 </div>
                 <div style={{ fontSize:13, color:th.muted, lineHeight:1.6 }}>
                   {coachBtnState === "active"
-                    ? t("You'll lose access to {name}'s programs, dashboards and history. This can be requested again later.", { name: friend.name.split(" ")[0] })
+                    ? (iAmCoach
+                        ? t("You'll lose access to {name}'s programs, dashboards and history. This can be requested again later.", { name: friend.name.split(" ")[0] })
+                        : t("{name} will lose access to your programs, dashboards and history. You can be coached again later.", { name: friend.name.split(" ")[0] }))
                     : t("Withdraw your coaching request to {name}?", { name: friend.name.split(" ")[0] })}
                 </div>
               </div>
@@ -8228,7 +8234,7 @@ import "./styles.css";
                   style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>{t("CANCEL")}</button>
                 <button onClick={confirmStopCoaching} disabled={stoppingCoach}
                   style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", opacity:stoppingCoach?0.5:1 }}>
-                  {stoppingCoach ? "…" : coachBtnState === "active" ? t("STOP COACHING") : t("WITHDRAW")}
+                  {stoppingCoach ? "…" : coachBtnState === "active" ? (iAmCoach ? t("STOP COACHING") : t("STOP")) : t("WITHDRAW")}
                 </button>
               </div>
             </div>
