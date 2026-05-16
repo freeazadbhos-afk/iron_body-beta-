@@ -8246,7 +8246,6 @@ import "./styles.css";
     const [closing, setClosing] = useState(false);
     const [sending, setSending] = useState(false);
     const [sentOk,  setSentOk]  = useState(false);
-    const [confirmingSend, setConfirmingSend] = useState(false);
     const [friendSessions, setFriendSessions] = useState(null);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
@@ -8573,19 +8572,15 @@ import "./styles.css";
                     </div>
                   ) : (
                     <div style={{ textAlign:"center" }}>
-                      {/* Header — switches copy between the initial preview and the explicit rules-acceptance step */}
+                      {/* Header */}
                       <div style={{ marginBottom:20 }}>
                         <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
-                        <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
-                          {confirmingSend ? t("ACCEPT THE RULES") : t("7-DAY CHALLENGE")}
-                        </div>
+                        <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>{t("7-DAY CHALLENGE")}</div>
                         <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, maxWidth:280, margin:"0 auto" }}>
-                          {confirmingSend
-                            ? t("By accepting, you agree to the scoring rules below. {name} will also need to accept before the competition starts.", { name: friend.name.split(" ")[0] })
-                            : t("Score points over 7 days. Only sessions logged after both sides agree count.")}
+                          {t("Score points over 7 days. Only sessions logged after both sides agree count.")}
                         </div>
                       </div>
-                      {/* Rules — identical table for both A and B */}
+                      {/* Rules — identical table to what B sees on the incoming invite */}
                       <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
                         <div style={{ ...S.label, marginBottom:10 }}>{t("RULES")}</div>
                         {[
@@ -8601,44 +8596,28 @@ import "./styles.css";
                           </div>
                         ))}
                       </div>
-                      {/* Step 1: preview — single button advances to the explicit accept step */}
-                      {!confirmingSend && (
-                        <button
-                          onClick={() => setConfirmingSend(true)}
-                          style={{
-                            width:"100%",
-                            background:"linear-gradient(135deg, rgba(212,175,55,0.42) 0%, rgba(168,130,20,0.58) 100%)",
-                            backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                            boxShadow:"0 2px 10px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.15)",
-                            border:`1.5px solid rgba(212,175,55,0.65)`,
-                            borderRadius:14, padding:"15px 0", cursor:"pointer",
-                            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
-                            letterSpacing:"0.5px", color:"#fff", textShadow:"0 1px 2px rgba(100,80,0,0.4)",
-                          }}>
-                          {`${t("CHALLENGE")} ${friend.name.split(" ")[0].toUpperCase()}`}
-                        </button>
-                      )}
-                      {/* Step 2: explicit accept — symmetric to B's incoming UI (Decline + Accept) */}
-                      {confirmingSend && (
-                        <div style={{ display:"flex", gap:8 }}>
-                          <button onClick={() => setConfirmingSend(false)} disabled={sending}
-                            style={{ flex:1, ...buttonTexture(th, "danger", sending), borderRadius:12, padding:"13px 0", cursor: sending?"default":"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, opacity:sending?0.5:1 }}>
-                            {t("DECLINE")}
-                          </button>
-                          <button
-                            disabled={sending}
-                            onClick={async () => {
-                              setSending(true);
-                              const r = await onSendCompeteInvite(friend.uid, friend.name);
-                              setSending(false);
-                              if (r?.ok) setSentOk(true);
-                              else setConfirmingSend(false);
-                            }}
-                            style={{ flex:1, ...buttonTexture(th, "accent", sending), borderRadius:12, padding:"13px 0", cursor: sending?"default":"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, opacity:sending?0.6:1 }}>
-                            {sending ? t("SENDING…") : `${t("ACCEPT")} ✔`}
-                          </button>
-                        </div>
-                      )}
+                      <button
+                        disabled={sending}
+                        onClick={async () => {
+                          setSending(true);
+                          const r = await onSendCompeteInvite(friend.uid, friend.name);
+                          setSending(false);
+                          if (r?.ok) setSentOk(true);
+                        }}
+                        style={{
+                          width:"100%",
+                          background:"linear-gradient(135deg, rgba(212,175,55,0.42) 0%, rgba(168,130,20,0.58) 100%)",
+                          backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                          boxShadow:"0 2px 10px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.15)",
+                          border:`1.5px solid rgba(212,175,55,0.65)`,
+                          borderRadius:14, padding:"15px 0", cursor: sending?"default":"pointer",
+                          fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
+                          letterSpacing:"0.5px", color:"#fff", textShadow:"0 1px 2px rgba(100,80,0,0.4)",
+                          transition:"background .2s, color .2s",
+                          opacity: sending ? 0.6 : 1,
+                        }}>
+                        {sending ? t("SENDING…") : `${t("CHALLENGE")} ${friend.name.split(" ")[0].toUpperCase()}`}
+                      </button>
                     </div>
                   )}
                 </>
