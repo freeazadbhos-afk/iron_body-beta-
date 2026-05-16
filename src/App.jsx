@@ -2891,6 +2891,19 @@ import "./styles.css";
   // status: "pending" → "active" (immediately after accepted) → "finished"
   async function fsSendCompeteInvite(fromUid, fromName, toUid, toName) {
     try {
+      // Block duplicate invites in either direction: if an active or pending
+      // competition already exists between these two users, do not create a new one.
+      // Otherwise both sides keep generating counter-invites that never resolve.
+      const [s1, s2] = await Promise.all([
+        getDocs(query(collection(fbDb, "competitions"), where("fromUid","==",fromUid), where("toUid","==",toUid))),
+        getDocs(query(collection(fbDb, "competitions"), where("fromUid","==",toUid),   where("toUid","==",fromUid))),
+      ]);
+      const existing = [...s1.docs, ...s2.docs].find(d => {
+        const st = d.data()?.status;
+        return st === "pending" || st === "active";
+      });
+      if (existing) return { ok: false, reason: "exists", id: existing.id };
+
       const ref = await addDoc(collection(fbDb, "competitions"), {
         fromUid, fromName, toUid, toName,
         status: "pending",
@@ -7535,12 +7548,14 @@ import "./styles.css";
     // Coach view: all dashboards
 
     // ── Pre-compute competition label (stable, no inner component) ──
-    const comp = competitions?.find(c =>
-      (c.fromUid === user?.id && c.toUid === friend.uid) ||
-      (c.toUid === user?.id && c.fromUid === friend.uid)
-    );
-    const compLabel = comp?.status === "active"
-      ? <span style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ width:6, height:6, borderRadius:"50%", background:"#D4AF37", display:"inline-block", animation:"pulse 1.5s ease-in-out infinite" }} />{t("COMPETING")}</span>
+    // Prioritize active over pending over finished/declined so the button reflects the live state.
+    const compRank = (c) => c?.status === "active" ? 3 : c?.status === "pending" ? 2 : c?.status === "finished" ? 1 : 0;
+    const comp = (competitions || [])
+      .filter(c => (c.fromUid === user?.id && c.toUid === friend.uid) || (c.toUid === user?.id && c.fromUid === friend.uid))
+      .sort((a, b) => compRank(b) - compRank(a))[0];
+    const isCompActive = comp?.status === "active";
+    const compLabel = isCompActive
+      ? <span style={{ display:"flex", alignItems:"center", gap:5 }}><span style={{ width:6, height:6, borderRadius:"50%", background:"#D4AF37", display:"inline-block", animation:"coachPulse 2s ease-in-out infinite" }} />{t("COMPETING")}</span>
       : comp?.status === "pending" ? t("PENDING") : t("COMPETE");
 
     // ── Inline JSX vars — NOT inner components (avoids React remount on every render) ──
@@ -7985,18 +8000,21 @@ import "./styles.css";
 
               {/* Action buttons row — COMPETE on left, COACH REQUEST on right */}
               <div style={{ display:"flex", gap:8 }}>
-                {/* COMPETE */}
+                {/* COMPETE — when active, mirrors COACHING's tinted-pill style (gold) */}
                 <button onClick={onCompete} style={{
                   flex:1,
-                  background:"linear-gradient(135deg, rgba(212,175,55,0.45) 0%, rgba(168,130,20,0.6) 100%)",
+                  background: isCompActive
+                    ? "rgba(212,175,55,0.12)"
+                    : "linear-gradient(135deg, rgba(212,175,55,0.45) 0%, rgba(168,130,20,0.6) 100%)",
                   backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                  boxShadow:"0 2px 12px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.16)",
-                  border:`1.5px solid rgba(212,175,55,0.65)`,
+                  boxShadow: isCompActive ? "none" : "0 2px 12px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.16)",
+                  border: isCompActive ? `1.5px solid rgba(212,175,55,0.55)` : `1.5px solid rgba(212,175,55,0.65)`,
                   borderRadius:11, padding:"9px 0", cursor:"pointer",
                   fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                  color:"#fff", letterSpacing:"0.5px",
+                  color: isCompActive ? "#D4AF37" : "#fff",
+                  letterSpacing:"0.5px", transition:"all .2s",
                   display:"flex", alignItems:"center", justifyContent:"center", gap:5,
-                  textShadow:"0 1px 2px rgba(100,80,0,0.5)",
+                  textShadow: isCompActive ? "none" : "0 1px 2px rgba(100,80,0,0.5)",
                 }}>{compLabel}</button>
 
                 {/* COACH REQUEST — hidden if this user is already the athlete */}
@@ -8228,25 +8246,10 @@ import "./styles.css";
     const [closing, setClosing] = useState(false);
     const [sending, setSending] = useState(false);
     const [sentOk,  setSentOk]  = useState(false);
+    const [confirmingSend, setConfirmingSend] = useState(false);
     const [friendSessions, setFriendSessions] = useState(null);
 
     const close = () => { setClosing(true); setTimeout(onClose, 340); };
-
-    // Find relevant competition between this user and this friend
-    const comp = competitions.find(c =>
-      (c.fromUid === user.id && c.toUid === friend.uid) ||
-      (c.toUid === user.id   && c.fromUid === friend.uid)
-    ) || null;
-
-    const isFinished = comp?.status === "finished";
-    const isPending  = comp?.status === "pending";
-    const isActive   = comp?.status === "active";
-    const isIncoming = isPending && comp?.toUid === user.id;
-    const isOutgoing = isPending && comp?.fromUid === user.id;
-
-    // Show challenge interface if finished or no competition
-    const isDeclined = comp?.status === "declined";
-    const showChallenge = !comp || isFinished || isDeclined;
 
     // Normalize Firestore Timestamps or plain numbers to ms
     const toMs = (v) => {
@@ -8256,6 +8259,30 @@ import "./styles.css";
       if (v?.seconds) return v.seconds * 1000; // Firestore Timestamp (other shape)
       return Number(v) || 0;
     };
+
+    // Find relevant competition between this user and this friend.
+    // Priority: active > pending > finished/declined, newest first within each tier.
+    // Without this, a stale finished comp can mask a live pending invite and the
+    // sheet sends the user back to the "Send Challenge" screen, creating a counter-
+    // invite — the bouncing back-and-forth behavior.
+    const relevantComps = competitions.filter(c =>
+      (c.fromUid === user.id && c.toUid === friend.uid) ||
+      (c.toUid === user.id   && c.fromUid === friend.uid)
+    );
+    const statusRank = (c) => c?.status === "active" ? 3 : c?.status === "pending" ? 2 : c?.status === "finished" ? 1 : 0;
+    const comp = relevantComps
+      .slice()
+      .sort((a, b) => statusRank(b) - statusRank(a) || toMs(b.createdAt) - toMs(a.createdAt))[0] || null;
+
+    const isFinished = comp?.status === "finished";
+    const isPending  = comp?.status === "pending";
+    const isActive   = comp?.status === "active";
+    const isIncoming = isPending && comp?.toUid === user.id;
+    const isOutgoing = isPending && comp?.fromUid === user.id;
+
+    // Show challenge interface only when there is no comp or the latest one is finished/declined
+    const isDeclined = comp?.status === "declined";
+    const showChallenge = !comp || isFinished || isDeclined;
 
     const startAt = toMs(comp?.startAt);
     const endAt   = toMs(comp?.endAt) || Infinity;
@@ -8545,17 +8572,22 @@ import "./styles.css";
                       </div>
                     </div>
                   ) : (
-                    <>
-                      {/* Rules preview */}
-                      <div style={{ textAlign:"center", marginBottom:20 }}>
+                    <div style={{ textAlign:"center" }}>
+                      {/* Header — switches copy between the initial preview and the explicit rules-acceptance step */}
+                      <div style={{ marginBottom:20 }}>
                         <div style={{ fontSize:36, marginBottom:8 }}>🏆</div>
-                        <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>{t("7-DAY CHALLENGE")}</div>
+                        <div className="bebas" style={{ fontSize:20, letterSpacing:2, color:th.text, marginBottom:6 }}>
+                          {confirmingSend ? t("ACCEPT THE RULES") : t("7-DAY CHALLENGE")}
+                        </div>
                         <div style={{ fontSize:13, color:th.muted, lineHeight:1.6, maxWidth:280, margin:"0 auto" }}>
-                          {t("Score points over 7 days. Only sessions logged after both sides agree count.")}
+                          {confirmingSend
+                            ? t("By accepting, you agree to the scoring rules below. {name} will also need to accept before the competition starts.", { name: friend.name.split(" ")[0] })
+                            : t("Score points over 7 days. Only sessions logged after both sides agree count.")}
                         </div>
                       </div>
-                      <div style={{ ...S.card, padding:"14px 16px", marginBottom:20 }}>
-                        <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("SCORING RULES")}</div>
+                      {/* Rules — identical table for both A and B */}
+                      <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
+                        <div style={{ ...S.label, marginBottom:10 }}>{t("RULES")}</div>
                         {[
                           { pct:"30%", label:t("Intensity"), desc:t("Avg self-reported intensity rating per session (0–10)") },
                           { pct:"30%", label:t("Calories"), desc:t("Total calories burned across all sessions") },
@@ -8564,35 +8596,50 @@ import "./styles.css";
                         ].map(({ pct, label, desc }) => (
                           <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                             <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
-                            <div><div style={{ fontSize:13, fontWeight:700, textAlign:"left", color:th.text }}>{label}</div>
+                            <div><div style={{ fontSize:13, fontWeight:700, color:th.text }}>{label}</div>
                             <div style={{ fontSize:11, color:th.muted, marginTop:1 }}>{desc}</div></div>
                           </div>
                         ))}
                       </div>
-                      <button
-                        disabled={sending}
-                        onClick={async () => {
-                          setSending(true);
-                          const r = await onSendCompeteInvite(friend.uid, friend.name);
-                          setSending(false);
-                          if (r?.ok) setSentOk(true);
-                        }}
-                        style={{
-                          width:"100%",
-                          background:"linear-gradient(135deg, rgba(212,175,55,0.42) 0%, rgba(168,130,20,0.58) 100%)",
-                          backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
-                          boxShadow:"0 2px 10px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.15)",
-                          border:`1.5px solid rgba(212,175,55,0.65)`,
-                          borderRadius:14, padding:"15px 0", cursor: sending?"default":"pointer",
-                          fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
-                          letterSpacing:"0.5px", color:"#fff", textShadow:"0 1px 2px rgba(100,80,0,0.4)",
-                          transition:"background .2s, color .2s",
-                          opacity: sending ? 0.6 : 1,
-                        }}
-                      >
-                        {sending ? t("SENDING…") : `${t("CHALLENGE")} ${friend.name.split(" ")[0].toUpperCase()}`}
-                      </button>
-                    </>
+                      {/* Step 1: preview — single button advances to the explicit accept step */}
+                      {!confirmingSend && (
+                        <button
+                          onClick={() => setConfirmingSend(true)}
+                          style={{
+                            width:"100%",
+                            background:"linear-gradient(135deg, rgba(212,175,55,0.42) 0%, rgba(168,130,20,0.58) 100%)",
+                            backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)",
+                            boxShadow:"0 2px 10px rgba(212,175,55,0.28), inset 0 1px 0 rgba(255,255,255,0.15)",
+                            border:`1.5px solid rgba(212,175,55,0.65)`,
+                            borderRadius:14, padding:"15px 0", cursor:"pointer",
+                            fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14,
+                            letterSpacing:"0.5px", color:"#fff", textShadow:"0 1px 2px rgba(100,80,0,0.4)",
+                          }}>
+                          {`${t("CHALLENGE")} ${friend.name.split(" ")[0].toUpperCase()}`}
+                        </button>
+                      )}
+                      {/* Step 2: explicit accept — symmetric to B's incoming UI (Decline + Accept) */}
+                      {confirmingSend && (
+                        <div style={{ display:"flex", gap:8 }}>
+                          <button onClick={() => setConfirmingSend(false)} disabled={sending}
+                            style={{ flex:1, ...buttonTexture(th, "danger", sending), borderRadius:12, padding:"13px 0", cursor: sending?"default":"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, opacity:sending?0.5:1 }}>
+                            {t("DECLINE")}
+                          </button>
+                          <button
+                            disabled={sending}
+                            onClick={async () => {
+                              setSending(true);
+                              const r = await onSendCompeteInvite(friend.uid, friend.name);
+                              setSending(false);
+                              if (r?.ok) setSentOk(true);
+                              else setConfirmingSend(false);
+                            }}
+                            style={{ flex:1, ...buttonTexture(th, "accent", sending), borderRadius:12, padding:"13px 0", cursor: sending?"default":"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, opacity:sending?0.6:1 }}>
+                            {sending ? t("SENDING…") : `${t("ACCEPT")} ✔`}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </>
               )}
