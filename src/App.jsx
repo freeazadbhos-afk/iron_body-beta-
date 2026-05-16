@@ -3000,12 +3000,25 @@ import "./styles.css";
 
   // Comments stored at: comments/{postId}/messages/{messageId}
   // postId = `session_${ownerUid}_${sessionId}` or `program_${sharedProgId}`
-  async function fsPostComment(postId, authorUid, authorName, authorPhotoURL, text) {
+  async function fsPostComment(postId, authorUid, authorName, authorPhotoURL, text, ownerUid, contextName) {
     try {
       const ref = await addDoc(collection(fbDb, "comments", postId, "messages"), {
         authorUid, authorName, authorPhotoURL: authorPhotoURL || null,
         text: text.trim(), ts: Date.now(),
       });
+      // Notify post owner (skip self-comment)
+      if (ownerUid && ownerUid !== authorUid) {
+        const isSession = String(postId).startsWith("session_");
+        fsPushNotification(ownerUid, {
+          type: isSession ? "session_comment" : "program_comment",
+          fromUid: authorUid,
+          name: authorName,
+          photoURL: authorPhotoURL || null,
+          text: isSession
+            ? `${authorName} commented on your workout${contextName ? ` "${contextName}"` : ""}`
+            : `${authorName} commented on your program${contextName ? ` "${contextName}"` : ""}`,
+        });
+      }
       return { ok: true, id: ref.id };
     } catch (e) { console.warn("fsPostComment:", e.code); return { ok: false }; }
   }
@@ -8924,7 +8937,7 @@ import "./styles.css";
 
 
   // ── CommentsSheet ─────────────────────────────────────────────────────────────
-  function CommentsSheet({ postId, user, onClose }) {
+  function CommentsSheet({ postId, user, ownerUid, contextName, onClose }) {
     const th = useTheme();
     const tr = useT();
     const [comments, setComments] = useState([]);
@@ -8968,7 +8981,7 @@ import "./styles.css";
       if (!t || sending) return;
       setSending(true);
       setText("");
-      await fsPostComment(postId, user.id, user.name, user.photoURL, t);
+      await fsPostComment(postId, user.id, user.name, user.photoURL, t, ownerUid, contextName);
       // Sheet may have been closed during the await — don't setState on unmount.
       if (mountedRef.current) setSending(false);
     };
@@ -9385,6 +9398,28 @@ import "./styles.css";
         .filter(s => (s.startTime || 0) >= W7)
         .map(s => ({ type:"session", friend: f, session: s, ts: s.startTime || 0 }));
     });
+    // User's own completed sessions in feed so they can see their own posts
+    // (and any stars/comments friends leave on them).
+    const ownAsFriend = { uid: user.id, name: user.name || "You", photoURL: user.photoURL || null };
+    const ownSessionFeedItems = (mySessions || [])
+      .filter(s => (s.startTime || 0) >= W7)
+      .map(s => ({ type:"session", friend: ownAsFriend, session: s, ts: s.startTime || 0, isOwn: true }));
+
+    // Load reaction counts for own sessions so the star count reflects friends' stars.
+    useEffect(() => {
+      const items = ownSessionFeedItems;
+      items.forEach(({ session: s }) => {
+        const sid = s.id || s.startTime;
+        if (!sid) return;
+        fsGetReactions(user.id, sid).then(rxns => {
+          const key = `${user.id}-${sid}`;
+          setStarState(prev => ({
+            ...prev,
+            [key]: { starred: rxns.some(r => r.uid === user.id), count: rxns.length, reactors: rxns },
+          }));
+        });
+      });
+    }, [user.id, ownSessionFeedItems.map(i => i.session?.id || i.session?.startTime).join(",")]);
     // Shared programs in feed: programs shared TO me (from friends) + programs I shared (to show in my feed)
     const sharedProgFeedItems = [
       ...sharedPrograms.filter(sp => sp.ts >= W7).map(sp => ({
@@ -9402,7 +9437,7 @@ import "./styles.css";
         friend: friends.find(f => f.uid === sp.toUid) || { uid: sp.toUid, name: "Friend" },
       })),
     ];
-    const feedItems = [...sessionFeedItems, ...sharedProgFeedItems]
+    const feedItems = [...sessionFeedItems, ...ownSessionFeedItems, ...sharedProgFeedItems]
       .sort((a, b) => b.ts - a.ts);
 
     // Load comment counts for all visible feed items
@@ -9762,7 +9797,13 @@ import "./styles.css";
 
         {/* ── Comments sheet ── */}
         {openComments && createPortal(
-          <CommentsSheet postId={openComments.postId} user={user} onClose={() => setOpenComments(null)} />,
+          <CommentsSheet
+            postId={openComments.postId}
+            user={user}
+            ownerUid={openComments.ownerUid}
+            contextName={openComments.contextName}
+            onClose={() => setOpenComments(null)}
+          />,
           document.body
         )}
 
@@ -10072,13 +10113,13 @@ import "./styles.css";
         {/* ── Tab switcher: FEED | FRIENDS — smooth sliding rounded pill ── */}
         {sharingTab === "feed" && (
           <div style={{ marginBottom: 20 }}>
-            {friends.length === 0 ? (
+            {friends.length === 0 && ownSessionFeedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"28px 16px", textAlign:"center" }}>
                 <div style={{ fontSize:28, marginBottom:10 }}>👥</div>
                 <div style={{ color:th.text, fontWeight:700, fontSize:15, marginBottom:6 }}>{t("No friends yet")}</div>
                 <div style={{ color:th.muted, fontSize:13 }}>{t("Add friends in the Friends tab to see their activity here.")}</div>
               </div>
-            ) : feedLoading ? (
+            ) : feedLoading && feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center", color:th.dim, fontSize:14 }}>{t("Loading activity…")}</div>
             ) : feedItems.length === 0 ? (
               <div style={{ ...S.card, padding:"22px 16px", textAlign:"center" }}>
@@ -10144,7 +10185,7 @@ import "./styles.css";
                     {/* Interaction row — outside tappable button */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
                       <button
-                        onClick={() => setOpenComments({ postId: `program_${sp.id}` })}
+                        onClick={() => setOpenComments({ postId: `program_${sp.id}`, ownerUid: sp.fromUid, contextName: sp.program?.name || "Program" })}
                         style={{
                           background:"transparent",
                           border:`1.5px solid ${th.inputB}`,
@@ -10201,7 +10242,7 @@ import "./styles.css";
               }
 
               // Session feed item
-              const { friend: f, session: s } = item;
+              const { friend: f, session: s, isOwn } = item;
               const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
               const vol = sessionVol(s);
               const muscles = [...new Set((s.exercises||[]).map(e=>e.group).filter(Boolean))];
@@ -10234,9 +10275,9 @@ import "./styles.css";
 
               return (
                 <div key={`${f.uid}-${sid || i}`} style={{ ...S.card, textAlign: "left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
-                  {/* Friend row — tap avatar to open dashboard */}
+                  {/* Friend row — tap avatar to open dashboard (own posts don't open dashboard) */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                    <div onClick={() => setDashFriend(f)} style={{ cursor:"pointer", flexShrink:0 }}>
+                    <div onClick={() => { if (!isOwn) setDashFriend(f); }} style={{ cursor: isOwn ? "default" : "pointer", flexShrink:0 }}>
                     {f.photoURL ? (
                       <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", display:"block" }} />
                     ) : (
@@ -10246,7 +10287,7 @@ import "./styles.css";
                     )}
                     </div>
                     <div style={{ flex:1 }}>
-                      <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{f.name}</span>
+                      <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{isOwn ? t("You") : f.name}</span>
                       <span style={{ fontSize:13, color:th.muted }}> {t("completed a workout")}</span>
                     </div>
                     <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
@@ -10276,9 +10317,9 @@ import "./styles.css";
                     )}
                     {/* Interaction row: star + comments */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
-                      {/* Comment button — same style as star button */}
+                      {/* Comment button — same style as star button. ownerUid is the post owner (the user for own posts). */}
                       <button
-                        onClick={() => setOpenComments({ postId: `session_${f.uid}_${sid}` })}
+                        onClick={() => setOpenComments({ postId: `session_${f.uid}_${sid}`, ownerUid: f.uid, contextName: s.name || "Workout" })}
                         style={{
                           background:"transparent",
                           border:`1.5px solid ${th.inputB}`,
@@ -13049,7 +13090,7 @@ import "./styles.css";
     );
   }
 
-  function AwardsDashboard({ sessions, user }) {
+  function AwardsDashboard({ sessions, user, settings, onUpdateSettings }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
@@ -13057,14 +13098,39 @@ import "./styles.css";
 
     const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
     const sortedDays = [...daySet].sort((a,b) => b-a);
+    // Strict consecutive-day streak: every workout day must be the previous calendar day.
+    // The streak is only "live" if the latest workout is today or yesterday; otherwise it has broken.
     let streak = 0;
-    let expected = new Date(); expected.setHours(0,0,0,0);
-    if (!sortedDays.length || sortedDays[0] < expected.getTime() - 86400000*2) {
-      streak = 0;
-    } else {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    if (sortedDays.length && (sortedDays[0] === today.getTime() || sortedDays[0] === yesterday.getTime())) {
+      const expected = new Date(sortedDays[0]);
       for (const day of sortedDays) {
-        if (day >= expected.getTime() - 86400000) { streak++; expected = new Date(day); expected.setDate(expected.getDate()-1); }
-        else break;
+        if (day === expected.getTime()) {
+          streak++;
+          expected.setDate(expected.getDate() - 1);
+        } else if (day < expected.getTime()) {
+          break;
+        }
+      }
+    }
+
+    // Best historical streak — used to keep streak awards earned forever once achieved.
+    // Walks sortedDays (descending) and counts the longest run of strictly consecutive
+    // calendar days. Independent of "today" — past achievements remain valid.
+    let bestStreak = 0;
+    if (sortedDays.length) {
+      let run = 1;
+      bestStreak = 1;
+      for (let i = 1; i < sortedDays.length; i++) {
+        const prev = new Date(sortedDays[i - 1]);
+        const expectedPrior = new Date(prev); expectedPrior.setDate(expectedPrior.getDate() - 1);
+        if (sortedDays[i] === expectedPrior.getTime()) {
+          run++;
+          if (run > bestStreak) bestStreak = run;
+        } else {
+          run = 1;
+        }
       }
     }
 
@@ -13086,15 +13152,30 @@ import "./styles.css";
     ).size;
     const weekLabel = t("Week {n} Challenge", { n: Math.ceil(now.getDate()/7) });
 
+    // Persisted earned streak awards: once unlocked, they stay earned forever
+    // regardless of whether the current live streak has since dropped.
+    const persistedEarned = Array.isArray(settings?.earnedAwards) ? settings.earnedAwards : [];
+    const isPersisted = (id) => persistedEarned.includes(id);
+
     const awards = [
-      { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),    desc:t("Train 7 days in a row"),         earned: streak >= 7 },
-      { id:"streak14", icon:"⚡", label:t("14-Day Streak"),   desc:t("Train 14 days in a row"),         earned: streak >= 14 },
-      { id:"streak21", icon:"💎", label:t("21-Day Streak"),   desc:t("Train 21 days in a row"),         earned: streak >= 21 },
-      { id:"streak30", icon:"👑", label:t("1-Month Streak"),  desc:t("Train 30 days in a row"),         earned: streak >= 30 },
+      { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),    desc:t("Train 7 days in a row"),          earned: streak >= 7  || bestStreak >= 7  || isPersisted("streak7"),  persistable:true },
+      { id:"streak14", icon:"⚡", label:t("14-Day Streak"),   desc:t("Train 14 days in a row"),         earned: streak >= 14 || bestStreak >= 14 || isPersisted("streak14"), persistable:true },
+      { id:"streak21", icon:"💎", label:t("21-Day Streak"),   desc:t("Train 21 days in a row"),         earned: streak >= 21 || bestStreak >= 21 || isPersisted("streak21"), persistable:true },
+      { id:"streak30", icon:"👑", label:t("1-Month Streak"),  desc:t("Train 30 days in a row"),         earned: streak >= 30 || bestStreak >= 30 || isPersisted("streak30"), persistable:true },
       { id:"comp",     icon:"🏆", label:t("Competition Win"), desc:t("Win a 7-day challenge"),          earned: (user._awardsWon || 0) >= 1 },
       { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), desc:t("20 workouts in {month}", { month: t(monthName) }), earned: daysThisMonth >= 20 },
       { id:"weekly",   icon:"🗓️", label:weekLabel,          desc:t("5 workouts this week"),           earned: daysThisWeek >= 5 },
     ];
+
+    // Persist any newly-earned persistable awards so they survive a broken streak.
+    useEffect(() => {
+      if (!onUpdateSettings) return;
+      const newlyEarned = awards.filter(a => a.persistable && a.earned && !persistedEarned.includes(a.id)).map(a => a.id);
+      if (newlyEarned.length) {
+        onUpdateSettings({ ...settings, earnedAwards: [...persistedEarned, ...newlyEarned] });
+      }
+    }, [bestStreak, streak, persistedEarned.join(",")]);
+
     const PAGE = 3;
     const totalPages = Math.ceil(awards.length / PAGE);
     const slice = awards.slice(aPage * PAGE, aPage * PAGE + PAGE);
@@ -13139,6 +13220,8 @@ import "./styles.css";
     sessions,
     measurements,
     onSaveMeasurement,
+    settings,
+    onUpdateSettings,
     theme,
     themeAuto,
     lang,
@@ -13923,7 +14006,7 @@ import "./styles.css";
         </div>{/* end profile card */}
 
         {/* ── Awards card — separate from profile info ── */}
-        <AwardsDashboard sessions={sessions} user={user} />
+        <AwardsDashboard sessions={sessions} user={user} settings={settings} onUpdateSettings={onUpdateSettings} />
 
         {/* Body measurements card */}
         <div
@@ -14938,7 +15021,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.2 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
@@ -17417,6 +17500,8 @@ import "./styles.css";
                   sessions={sessions}
                   measurements={measurements}
                   onSaveMeasurement={saveMeasurements}
+                  settings={settings}
+                  onUpdateSettings={saveSettings}
                   theme={theme}
                   themeAuto={themeAuto}
                   lang={lang}
