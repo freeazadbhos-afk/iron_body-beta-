@@ -9832,23 +9832,33 @@ import "./styles.css";
                 return (
                   <button key={tabId}
                     onClick={() => {
-                      // Same tactile click tone the bottom-nav uses.
-                      try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain); gain.connect(ctx.destination);
-                        osc.type = "sine"; osc.frequency.value = 440;
-                        gain.gain.setValueAtTime(0.001, ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-                        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
-                        ctx.close();
-                      } catch (_) {}
+                      // Switch first so the state update isn't blocked by the audio init.
                       setSharingTab(tabId);
+                      // Defer the click tone — creating an AudioContext synchronously
+                      // can briefly stall the main thread on iOS and previously made the
+                      // first tap feel unresponsive.
+                      setTimeout(() => {
+                        try {
+                          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                          const osc = ctx.createOscillator();
+                          const gain = ctx.createGain();
+                          osc.connect(gain); gain.connect(ctx.destination);
+                          osc.type = "sine"; osc.frequency.value = 440;
+                          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+                          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+                          osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
+                          osc.onended = () => { try { ctx.close(); } catch (_) {} };
+                        } catch (_) {}
+                      }, 0);
                     }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
-                    onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
-                    onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    // Press feedback is applied to the inner content span so the BUTTON's
+                    // hit area never shrinks. Previously scaling the button itself could
+                    // cause iOS to drop the pointer-up if the finger landed near an edge,
+                    // making the first tap fail to switch tabs.
+                    onPointerDown={e => { const c = e.currentTarget.querySelector("[data-tab-content]"); if (c) { c.style.transform = "scale(0.88)"; c.style.opacity = "0.7"; } }}
+                    onPointerUp={e => { const c = e.currentTarget.querySelector("[data-tab-content]"); if (c) { c.style.transform = "scale(1)"; c.style.opacity = "1"; } }}
+                    onPointerLeave={e => { const c = e.currentTarget.querySelector("[data-tab-content]"); if (c) { c.style.transform = "scale(1)"; c.style.opacity = "1"; } }}
+                    onPointerCancel={e => { const c = e.currentTarget.querySelector("[data-tab-content]"); if (c) { c.style.transform = "scale(1)"; c.style.opacity = "1"; } }}
                     style={{
                     flex:1, padding:"9px 0", border:"none", cursor:"pointer",
                     borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
@@ -9856,8 +9866,9 @@ import "./styles.css";
                     background:"transparent",
                     position:"relative", zIndex:1,
                     color: active ? th.accentT : th.dim,
-                    transition:"color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                    transition:"color .2s",
                     WebkitTapHighlightColor:"transparent",
+                    touchAction:"manipulation",
                   }}>
                     {/* Active-state pill — kept so users can tell which tab is active */}
                     <span aria-hidden="true" style={{
@@ -9869,7 +9880,10 @@ import "./styles.css";
                       pointerEvents:"none",
                       zIndex:0,
                     }} />
-                    <span style={{ position:"relative", zIndex:1 }}>
+                    <span data-tab-content style={{
+                      position:"relative", zIndex:1, display:"inline-block",
+                      transition:"transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                    }}>
                       {tabId === "feed" ? t("FEED") : t("FRIENDS")}
                     </span>
                   </button>
