@@ -1031,6 +1031,109 @@ import "./styles.css";
   const LANG_LABELS = { en: "English", tr: "Türkçe" };
   const LangCtx = createContext("en");
   const useLang = () => useContext(LangCtx);
+  // ── Tap-ripple utility ──────────────────────────────────────────────────────
+  // Material-style ripple: a circle originates at the tap point and expands until
+  // it covers the entire button, then fades out. The button's own border-radius
+  // clips the ripple via overflow:hidden, so the ripple always conforms to the
+  // button's shape — rounded rect, circle, pill, square, etc. — instead of being
+  // a literal square.
+  // Usage: onClick={(e) => { addRipple(e); doStuff(); }}
+  if (typeof document !== "undefined" && !document.getElementById("ib-ripple-style")) {
+    const styleEl = document.createElement("style");
+    styleEl.id = "ib-ripple-style";
+    styleEl.textContent =
+      "@keyframes ibRipple{from{transform:scale(0);opacity:0.35}to{transform:scale(1);opacity:0}}" +
+      // Wave variant: slower spread, slight overshoot, gentler fade — feels like a wave dissipating outward.
+      "@keyframes ibRippleWave{0%{transform:scale(0);opacity:0.55}55%{opacity:0.32}100%{transform:scale(1.15);opacity:0}}";
+    document.head.appendChild(styleEl);
+  }
+  function addRipple(e, color, opts) {
+    let host = e && e.currentTarget;
+    if (!host) return;
+    // Optional: aim the ripple at the first child element rather than the wrapper.
+    // Useful when the wrapper is rectangular (e.g. holds an avatar + label) but the
+    // visible "button" is the round avatar inside.
+    if (opts && opts.target === "firstChild" && host.firstElementChild) host = host.firstElementChild;
+    const wave = !!(opts && opts.wave);
+    const opacity = (opts && opts.opacity != null) ? opts.opacity : (wave ? 0.55 : 0.35);
+    const animName = wave ? "ibRippleWave" : "ibRipple";
+    const animDur = wave ? "0.9s" : "0.55s";
+    const animEase = wave ? "cubic-bezier(0.22,1,0.36,1)" : "cubic-bezier(0.25,0.46,0.45,0.94)";
+    const cleanupDelay = wave ? 950 : 600;
+    const c = color || "currentColor";
+
+    // Void elements (img, input, etc.) can't contain children, so appendChild
+    // silently fails. Emulate by creating a clip-wrapper in the img's parent,
+    // sized and shaped like the img, and mount the ripple inside that.
+    if (host.tagName === "IMG") {
+      const parent = host.parentElement;
+      if (!parent) return;
+      const cs = window.getComputedStyle(parent);
+      if (cs.position === "static") parent.style.position = "relative";
+      const pRect = parent.getBoundingClientRect();
+      const iRect = host.getBoundingClientRect();
+      const borderRadius = window.getComputedStyle(host).borderRadius || "50%";
+      const wrapper = document.createElement("div");
+      wrapper.style.cssText =
+        `position:absolute;` +
+        `left:${iRect.left - pRect.left}px;top:${iRect.top - pRect.top}px;` +
+        `width:${iRect.width}px;height:${iRect.height}px;` +
+        `border-radius:${borderRadius};overflow:hidden;` +
+        `pointer-events:none;z-index:1;`;
+      const x = (e.clientX != null ? e.clientX : iRect.left + iRect.width / 2) - iRect.left;
+      const y = (e.clientY != null ? e.clientY : iRect.top + iRect.height / 2) - iRect.top;
+      const maxDist = Math.max(
+        Math.hypot(x, y),
+        Math.hypot(iRect.width - x, y),
+        Math.hypot(x, iRect.height - y),
+        Math.hypot(iRect.width - x, iRect.height - y)
+      );
+      const size = Math.max(maxDist * 2, 4);
+      const span = document.createElement("span");
+      span.style.cssText =
+        `position:absolute;left:${x - size / 2}px;top:${y - size / 2}px;` +
+        `width:${size}px;height:${size}px;border-radius:50%;background:${c};` +
+        `opacity:${opacity};transform:scale(0);` +
+        `animation:${animName} ${animDur} ${animEase} forwards;` +
+        `pointer-events:none;`;
+      wrapper.appendChild(span);
+      parent.appendChild(wrapper);
+      setTimeout(() => { try { wrapper.remove(); } catch {} }, cleanupDelay);
+      return;
+    }
+
+    const cs = window.getComputedStyle(host);
+    if (cs.position === "static") host.style.position = "relative";
+    // Temporarily clip overflow so the circle stays within the button's outline,
+    // then restore — so siblings like absolute-positioned badges aren't cut off after.
+    const prevOverflow = host.style.overflow;
+    host.style.overflow = "hidden";
+    const rect = host.getBoundingClientRect();
+    const x = (e.clientX != null ? e.clientX : rect.left + rect.width / 2) - rect.left;
+    const y = (e.clientY != null ? e.clientY : rect.top + rect.height / 2) - rect.top;
+    const maxDist = Math.max(
+      Math.hypot(x, y),
+      Math.hypot(rect.width - x, y),
+      Math.hypot(x, rect.height - y),
+      Math.hypot(rect.width - x, rect.height - y)
+    );
+    const size = Math.max(maxDist * 2, 4);
+    const span = document.createElement("span");
+    span.style.cssText =
+      `position:absolute;` +
+      `left:${x - size / 2}px;top:${y - size / 2}px;` +
+      `width:${size}px;height:${size}px;` +
+      `border-radius:50%;background:${c};opacity:${opacity};` +
+      `transform:scale(0);transform-origin:center;` +
+      `animation:${animName} ${animDur} ${animEase} forwards;` +
+      `pointer-events:none;z-index:0;`;
+    host.appendChild(span);
+    setTimeout(() => {
+      try { span.remove(); } catch {}
+      host.style.overflow = prevOverflow;
+    }, cleanupDelay);
+  }
+
   // Touch-swipe helper — returns onTouchStart/onTouchEnd handlers that fire
   // onLeft for a swipe-left (paginate "next") and onRight for swipe-right ("prev").
   // Threshold 40px and a small vertical-dominance check so vertical scrolls don't trigger pagination.
@@ -9721,31 +9824,42 @@ import "./styles.css";
 
         {(() => {
           const tabs = ["feed","friends"];
-          const idx = tabs.indexOf(sharingTab);
           return (
             <div style={{ display:"flex", position:"relative", marginBottom:16, padding:"3px", background:th.row, borderRadius:14 }}>
-              {/* Sliding pill */}
-              <div style={{
-                position:"absolute", top:3, bottom:3,
-                width:"calc(50% - 3px)",
-                left: idx === 0 ? 3 : "calc(50%)",
-                background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
-                borderRadius:11,
-                transition:"left 0.38s cubic-bezier(0.25,0.46,0.45,0.94)",
-                pointerEvents:"none",
-              }} />
-              {tabs.map(tabId => (
-                <button key={tabId} onClick={() => setSharingTab(tabId)} style={{
-                  flex:1, padding:"9px 0", border:"none", cursor:"pointer",
-                  borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
-                  letterSpacing:"0.5px", background:"transparent", position:"relative", zIndex:1,
-                  color: sharingTab === tabId ? th.accentT : th.dim,
-                  transition:"color 0.22s ease",
-                }}>
-                  {tabId === "feed" ? t("FEED") : t("FRIENDS")}
-                </button>
-              ))}
+              {tabs.map(tabId => {
+                const active = sharingTab === tabId;
+                return (
+                  <button key={tabId}
+                    onClick={(e) => { addRipple(e, th.accentFg, { wave: true }); setSharingTab(tabId); }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.92)"; e.currentTarget.style.opacity = "0.7"; }}
+                    onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    style={{
+                    flex:1, padding:"9px 0", border:"none", cursor:"pointer",
+                    borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
+                    letterSpacing:"0.5px",
+                    background:"transparent",
+                    position:"relative", zIndex:1,
+                    color: active ? th.accentT : th.dim,
+                    transition:"color 0.5s cubic-bezier(0.22,1,0.36,1), transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                    WebkitTapHighlightColor:"transparent",
+                  }}>
+                    {/* Active-state pill rendered as a fade-in overlay so swapping tabs feels smooth */}
+                    <span aria-hidden="true" style={{
+                      position:"absolute", inset:0, borderRadius:11,
+                      background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
+                      boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
+                      opacity: active ? 1 : 0,
+                      transition:"opacity 0.5s cubic-bezier(0.22,1,0.36,1)",
+                      pointerEvents:"none",
+                      zIndex:0,
+                    }} />
+                    <span style={{ position:"relative", zIndex:1 }}>
+                      {tabId === "feed" ? t("FEED") : t("FRIENDS")}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           );
         })()}
@@ -9892,8 +10006,14 @@ import "./styles.css";
             <div style={{ display:"flex", gap:16, overflowX:"auto", overflowY:"visible", paddingBottom:6, paddingTop:6, scrollbarWidth:"none", msOverflowStyle:"none" }}>
               <style>{`.ib-friends-scroll::-webkit-scrollbar{display:none}`}</style>
               {/* Add friend bubble — dashed style with accent color — LEFT END */}
-              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, cursor:"pointer" }}
-                onClick={() => { setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}>
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, cursor:"pointer",
+                  transition:"transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                  WebkitTapHighlightColor:"transparent",
+                }}
+                onClick={(e) => { addRipple(e, th.accentFg, { target: "firstChild" }); setShowInvitePanel(true); setInviteStatus("idle"); setInviteError(""); }}
+                onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
+                onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
                 <div style={{
                   width:54, height:54, borderRadius:"50%",
                   background: "transparent",
@@ -9908,8 +10028,13 @@ import "./styles.css";
                 return (
                   <div key={f.uid} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, position:"relative", cursor: editFriends ? "default" : "pointer",
                     animation: editFriends ? "avatarWobble 0.45s ease-in-out infinite alternate" : "none",
+                    transition: "transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                    WebkitTapHighlightColor: "transparent",
                   }}
-                    onClick={() => { if (!editFriends) setDashFriend(f); }}>
+                    onClick={(e) => { if (!editFriends) { addRipple(e, th.accentFg, { target: "firstChild" }); setDashFriend(f); } }}
+                    onPointerDown={e => { if (!editFriends) { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; } }}
+                    onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}>
                     {/* Avatar */}
                     {f.photoURL ? (
                       <img src={f.photoURL} alt={f.name} style={{ width:54, height:54, borderRadius:"50%", objectFit:"cover", border:`2.5px solid ${th.accentBg}` }} />
@@ -10387,7 +10512,7 @@ import "./styles.css";
                     {/* Interaction row — outside tappable button */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
                       <button
-                        onClick={() => setOpenComments({ postId: `program_${sp.id}`, ownerUid: sp.fromUid, contextName: sp.program?.name || "Program" })}
+                        onClick={(e) => { addRipple(e, th.accentFg); setOpenComments({ postId: `program_${sp.id}`, ownerUid: sp.fromUid, contextName: sp.program?.name || "Program" }); }}
                         style={{
                           background:"transparent",
                           border:`1.5px solid ${th.inputB}`,
@@ -10479,7 +10604,7 @@ import "./styles.css";
                 <div key={`${f.uid}-${sid || i}`} data-postid={`session_${f.uid}_${sid}`} style={{ ...S.card, textAlign: "left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                   {/* Friend row — tap avatar to open dashboard (own posts don't open dashboard) */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
-                    <div onClick={() => { if (!isOwn) setDashFriend(f); }} style={{ cursor: isOwn ? "default" : "pointer", flexShrink:0 }}>
+                    <div onClick={(e) => { if (!isOwn) { addRipple(e, th.accentFg, { target: "firstChild" }); setDashFriend(f); } }} style={{ cursor: isOwn ? "default" : "pointer", flexShrink:0 }}>
                     {f.photoURL ? (
                       <img src={f.photoURL} alt={f.name} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", display:"block" }} />
                     ) : (
@@ -10521,7 +10646,7 @@ import "./styles.css";
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
                       {/* Comment button — same style as star button. ownerUid is the post owner (the user for own posts). */}
                       <button
-                        onClick={() => setOpenComments({ postId: `session_${f.uid}_${sid}`, ownerUid: f.uid, contextName: s.name || "Workout" })}
+                        onClick={(e) => { addRipple(e, th.accentFg); setOpenComments({ postId: `session_${f.uid}_${sid}`, ownerUid: f.uid, contextName: s.name || "Workout" }); }}
                         style={{
                           background:"transparent",
                           border:`1.5px solid ${th.inputB}`,
@@ -10807,7 +10932,7 @@ import "./styles.css";
                   {!editing && (
                     <div style={{ position:"relative", flexShrink:0, marginLeft:12, width:48, height:48 }}>
                       <button
-                        onClick={() => onStart({ ...p, exs: programExs })}
+                        onClick={(e) => { addRipple(e, th.accentT); onStart({ ...p, exs: programExs }); }}
                         onPointerDown={e => {
                           const btn = e.currentTarget;
                           btn.style.animation = "none";
@@ -11265,7 +11390,7 @@ import "./styles.css";
           {/* SHARE button — shown only when editing an existing program and has friends */}
           {editing && friends?.length > 0 && (
             <button
-              onClick={() => onShare && onShare({ id: program?.id || uid(), name: name.trim(), exs })}
+              onClick={(e) => { addRipple(e, th.accentFg); onShare && onShare({ id: program?.id || uid(), name: name.trim(), exs }); }}
               disabled={!name.trim() || exs.length === 0}
               style={{
                 width: 50, height: 50, minWidth: 50, maxWidth: 50, minHeight: 50, maxHeight: 50,
@@ -11301,8 +11426,9 @@ import "./styles.css";
           )}
           {/* SAVE button — blue glass, identical to Request Coaching style */}
           <button
-            onClick={() => {
+            onClick={(e) => {
               if (!name.trim() || exs.length === 0) return;
+              addRipple(e, th.accentFg);
               onSave({ id: program?.id || uid(), name: name.trim(), exs });
             }}
             disabled={!name.trim() || exs.length === 0}
@@ -11323,8 +11449,9 @@ import "./styles.css";
           </button>
           {/* START button — accent primary, frosted glass */}
           <button
-            onClick={() => {
+            onClick={(e) => {
               if (!name.trim() || exs.length === 0) return;
+              addRipple(e, th.accentT);
               const p = { id: program?.id || uid(), name: name.trim(), exs };
               onSave(p);
               onStart(p);
@@ -16741,7 +16868,7 @@ import "./styles.css";
                   style={{
                     position: "absolute",
                     top: "calc(env(safe-area-inset-top, 0px) + 6px)",
-                    right: 68, /* 16 (profile right) + 44 (profile width) + 8 gap */
+                    right: 76, /* 16 (profile right) + 44 (profile width) + 16 gap */
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -16786,7 +16913,7 @@ import "./styles.css";
               {/* Profile icon — absolutely positioned into the top padding space, doesn't affect row height */}
               {view === "home" && (
                 <button
-                  onClick={() => setProfileOpen(true)}
+                  onClick={(e) => { addRipple(e, th.accentFg, { target: "firstChild" }); setProfileOpen(true); }}
                   style={{
                     position: "absolute",
                     top: "calc(env(safe-area-inset-top, 0px) + 6px)",
@@ -17158,7 +17285,7 @@ import "./styles.css";
             >
               <style>{`@keyframes fabRipple{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0.6}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}`}</style>
               <div
-                onClick={() => { setEditingProg(null); setView("editProgram"); }}
+                onClick={(e) => { addRipple(e, "#fff"); setEditingProg(null); setView("editProgram"); }}
                 onPointerDown={e => {
                   const el = e.currentTarget;
                   el.style.transform = "scale(0.88)";
