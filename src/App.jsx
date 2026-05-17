@@ -630,6 +630,7 @@ import "./styles.css";
 
     // Notifications
     "NOTIFICATIONS": "BİLDİRİMLER",
+    "CLEAR ALL": "TÜMÜNÜ TEMİZLE",
     "No notifications yet.": "Henüz bildirim yok.",
     "Someone": "Biri",
     "workout": "antrenman",
@@ -5193,15 +5194,23 @@ import "./styles.css";
                 </div>
               </div>
             ) : (
-              /* Invisible placeholder row — keeps card height fixed across pages */
+              /* Invisible placeholder row — mirrors the real row structure so the
+                  card stays at the max grid size regardless of how many PRs exist. */
               <div key={`ph-${i}`} style={{
                 display:"flex", alignItems:"center", gap:10,
                 padding:"8px 0",
                 borderBottom: i < PAGE-1 ? `1px solid ${th.border}` : "none",
                 visibility:"hidden",
               }}>
-                <div style={{ fontSize:13, height:18, width:"100%" }} />
-                <div style={{ fontSize:10, height:14, width:"60%" }} />
+                <div className="bebas" style={{ fontSize:20, width:22, flexShrink:0, textAlign:"right" }}>#0</div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:700 }}>Placeholder</div>
+                  <div style={{ fontSize:11, marginTop:1 }}>Placeholder · 00 reps · 01 Jan 2000</div>
+                </div>
+                <div style={{ textAlign:"right", flexShrink:0 }}>
+                  <span className="bebas" style={{ fontSize:22, lineHeight:1 }}>000</span>
+                  <span style={{ fontSize:10 }}> kg</span>
+                </div>
               </div>
             );
           })}
@@ -6133,6 +6142,19 @@ import "./styles.css";
     const t = useT();
     const [streakOff, setStreakOff] = useState(0); // months offset; 0=current
     const [streakDir, setStreakDir] = useState(1);
+    // Swipe handlers for the inline streak card — declared at HomeView scope so the
+    // hook order is stable. Forward goes to a newer month (only if not already at current);
+    // backward goes to an older month bounded by the earliest workout date.
+    const streakSwipe = useSwipe(
+      () => {
+        if (streakOff < 0) { setStreakDir(1); setStreakOff(o => o + 1); }
+      },
+      () => {
+        const earliest = sessions.length ? new Date(Math.min(...sessions.map(s => s.startTime || Date.now()))) : new Date();
+        const minOff = (earliest.getFullYear() - new Date().getFullYear()) * 12 + earliest.getMonth() - new Date().getMonth();
+        if (streakOff > minOff) { setStreakDir(-1); setStreakOff(o => o - 1); }
+      }
+    );
     const [editingDashboards, setEditingDashboards] = useState(false);
     // Derived directly from persisted settings — no local state needed
     const dismissDashOnboarding = () => {
@@ -6280,7 +6302,7 @@ import "./styles.css";
           const DOW = [t("Mon"),t("Tue"),t("Wed"),t("Thu"),t("Fri"),t("Sat"),t("Sun")];
 
           return (
-            <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+            <div {...streakSwipe} style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", touchAction: "pan-y" }}>
               <style>{`
                 @keyframes streakSlideL { from{opacity:0;transform:translateX(18px)} to{opacity:1;transform:translateX(0)} }
                 @keyframes streakSlideR { from{opacity:0;transform:translateX(-18px)} to{opacity:1;transform:translateX(0)} }
@@ -9476,13 +9498,36 @@ import "./styles.css";
     const [openComments, setOpenComments] = useState(null); // { postId }
     const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
 
-    // Consume deep-link from notification tap: switch to feed and open the post's comments sheet.
+    // Consume deep-link from notification tap. Three modes:
+    //   • "comments" → open the post's Comments sheet (for comment notifications)
+    //   • "scroll"   → switch to feed and scroll the post into view (for star notifications)
+    //   • "pending"  → switch to the Friends tab where pending requests live
     useEffect(() => {
       if (!deepLinkPost) return;
-      setSharingTab("feed");
-      setOpenComments({ postId: deepLinkPost.postId, ownerUid: deepLinkPost.ownerUid, contextName: deepLinkPost.contextName });
+      const { mode, postId, ownerUid, contextName } = deepLinkPost;
+      if (mode === "pending") {
+        setSharingTab("friends");
+      } else if (mode === "comments") {
+        setSharingTab("feed");
+        setOpenComments({ postId, ownerUid, contextName });
+      } else if (mode === "scroll") {
+        setSharingTab("feed");
+        const accent = th.accentFg;
+        // Defer to next paint so the feed item is mounted, then scroll it into view
+        // and briefly outline it so the user sees which post was linked.
+        setTimeout(() => {
+          const el = document.querySelector(`[data-postid="${postId}"]`);
+          if (el && el.scrollIntoView) {
+            el.scrollIntoView({ behavior:"smooth", block:"center" });
+            el.style.transition = "box-shadow 0.4s ease";
+            el.style.boxShadow = `0 0 0 2px ${accent}`;
+            setTimeout(() => { el.style.boxShadow = ""; }, 1600);
+          }
+        }, 120);
+      }
       onConsumeDeepLink && onConsumeDeepLink();
-    }, [deepLinkPost?.postId]);
+    }, [deepLinkPost?.postId, deepLinkPost?.mode]);
+
 
     const [commentCounts, setCommentCounts] = useState({}); // postId -> count
     const [progStarState, setProgStarState] = useState({}); // spId -> { starred, count }
@@ -10292,7 +10337,7 @@ import "./styles.css";
                 const recipFriend = friends.find(f => f.uid === sp.toUid);
                 const recipName = sp.toName || recipFriend?.name || "Friend";
                 return (
-                  <div key={`sp-${sp.id}-${direction}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                  <div key={`sp-${sp.id}-${direction}`} data-postid={`program_${sp.id}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                     {/* Sender row — identical for both sender and receiver */}
                     <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                       {(() => {
@@ -10431,7 +10476,7 @@ import "./styles.css";
               };
 
               return (
-                <div key={`${f.uid}-${sid || i}`} style={{ ...S.card, textAlign: "left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                <div key={`${f.uid}-${sid || i}`} data-postid={`session_${f.uid}_${sid}`} style={{ ...S.card, textAlign: "left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
                   {/* Friend row — tap avatar to open dashboard (own posts don't open dashboard) */}
                   <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
                     <div onClick={() => { if (!isOwn) setDashFriend(f); }} style={{ cursor: isOwn ? "default" : "pointer", flexShrink:0 }}>
@@ -15552,8 +15597,11 @@ import "./styles.css";
     const [bellRipple, setBellRipple]                 = useState(false);
     const [notifClosing, setNotifClosing]             = useState(false);
     const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
+    // Clear-all timestamp — notifications with ts <= notifClearedAt are hidden.
+    // Persisted locally so the cleared state survives reloads.
+    const [notifClearedAt, setNotifClearedAt]         = useState(() => parseInt(ls("ib3-notifClearedAt", "0"), 10) || 0);
     // Deep-link payload for opening a specific feed post from a notification tap.
-    // Shape: { postId, ownerUid, contextName }. SharingView consumes this on mount and clears it.
+    // Shape: { postId, ownerUid, contextName, mode }. SharingView consumes this on mount and clears it.
     const [deepLinkPost, setDeepLinkPost]             = useState(null);
     const [, setLastReadNotif]                         = useState(() => parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0);
     const [competitions, setCompetitions]             = useState([]);
@@ -17503,13 +17551,36 @@ import "./styles.css";
           }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"14px 16px 10px" }}>
               <div style={{ fontSize:11, fontWeight:700, letterSpacing:"1.5px", color:th.sub }}>{tLang("NOTIFICATIONS")}</div>
-              <button onClick={closeNotif} style={{ background:"none", border:"none", color:th.muted, cursor:"pointer", fontSize:18, lineHeight:1 }}>✕</button>
+              {(() => {
+                const visible = starNotifications.filter(n => (n.ts || 0) > notifClearedAt);
+                return (
+                  <button
+                    onClick={() => {
+                      const now = Date.now();
+                      lsSet("ib3-notifClearedAt", now);
+                      setNotifClearedAt(now);
+                      lsSet("ib3-lastReadNotif", now);
+                      setLastReadNotif(now);
+                      setUnreadStars(0);
+                    }}
+                    disabled={visible.length === 0}
+                    style={{
+                      background:"none", border:"none",
+                      color: visible.length === 0 ? th.dim : th.accentFg,
+                      cursor: visible.length === 0 ? "default" : "pointer",
+                      fontSize:11, fontWeight:700, letterSpacing:"1px",
+                      fontFamily:"'Outfit',sans-serif",
+                      padding:"4px 6px",
+                      opacity: visible.length === 0 ? 0.4 : 1,
+                    }}>{tLang("CLEAR ALL")}</button>
+                );
+              })()}
             </div>
-            {starNotifications.length === 0 ? (
+            {starNotifications.filter(n => (n.ts || 0) > notifClearedAt).length === 0 ? (
               <div style={{ padding:"12px 16px 20px", textAlign:"center", color:th.muted, fontSize:13 }}>{tLang("No notifications yet.")}</div>
             ) : (
               <div style={{ maxHeight:300, overflowY:"auto" }}>
-                {starNotifications.map((n, i) => {
+                {starNotifications.filter(n => (n.ts || 0) > notifClearedAt).map((n, i) => {
                   const diff = Date.now() - (n.ts || 0);
                   const m = Math.floor(diff / 60000);
                   const d = Math.floor(diff / 86400000);
@@ -17561,15 +17632,29 @@ import "./styles.css";
                     return n.text || <span style={{ color:th.text }}>{who}</span>;
                   };
                   const text = renderText();
-                  // Build a deep-link payload for post-related notifications so a tap
-                  // takes the user to the matching item in the feed.
+                  // Type-based routing:
+                  //   • comment notifications  → open the post's Comments sheet
+                  //   • star notifications     → scroll the post into view in the feed
+                  //   • request notifications  → switch to the Friends tab (pending requests live there)
+                  //   • acceptance notifications → also Friends tab (where the new relationship shows)
                   let linkPayload = null;
-                  if (n.type === "star" && n.sessionId) {
-                    linkPayload = { postId: `session_${user.id}_${n.sessionId}`, ownerUid: user.id, contextName: n.sessionName || "Workout" };
-                  } else if (n.type === "session_comment" && n.sessionId) {
-                    linkPayload = { postId: n.postId || `session_${n.ownerUid || user.id}_${n.sessionId}`, ownerUid: n.ownerUid || user.id, contextName: n.sessionName || "Workout" };
-                  } else if ((n.type === "program_star" || n.type === "program_comment") && n.spId) {
-                    linkPayload = { postId: n.postId || `program_${n.spId}`, ownerUid: n.ownerUid || user.id, contextName: n.programName || "Program" };
+                  if (n.type === "session_comment" && n.sessionId) {
+                    linkPayload = { mode:"comments", postId: n.postId || `session_${n.ownerUid || user.id}_${n.sessionId}`, ownerUid: n.ownerUid || user.id, contextName: n.sessionName || "Workout" };
+                  } else if (n.type === "program_comment" && n.spId) {
+                    linkPayload = { mode:"comments", postId: n.postId || `program_${n.spId}`, ownerUid: n.ownerUid || user.id, contextName: n.programName || "Program" };
+                  } else if (n.type === "star" && n.sessionId) {
+                    linkPayload = { mode:"scroll", postId: `session_${user.id}_${n.sessionId}` };
+                  } else if (n.type === "program_star" && n.spId) {
+                    linkPayload = { mode:"scroll", postId: n.postId || `program_${n.spId}` };
+                  } else if (
+                    n.type === "friend_request" ||
+                    n.type === "compete_invite" ||
+                    n.type === "coach_request" ||
+                    n.type === "friend_accepted" ||
+                    n.type === "compete_accepted" ||
+                    n.type === "coach_accepted"
+                  ) {
+                    linkPayload = { mode:"pending" };
                   }
                   const handleClick = linkPayload ? () => {
                     setDeepLinkPost(linkPayload);
