@@ -574,6 +574,7 @@ import "./styles.css";
     "Wants to share workout progress": "Antrenman ilerlemeni paylaşmak istiyor",
     "LEADERBOARD": "LİDERLİK TABLOSU",
     "Loading scores…": "Skorlar yükleniyor…",
+    "Scored on intensity · calories · consistency · volume": "Yoğunluk · kalori · tutarlılık · hacme göre puanlanır",
     "COMPETE INVITATION": "YARIŞMA DAVETİ",
     "Challenges you to a 7-day workout competition.": "Seni 7 günlük bir antrenman yarışmasına davet ediyor.",
     "DECLINE": "REDDET",
@@ -9525,7 +9526,7 @@ import "./styles.css";
             </div>
           );
         })}
-        <div style={{ fontSize:11, color:th.dim, textAlign:"center", marginTop:4 }}>Scored on intensity · calories · consistency · volume</div>
+        <div style={{ fontSize:11, color:th.dim, textAlign:"center", marginTop:4 }}>{t("Scored on intensity · calories · consistency · volume")}</div>
       </div>
     );
   }
