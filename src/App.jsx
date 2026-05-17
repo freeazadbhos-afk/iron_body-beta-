@@ -1030,6 +1030,30 @@ import "./styles.css";
   const LANG_LABELS = { en: "English", tr: "Türkçe" };
   const LangCtx = createContext("en");
   const useLang = () => useContext(LangCtx);
+  // Touch-swipe helper — returns onTouchStart/onTouchEnd handlers that fire
+  // onLeft for a swipe-left (paginate "next") and onRight for swipe-right ("prev").
+  // Threshold 40px and a small vertical-dominance check so vertical scrolls don't trigger pagination.
+  function useSwipe(onLeft, onRight) {
+    const startX = useRef(0);
+    const startY = useRef(0);
+    return {
+      onTouchStart: (e) => {
+        const t = e.touches[0];
+        startX.current = t.clientX;
+        startY.current = t.clientY;
+      },
+      onTouchEnd: (e) => {
+        const t = e.changedTouches[0];
+        const dx = t.clientX - startX.current;
+        const dy = t.clientY - startY.current;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          if (dx < 0) onLeft && onLeft();
+          else onRight && onRight();
+        }
+      },
+    };
+  }
+
   function useT() {
     const lang = useLang();
     return (en, params) => {
@@ -3019,14 +3043,22 @@ import "./styles.css";
         authorUid, authorName, authorPhotoURL: authorPhotoURL || null,
         text: text.trim(), ts: Date.now(),
       });
-      // Notify post owner (skip self-comment)
+      // Notify post owner (skip self-comment). Include enough identifiers so a tap
+      // on the notification can deep-link straight to the post in the feed.
       if (ownerUid && ownerUid !== authorUid) {
         const isSession = String(postId).startsWith("session_");
+        // postId formats: `session_${ownerUid}_${sessionId}` | `program_${spId}`
+        const sessionId = isSession ? String(postId).split("_").slice(2).join("_") : null;
+        const spId      = !isSession ? String(postId).replace(/^program_/, "") : null;
         fsPushNotification(ownerUid, {
           type: isSession ? "session_comment" : "program_comment",
           fromUid: authorUid,
           name: authorName,
           photoURL: authorPhotoURL || null,
+          postId,
+          ownerUid,
+          sessionId, sessionName: isSession ? contextName : null,
+          spId,      programName: !isSession ? contextName : null,
           text: isSession
             ? `${authorName} commented on your workout${contextName ? ` "${contextName}"` : ""}`
             : `${authorName} commented on your program${contextName ? ` "${contextName}"` : ""}`,
@@ -3056,7 +3088,7 @@ import "./styles.css";
       if (snap.exists()) { await deleteDoc(ref); return false; }
       await setDoc(ref, { spId, reactorUid, reactorName, ownerUid, programName, ts: Date.now() });
       if (ownerUid !== reactorUid) {
-        fsPushNotification(ownerUid, { type:"program_star", fromUid: reactorUid, name: reactorName, text:`${reactorName} starred your program "${programName}"` });
+        fsPushNotification(ownerUid, { type:"program_star", fromUid: reactorUid, name: reactorName, spId, programName, postId: `program_${spId}`, ownerUid, text:`${reactorName} starred your program "${programName}"` });
       }
       return true;
     } catch (e) { console.warn("fsToggleProgramStar:", e.code); return null; }
@@ -5111,8 +5143,12 @@ import "./styles.css";
       setDir(next > page ? 1 : -1);
       setPage(next);
     };
+    const swipe = useSwipe(
+      () => goTo(Math.min(totalPages - 1, page + 1)),
+      () => goTo(Math.max(0, page - 1)),
+    );
     return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left" }}>
+      <div {...swipe} style={{ ...S.card, padding: 16, marginBottom: 10, textAlign:"left", touchAction:"pan-y" }}>
         <style>{`
           @keyframes prSlideL { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
           @keyframes prSlideR { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
@@ -5268,6 +5304,10 @@ import "./styles.css";
     const totalPages = Math.ceil(rows.length / PAGE);
     const goTo = (next) => { setDir(next > page ? 1 : -1); setPage(next); };
     const pageRows = rows.slice(page * PAGE, page * PAGE + PAGE);
+    const swipe = useSwipe(
+      () => goTo(Math.min(totalPages - 1, page + 1)),
+      () => goTo(Math.max(0, page - 1)),
+    );
 
     // Fixed scale: always based on max possible (hard max across all groups × 1.3)
     const FIXED_MAX = Math.max(...GROUPS.map(g => g.max)) * 1.5; // fixed at ~33 sets
@@ -5275,7 +5315,7 @@ import "./styles.css";
     const toP = (v) => Math.min((v / FIXED_MAX) * 100, 100);
 
     return (
-      <div style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left" }}>
+      <div {...swipe} style={{ ...S.card, padding: 16, marginBottom: 10, textAlign: "left", touchAction:"pan-y" }}>
         <style>{`
           @keyframes sbSlideL { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
           @keyframes sbSlideR { from{opacity:0;transform:translateX(-16px)} to{opacity:1;transform:translateX(0)} }
@@ -6939,8 +6979,12 @@ import "./styles.css";
     const canBack=off>minOff; const canFwd=off<0;
     const cells=[]; for(let i=0;i<firstDow;i++) cells.push(null); for(let d=1;d<=daysInMonth;d++) cells.push(d); while(cells.length<42)cells.push(null);
     const DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+    const swipe = useSwipe(
+      () => { if (canFwd) { setDir(1); setOff(o => o + 1); } },
+      () => { if (canBack) { setDir(-1); setOff(o => o - 1); } },
+    );
     return (
-      <div style={{...S.card,padding:16,marginBottom:10,textAlign:"left"}}>
+      <div {...swipe} style={{...S.card,padding:16,marginBottom:10,textAlign:"left",touchAction:"pan-y"}}>
         <style>{`@keyframes strSL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes strSR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
           <div style={{...S.label}}>{t("STREAK")}</div>
@@ -9400,7 +9444,7 @@ import "./styles.css";
     );
   }
 
-  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
+  function SharingView({ user, sessions: mySessions, pendingInvitations, sentInvitations, friends, onSendInvite, onAcceptInvite, onDeclineInvite, onGetFriendSessions, onRemoveFriend, onToggleStar, competitions, onSendCompeteInvite, onAcceptCompeteInvite, onDeclineCompeteInvite, onWithdrawCompeteInvite, settings, onUpdateSettings, onSaveSharedProgram, pendingCoachRequests, sentCoachRequests, coachRelations, onAcceptCoachRequest, onDeclineCoachRequest, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching, deepLinkPost, onConsumeDeepLink }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
@@ -9431,6 +9475,15 @@ import "./styles.css";
     const [openSharedProg, setOpenSharedProg] = useState(null);
     const [openComments, setOpenComments] = useState(null); // { postId }
     const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
+
+    // Consume deep-link from notification tap: switch to feed and open the post's comments sheet.
+    useEffect(() => {
+      if (!deepLinkPost) return;
+      setSharingTab("feed");
+      setOpenComments({ postId: deepLinkPost.postId, ownerUid: deepLinkPost.ownerUid, contextName: deepLinkPost.contextName });
+      onConsumeDeepLink && onConsumeDeepLink();
+    }, [deepLinkPost?.postId]);
+
     const [commentCounts, setCommentCounts] = useState({}); // postId -> count
     const [progStarState, setProgStarState] = useState({}); // spId -> { starred, count }
     const [suggestedUsers, setSuggestedUsers] = useState([]);
@@ -13287,9 +13340,13 @@ import "./styles.css";
     const totalPages = Math.ceil(awards.length / PAGE);
     const slice = awards.slice(aPage * PAGE, aPage * PAGE + PAGE);
     const earnedCount = awards.filter(a => a.earned).length;
+    const swipe = useSwipe(
+      () => setAPage(p => Math.min(totalPages - 1, p + 1)),
+      () => setAPage(p => Math.max(0, p - 1)),
+    );
 
     return (
-      <div style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14 }}>
+      <div {...swipe} style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14, touchAction:"pan-y" }}>
         <style>{`@keyframes awSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes awSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
           <div style={{ ...S.label, textAlign:"left" }}>{t("AWARDS")}</div>
@@ -15128,7 +15185,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.2 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.3 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
@@ -15495,6 +15552,9 @@ import "./styles.css";
     const [bellRipple, setBellRipple]                 = useState(false);
     const [notifClosing, setNotifClosing]             = useState(false);
     const closeNotif = () => { setNotifClosing(true); setTimeout(() => { setNotifOpen(false); setNotifClosing(false); }, 220); };
+    // Deep-link payload for opening a specific feed post from a notification tap.
+    // Shape: { postId, ownerUid, contextName }. SharingView consumes this on mount and clears it.
+    const [deepLinkPost, setDeepLinkPost]             = useState(null);
     const [, setLastReadNotif]                         = useState(() => parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0);
     const [competitions, setCompetitions]             = useState([]);
     const [pendingCoachRequests, setPendingCoachRequests] = useState([]); // incoming coach requests (user is athlete)
@@ -16617,8 +16677,8 @@ import "./styles.css";
                 pointerEvents: "auto",
                 position: "relative",
               }}>
-              {/* Notification bell — shown on sharing tab, top-right same as profile icon */}
-              {view === "sharing" && (
+              {/* Notification bell — lives on the home header, positioned just left of the profile icon */}
+              {view === "home" && (
                 <button
                   onClick={() => {
                     setBellRipple(true); setTimeout(() => setBellRipple(false), 500);
@@ -16633,7 +16693,7 @@ import "./styles.css";
                   style={{
                     position: "absolute",
                     top: "calc(env(safe-area-inset-top, 0px) + 6px)",
-                    right: 16,
+                    right: 68, /* 16 (profile right) + 44 (profile width) + 8 gap */
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -17037,6 +17097,8 @@ import "./styles.css";
                 onGetFriendPrograms={fsGetFriendPrograms}
                 onSaveCoachPrograms={fsSaveCoachPrograms}
                 onStopCoaching={fsStopCoaching}
+                deepLinkPost={deepLinkPost}
+                onConsumeDeepLink={() => setDeepLinkPost(null)}
               />
             )}
           </div>
@@ -17499,8 +17561,25 @@ import "./styles.css";
                     return n.text || <span style={{ color:th.text }}>{who}</span>;
                   };
                   const text = renderText();
+                  // Build a deep-link payload for post-related notifications so a tap
+                  // takes the user to the matching item in the feed.
+                  let linkPayload = null;
+                  if (n.type === "star" && n.sessionId) {
+                    linkPayload = { postId: `session_${user.id}_${n.sessionId}`, ownerUid: user.id, contextName: n.sessionName || "Workout" };
+                  } else if (n.type === "session_comment" && n.sessionId) {
+                    linkPayload = { postId: n.postId || `session_${n.ownerUid || user.id}_${n.sessionId}`, ownerUid: n.ownerUid || user.id, contextName: n.sessionName || "Workout" };
+                  } else if ((n.type === "program_star" || n.type === "program_comment") && n.spId) {
+                    linkPayload = { postId: n.postId || `program_${n.spId}`, ownerUid: n.ownerUid || user.id, contextName: n.programName || "Program" };
+                  }
+                  const handleClick = linkPayload ? () => {
+                    setDeepLinkPost(linkPayload);
+                    setView("sharing");
+                    closeNotif();
+                  } : undefined;
                   return (
-                    <div key={n.id || i} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderTop:`1px solid ${th.border}` }}>
+                    <div key={n.id || i}
+                      onClick={handleClick}
+                      style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 16px", borderTop:`1px solid ${th.border}`, cursor: handleClick ? "pointer" : "default", WebkitTapHighlightColor:"transparent" }}>
                       <div style={{ width:32, height:32, borderRadius:"50%", background:iconBg, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         {icon}
                       </div>
