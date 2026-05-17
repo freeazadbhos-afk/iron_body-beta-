@@ -9830,8 +9830,22 @@ import "./styles.css";
                 const active = sharingTab === tabId;
                 return (
                   <button key={tabId}
-                    onClick={(e) => { addRipple(e, th.accentFg, { wave: true }); setSharingTab(tabId); }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.92)"; e.currentTarget.style.opacity = "0.7"; }}
+                    onClick={() => {
+                      // Same tactile click tone the bottom-nav uses.
+                      try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain); gain.connect(ctx.destination);
+                        osc.type = "sine"; osc.frequency.value = 440;
+                        gain.gain.setValueAtTime(0.001, ctx.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+                        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
+                        ctx.close();
+                      } catch (_) {}
+                      setSharingTab(tabId);
+                    }}
+                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
                     onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     style={{
@@ -9841,16 +9855,16 @@ import "./styles.css";
                     background:"transparent",
                     position:"relative", zIndex:1,
                     color: active ? th.accentT : th.dim,
-                    transition:"color 0.5s cubic-bezier(0.22,1,0.36,1), transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
+                    transition:"color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                     WebkitTapHighlightColor:"transparent",
                   }}>
-                    {/* Active-state pill rendered as a fade-in overlay so swapping tabs feels smooth */}
+                    {/* Active-state pill — kept so users can tell which tab is active */}
                     <span aria-hidden="true" style={{
                       position:"absolute", inset:0, borderRadius:11,
                       background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
                       boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
                       opacity: active ? 1 : 0,
-                      transition:"opacity 0.5s cubic-bezier(0.22,1,0.36,1)",
+                      transition:"opacity .2s",
                       pointerEvents:"none",
                       zIndex:0,
                     }} />
