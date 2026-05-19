@@ -3587,13 +3587,16 @@ import "./styles.css";
     return {
       background: disabled
         ? p.disabledBg
-        : `radial-gradient(circle at 18% 12%, rgba(255,255,255,0.28), transparent 28%), radial-gradient(circle at 86% 110%, rgba(255,255,255,0.12), transparent 34%), ${p.bg}`,
+        // Toned-down highlights: smaller radial top-left spec and a fainter bottom-right
+        // glint so the surface reads as soft glass rather than glossy plastic.
+        : `radial-gradient(circle at 18% 12%, rgba(255,255,255,0.14), transparent 24%), radial-gradient(circle at 86% 110%, rgba(255,255,255,0.06), transparent 30%), ${p.bg}`,
       backdropFilter: "blur(18px)",
       WebkitBackdropFilter: "blur(18px)",
       border: `1.5px solid ${disabled ? p.disabledBorder : p.border}`,
       boxShadow: disabled
         ? "none"
-        : `0 2px 14px ${p.glow}, inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.08)`,
+        // Softer outer glow + lighter inset top highlight so the button doesn't shine as hard.
+        : `0 1px 8px ${p.glow}, inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.05)`,
       color: disabled ? p.disabledColor : p.color,
     };
   }
