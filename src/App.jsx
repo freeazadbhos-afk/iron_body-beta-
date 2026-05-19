@@ -9831,24 +9831,39 @@ import "./styles.css";
                 const active = sharingTab === tabId;
                 return (
                   <button key={tabId}
-                    onClick={() => {
-                      // Same tactile click tone the bottom-nav uses.
-                      try {
-                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                        const osc = ctx.createOscillator();
-                        const gain = ctx.createGain();
-                        osc.connect(gain); gain.connect(ctx.destination);
-                        osc.type = "sine"; osc.frequency.value = 440;
-                        gain.gain.setValueAtTime(0.001, ctx.currentTime);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
-                        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
-                        ctx.close();
-                      } catch (_) {}
-                      setSharingTab(tabId);
+                    onPointerDown={e => {
+                      e.currentTarget.style.transform = "scale(0.88)";
+                      e.currentTarget.style.opacity = "0.7";
+                      // Capture the pointer so the corresponding pointerup fires on this
+                      // element even if the press scale shifts the visual hit region.
+                      try { e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
                     }}
-                    onPointerDown={e => { e.currentTarget.style.transform = "scale(0.88)"; e.currentTarget.style.opacity = "0.7"; }}
-                    onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    onPointerUp={e => {
+                      e.currentTarget.style.transform = "scale(1)";
+                      e.currentTarget.style.opacity = "1";
+                      // Commit the tab switch on pointerup rather than the synthetic click.
+                      // The synthetic click can be dropped on iOS when the heavy tab content
+                      // (feed cards → friends list / leaderboard) re-renders mid-gesture.
+                      setSharingTab(tabId);
+                      // Defer the click tone — creating an AudioContext synchronously can
+                      // stall the main thread on iOS, which is what made the first tap
+                      // feel unresponsive when switching feed → friends.
+                      setTimeout(() => {
+                        try {
+                          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                          const osc = ctx.createOscillator();
+                          const gain = ctx.createGain();
+                          osc.connect(gain); gain.connect(ctx.destination);
+                          osc.type = "sine"; osc.frequency.value = 440;
+                          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+                          gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.04);
+                          osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.04);
+                          osc.onended = () => { try { ctx.close(); } catch (_) {} };
+                        } catch (_) {}
+                      }, 0);
+                    }}
                     onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
+                    onPointerCancel={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.opacity = "1"; }}
                     style={{
                     flex:1, padding:"9px 0", border:"none", cursor:"pointer",
                     borderRadius:11, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:12,
@@ -9858,6 +9873,7 @@ import "./styles.css";
                     color: active ? th.accentT : th.dim,
                     transition:"color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                     WebkitTapHighlightColor:"transparent",
+                    touchAction:"manipulation",
                   }}>
                     {/* Active-state pill — kept so users can tell which tab is active */}
                     <span aria-hidden="true" style={{
