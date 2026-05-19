@@ -9484,7 +9484,15 @@ import "./styles.css";
 
           if (isEmpty) {
             return (
-              <div key={e.uid} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12, opacity:0.45 }}>
+              <div key={e.uid} style={{
+                ...S.card,
+                // Frosted glass — same family as the buttons but quieter
+                background: `radial-gradient(circle at 18% 12%, rgba(255,255,255,0.08), transparent 24%), radial-gradient(circle at 86% 110%, rgba(255,255,255,0.04), transparent 32%), color-mix(in srgb, ${th.card} 78%, transparent)`,
+                backdropFilter:"blur(18px) saturate(1.2)", WebkitBackdropFilter:"blur(18px) saturate(1.2)",
+                border:`1.5px solid ${th.border}`,
+                boxShadow:"0 1px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.05)",
+                padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12, opacity:0.45,
+              }}>
                 <div style={{ width:28, textAlign:"center", fontSize:20, flexShrink:0 }}>{medals[i]}</div>
                 <div style={{ width:40, height:40, borderRadius:"50%", background:th.row, border:`1.5px dashed ${th.border}`, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -9501,10 +9509,21 @@ import "./styles.css";
 
           const initials = (e.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
           const isTop = i === 0 && e.score > 0;
+          // Frosted-glass card — same radial-highlight family as the buttons but quieter.
+          // The "me" entry gets an accent-tinted glass; everyone else is neutral.
+          const cardBase = e.isMe
+            ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.card})`
+            : `color-mix(in srgb, ${th.card} 78%, transparent)`;
           return (
-            <div key={e.uid} style={{ ...S.card, padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12,
-              background: e.isMe ? `color-mix(in srgb, ${th.accentBg} 10%, ${th.card})` : th.card,
+            <div key={e.uid} style={{
+              ...S.card,
+              background: `radial-gradient(circle at 18% 12%, rgba(255,255,255,0.10), transparent 24%), radial-gradient(circle at 86% 110%, rgba(255,255,255,0.05), transparent 32%), ${cardBase}`,
+              backdropFilter:"blur(18px) saturate(1.2)", WebkitBackdropFilter:"blur(18px) saturate(1.2)",
               border: e.isMe ? `1.5px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)` : `1.5px solid ${th.border}`,
+              boxShadow: e.isMe
+                ? `0 1px 8px color-mix(in srgb, ${th.accentBg} 18%, transparent), inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.05)`
+                : "0 1px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.05)",
+              padding:"12px 16px", marginBottom:8, display:"flex", alignItems:"center", gap:12,
             }}>
               <div style={{ width:28, textAlign:"center", fontSize:isTop?20:14, fontWeight:700, color: isMedalSlot && e.score>0 ? "#D4AF37" : th.dim, flexShrink:0 }}>
                 {isMedalSlot && e.score > 0 ? medals[i] : `#${i+1}`}
