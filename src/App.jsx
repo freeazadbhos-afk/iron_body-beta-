@@ -6314,19 +6314,15 @@ import "./styles.css";
             <button
               onClick={() => setEditingDashboards(true)}
               style={{
-                background: `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                border: `1px solid ${th.border}`,
+                ...buttonTexture(th, "neutral"),
                 borderRadius: 20,
-                color: th.muted,
                 fontSize: 11,
                 cursor: "pointer",
                 fontFamily: "'Outfit',sans-serif",
                 fontWeight: 700,
                 letterSpacing: "0.5px",
                 padding: "4px 12px",
-                transition: "background .2s, color .2s, border-color .2s",
+                transition: "box-shadow .2s, border-color .2s, color .2s",
               }}
             >
               {t("EDIT")}
@@ -9875,11 +9871,11 @@ import "./styles.css";
                     WebkitTapHighlightColor:"transparent",
                     touchAction:"manipulation",
                   }}>
-                    {/* Active-state pill — kept so users can tell which tab is active */}
+                    {/* Active-state pill — uses the same START-button texture (accent variant)
+                        as the workouts tab so the active tab feels like a real "selected" button. */}
                     <span aria-hidden="true" style={{
+                      ...buttonTexture(th, "accent"),
                       position:"absolute", inset:0, borderRadius:11,
-                      background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 68%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 86%, transparent) 100%)`,
-                      boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 32%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`,
                       opacity: active ? 1 : 0,
                       transition:"opacity .2s",
                       pointerEvents:"none",
@@ -10013,22 +10009,15 @@ import "./styles.css";
               <div style={S.label}>{t("FRIENDS")} ({friends.length})</div>
               <button onClick={() => setEditFriends(e => !e)}
                 style={{
-                  background: editFriends ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)` : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                  backdropFilter: "blur(14px)",
-                  WebkitBackdropFilter: "blur(14px)",
-                  boxShadow: editFriends ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14)` : "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 4px rgba(0,0,0,0.07)",
-                  border: editFriends
-                    ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
-                    : `1.5px solid ${th.border}`,
+                  ...buttonTexture(th, editFriends ? "accent" : "neutral"),
                   borderRadius: 20,
-                  color: editFriends ? "#fff" : th.muted,
                   fontSize: 11,
                   cursor: "pointer",
                   fontFamily: "'Outfit',sans-serif",
                   fontWeight: 700,
                   letterSpacing: "0.5px",
                   padding: "4px 12px",
-                  transition: "background .2s, box-shadow .2s, border-color .2s",
+                  transition: "box-shadow .2s, border-color .2s, color .2s",
                 }}>
                 {editFriends ? t("DONE") : t("EDIT")}
               </button>
@@ -10900,26 +10889,15 @@ import "./styles.css";
           <>
             <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:20 }}>
               <button onClick={() => setEditing(e => !e)} style={{
-                background: editing
-                  ? `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 55%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 72%, transparent) 100%)`
-                  : `color-mix(in srgb, ${th.inputB} 30%, transparent)`,
-                backdropFilter: "blur(14px)",
-                WebkitBackdropFilter: "blur(14px)",
-                boxShadow: editing
-                  ? `0 2px 10px color-mix(in srgb, ${th.accentBg} 28%, transparent), inset 0 1px 0 rgba(255,255,255,0.14)`
-                  : "inset 0 1px 0 rgba(255,255,255,0.10), 0 1px 4px rgba(0,0,0,0.07)",
-                border: editing
-                  ? `1.5px solid color-mix(in srgb, ${th.accentBg} 52%, transparent)`
-                  : `1.5px solid ${th.border}`,
+                ...buttonTexture(th, editing ? "accent" : "neutral"),
                 borderRadius: 20,
-                color: editing ? "#fff" : th.muted,
                 fontSize: 11,
                 cursor: "pointer",
                 fontFamily: "'Outfit',sans-serif",
                 fontWeight: 700,
                 letterSpacing: "0.5px",
                 padding: "4px 12px",
-                transition: "background .2s, box-shadow .2s, border-color .2s",
+                transition: "box-shadow .2s, border-color .2s, color .2s",
               }}>{editing ? t("DONE") : t("EDIT")}</button>
             </div>
             {programs.map((p) => {
@@ -14340,25 +14318,11 @@ import "./styles.css";
                     }
                   }}
                   style={{
+                    ...buttonTexture(th, "danger"),
                     width: "100%",
-                    
-                    // 1. A semi-transparent red background
-                    background: "rgba(220, 50, 50, 0.45)", 
-                    
-                    // 2. The frosted glass blur filters
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)", 
-                    
-                    // 3. A subtle matching semi-transparent border (replaces th.delB)
-                    border: "1px solid rgba(220, 50, 50, 0.3)", 
-                    
                     borderRadius: 13,
                     padding: 15,
                     cursor: "pointer",
-                    
-                    // 4. Keep your dynamic theme text color!
-                    color: th.text, 
-                    
                     fontWeight: 700,
                     fontSize: 14,
                     fontFamily: "'Outfit',sans-serif",
@@ -15350,25 +15314,11 @@ import "./styles.css";
         <button
           onClick={onLogout}
           style={{
+            ...buttonTexture(th, "danger"),
             width: "100%",
-            
-            // 1. A semi-transparent red background
-            background: "rgba(220, 50, 50, 0.15)", 
-            
-            // 2. The frosted glass blur filters
-            backdropFilter: "blur(10px)",
-            WebkitBackdropFilter: "blur(10px)", 
-            
-            // 3. A subtle matching semi-transparent border (replaces th.delB)
-            border: "1px solid rgba(220, 50, 50, 0.3)", 
-            
             borderRadius: 13,
             padding: 15,
             cursor: "pointer",
-            
-            // 4. Keep your dynamic theme text color!
-            color: th.delText, 
-            
             fontWeight: 700,
             fontSize: 14,
             fontFamily: "'Outfit',sans-serif",
@@ -16911,21 +16861,20 @@ import "./styles.css";
                   }}
                 >
                   <div style={{
+                    ...buttonTexture(th, "accent"),
                     width: 44, height: 44, borderRadius: "50%",
-                    background: `color-mix(in srgb, ${th.accentBg} 15%, ${th.card})`,
-                    border: `1.5px solid ${th.border}`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     position: "relative",
                     overflow: "hidden",
-                    transition: "background 0.2s",
+                    transition: "background 0.2s, box-shadow 0.2s",
                   }}>
                     <style>{`@keyframes bellRipple{0%{transform:scale(0);opacity:0.35}100%{transform:scale(3.5);opacity:0}}`}</style>
                     <svg width="20" height="20" viewBox="0 0 22 22" fill="none">
-                      <path d="M11 2C7.686 2 5 4.686 5 8v5l-2 2v1h16v-1l-2-2V8c0-3.314-2.686-6-6-6z" stroke={th.accentFg} strokeWidth="1.8" strokeLinejoin="round"/>
-                      <path d="M9 18a2 2 0 004 0" stroke={th.accentFg} strokeWidth="1.8" strokeLinecap="round"/>
+                      <path d="M11 2C7.686 2 5 4.686 5 8v5l-2 2v1h16v-1l-2-2V8c0-3.314-2.686-6-6-6z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+                      <path d="M9 18a2 2 0 004 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/>
                     </svg>
                     {bellRipple && (
-                      <div style={{ position:"absolute", width:44, height:44, borderRadius:"50%", background:th.accentFg, animation:"bellRipple 0.5s ease-out forwards", pointerEvents:"none" }} />
+                      <div style={{ position:"absolute", width:44, height:44, borderRadius:"50%", background:"currentColor", animation:"bellRipple 0.5s ease-out forwards", pointerEvents:"none" }} />
                     )}
                     {unreadStars > 0 && (
                       <div style={{
@@ -17332,23 +17281,18 @@ import "./styles.css";
                 onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
                 onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
                 style={{
+                  ...buttonTexture(th, "blue"),
                   width: 52, height: 52,
                   borderRadius: 20,
-                  background: `color-mix(in srgb, ${"#5B9CF6"} 85%, transparent)`,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  border: `1px solid color-mix(in srgb, ${"#5B9CF6"} 60%, transparent)`,
-                  boxShadow: `0 4px 20px color-mix(in srgb, ${"#5B9CF6"} 50%, transparent)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   cursor: "pointer",
-                  color: th.accentT,
                   fontSize: 32,
                   fontWeight: 400,
                   lineHeight: 1,
                   userSelect: "none",
-                  transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94)",
+                  transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow .2s",
                 }}
               >
                 +
