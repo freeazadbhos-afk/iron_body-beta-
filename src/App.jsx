@@ -2511,10 +2511,8 @@ import "./styles.css";
     );
   }
 
-  // Clean anatomical line-art renderer used by the exercise info sheet.
-  // It keeps the same region ids as the old diagram so existing highlights
-  // still work, but redraws the body with three tapered reference-style views.
-  function BodyAnatomy({ highlights, baseColor, outlineColor }) {
+  // Previous detailed anatomical line-art renderer kept as an unused fallback.
+  function DetailedBodyAnatomy({ highlights, baseColor, outlineColor }) {
     const baseFill = baseColor;
     const fill = (id) => (highlights && highlights[id]) ? highlights[id].fill : baseFill;
     const opacity = (id) => (highlights && highlights[id]) ? highlights[id].opacity : 1;
@@ -2711,6 +2709,273 @@ import "./styles.css";
     );
   }
 
+  // MuscleWiki-style front/back target map: faceless figure, heavy blue-gray
+  // outlines, flat pale muscle plates, and colored target fills.
+  function FlatTwoViewBodyAnatomy({ highlights, baseColor }) {
+    const ink = "#4a4d68";
+    const plate = "#f2f2f2";
+    const body = "#e9eef2";
+    const fill = (id) => (highlights && highlights[id]) ? highlights[id].fill : plate;
+    const opacity = (id) => (highlights && highlights[id]) ? highlights[id].opacity : 1;
+    const sw = 2.5;
+
+    const Part = ({ id, d }) => (
+      <path
+        id={id}
+        d={d}
+        fill={fill(id)}
+        opacity={opacity(id)}
+        stroke={ink}
+        strokeWidth={sw}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+    const Body = ({ d }) => (
+      <path d={d} fill={body} stroke={ink} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+    );
+    const Line = ({ d, width = sw }) => (
+      <path d={d} fill="none" stroke={ink} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    );
+
+    return (
+      <svg
+        viewBox="0 0 420 420"
+        width="100%"
+        height={420}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style={{ display:"block" }}
+      >
+        <rect x="0" y="0" width="420" height="420" rx="16" fill="transparent" />
+
+        {/* Front figure */}
+        <g transform="translate(12 6)">
+          <Body d="M97 10 C86 11 80 18 80 32 C78 43 79 55 84 66 C88 75 96 80 104 82 C112 80 120 75 124 66 C129 55 130 43 128 32 C128 18 122 11 111 10 C108 8 100 7 97 10 Z" />
+          <Line d="M86 33 C91 37 99 39 104 39 C111 39 119 37 122 33" width={2.1} />
+          <Body d="M84 61 C79 62 78 78 84 80 M124 61 C129 62 130 78 124 80" />
+          <Body d="M91 78 L91 103 C82 109 73 113 65 121 L143 121 C135 113 126 109 117 103 L117 78 C112 82 107 84 104 84 C101 84 96 82 91 78 Z" />
+
+          <Part id="delFrontL" d="M54 120 C37 123 28 136 23 157 C31 153 43 151 52 152 C61 145 70 135 76 124 C70 120 61 118 54 120 Z" />
+          <Part id="delFrontR" d="M154 120 C171 123 180 136 185 157 C177 153 165 151 156 152 C147 145 138 135 132 124 C138 120 147 118 154 120 Z" />
+          <Part id="chestUpL" d="M77 124 C82 116 94 115 102 121 C101 133 100 144 94 150 C83 151 69 145 61 133 C65 129 70 126 77 124 Z" />
+          <Part id="chestUpR" d="M131 124 C126 116 114 115 106 121 C107 133 108 144 114 150 C125 151 139 145 147 133 C143 129 138 126 131 124 Z" />
+          <Part id="chestL" d="M61 133 C69 145 83 151 94 150 C100 144 101 133 102 121 L104 121 L104 158 C94 166 75 164 63 154 C58 149 57 141 61 133 Z" />
+          <Part id="chestR" d="M147 133 C139 145 125 151 114 150 C108 144 107 133 106 121 L104 121 L104 158 C114 166 133 164 145 154 C150 149 151 141 147 133 Z" />
+          <Part id="chestLoL" d="M63 154 C75 164 94 166 104 158 C102 169 94 177 83 178 C72 177 65 168 63 154 Z" />
+          <Part id="chestLoR" d="M145 154 C133 164 114 166 104 158 C106 169 114 177 125 178 C136 177 143 168 145 154 Z" />
+
+          <Part id="obliqueL" d="M72 169 C62 183 58 207 62 230 C70 228 76 220 78 209 C79 194 78 181 72 169 Z" />
+          <Part id="obliqueR" d="M136 169 C146 183 150 207 146 230 C138 228 132 220 130 209 C129 194 130 181 136 169 Z" />
+          <Part id="abs" d="M87 175 C91 172 99 173 104 179 C109 173 117 172 121 175 C124 197 122 227 117 246 C113 255 108 262 104 264 C100 262 95 255 91 246 C86 227 84 197 87 175 Z" />
+          <Line d="M104 179 L104 264 M88 189 C94 187 99 187 104 191 C109 187 114 187 120 189 M87 207 C94 205 99 205 104 209 C109 205 114 205 121 207 M89 225 C95 223 100 223 104 227 C108 223 113 223 119 225 M89 242 C95 240 100 240 104 244 C108 240 113 240 119 242" width={2} />
+
+          <Part id="bicepL" d="M23 157 C11 169 5 189 7 207 C8 216 14 219 21 215 C31 210 39 198 43 184 C47 169 42 156 32 153 C29 153 26 154 23 157 Z" />
+          <Part id="bicepR" d="M185 157 C197 169 203 189 201 207 C200 216 194 219 187 215 C177 210 169 198 165 184 C161 169 166 156 176 153 C179 153 182 154 185 157 Z" />
+          <Part id="foreFL" d="M21 215 C13 224 5 245 0 264 C6 271 15 272 21 264 C31 254 38 238 43 219 C37 214 28 212 21 215 Z" />
+          <Part id="foreFR" d="M187 215 C195 224 203 245 208 264 C202 271 193 272 187 264 C177 254 170 238 165 219 C171 214 180 212 187 215 Z" />
+          <Body d="M0 264 C-8 276 -8 293 2 303 C7 300 6 289 10 283 C10 291 12 300 17 301 C21 300 20 288 20 281 C24 287 29 288 31 283 C30 272 23 266 21 264 C15 272 6 271 0 264 Z" />
+          <Body d="M208 264 C216 276 216 293 206 303 C201 300 202 289 198 283 C198 291 196 300 191 301 C187 300 188 288 188 281 C184 287 179 288 177 283 C178 272 185 266 187 264 C193 272 202 271 208 264 Z" />
+
+          <Body d="M70 229 C85 235 96 255 104 274 C112 255 123 235 138 229 C148 258 150 310 141 353 C136 366 126 367 119 356 C113 326 109 300 104 277 C99 300 95 326 89 356 C82 367 72 366 67 353 C58 310 60 258 70 229 Z" />
+          <Part id="quadL" d="M70 229 C85 235 96 255 104 274 C99 300 95 326 89 356 C82 367 72 366 67 353 C58 310 60 258 70 229 Z" />
+          <Part id="quadR" d="M138 229 C123 235 112 255 104 274 C109 300 113 326 119 356 C126 367 136 366 141 353 C150 310 148 258 138 229 Z" />
+          <Line d="M104 274 C99 297 96 324 90 354 M104 274 C109 297 112 324 118 354" width={2} />
+          <Part id="calfFL" d="M66 355 C59 374 60 397 66 414 C72 420 82 419 88 410 C89 394 87 373 85 357 C78 364 72 364 66 355 Z" />
+          <Part id="calfFR" d="M142 355 C149 374 148 397 142 414 C136 420 126 419 120 410 C119 394 121 373 123 357 C130 364 136 364 142 355 Z" />
+          <Body d="M66 414 C54 421 51 428 61 432 C65 431 69 435 74 434 C79 437 88 432 91 424 C88 418 80 420 74 419 C71 418 69 415 66 414 Z" />
+          <Body d="M142 414 C154 421 157 428 147 432 C143 431 139 435 134 434 C129 437 120 432 117 424 C120 418 128 420 134 419 C137 418 139 415 142 414 Z" />
+        </g>
+
+        {/* Back figure */}
+        <g transform="translate(222 6)">
+          <Body d="M97 10 C86 11 80 18 80 32 C78 43 79 55 84 66 C88 75 94 81 99 78 C102 73 106 73 109 78 C114 81 120 75 124 66 C129 55 130 43 128 32 C128 18 122 11 111 10 C108 8 100 7 97 10 Z" />
+          <Line d="M91 9 C87 10 85 11 83 13 M111 10 C116 11 120 14 122 18" width={2} />
+          <Body d="M84 61 C79 62 78 78 84 80 M124 61 C129 62 130 78 124 80" />
+          <Body d="M91 78 L91 103 C82 109 73 113 65 121 L143 121 C135 113 126 109 117 103 L117 78 C112 76 108 73 104 73 C100 73 96 76 91 78 Z" />
+
+          <Part id="traps" d="M65 121 C78 116 92 114 104 114 C116 114 130 116 143 121 C138 126 130 130 119 130 C111 128 97 128 89 130 C78 130 70 126 65 121 Z" />
+          <Part id="delRearL" d="M54 120 C37 123 28 136 23 157 C31 153 43 151 52 152 C61 145 70 135 76 124 C70 120 61 118 54 120 Z" />
+          <Part id="delRearR" d="M154 120 C171 123 180 136 185 157 C177 153 165 151 156 152 C147 145 138 135 132 124 C138 120 147 118 154 120 Z" />
+          <Part id="delSideL" d="M23 157 C16 169 12 188 13 206 C19 210 25 209 30 202 C35 185 42 167 52 152 C43 151 31 153 23 157 Z" />
+          <Part id="delSideR" d="M185 157 C192 169 196 188 195 206 C189 210 183 209 178 202 C173 185 166 167 156 152 C165 151 177 153 185 157 Z" />
+          <Part id="upperBack" d="M89 130 C97 128 111 128 119 130 C112 151 108 171 104 186 C100 171 96 151 89 130 Z" />
+          <Part id="latL" d="M76 124 C89 145 98 172 98 205 C97 224 92 232 82 234 C75 214 67 194 58 173 C56 158 63 139 76 124 Z" />
+          <Part id="latR" d="M132 124 C119 145 110 172 110 205 C111 224 116 232 126 234 C133 214 141 194 150 173 C152 158 145 139 132 124 Z" />
+          <Part id="midBack" d="M98 205 C98 176 100 153 104 136 C108 153 110 176 110 205 C109 220 107 236 104 248 C101 236 99 220 98 205 Z" />
+          <Part id="lowerBack" d="M82 234 C92 232 99 240 104 254 C109 240 116 232 126 234 C123 250 116 263 104 272 C92 263 85 250 82 234 Z" />
+          <Line d="M104 114 C101 136 99 165 98 205 M104 114 C107 136 109 165 110 205 M82 234 C91 240 99 249 104 272 M126 234 C117 240 109 249 104 272" width={2} />
+
+          <Part id="tricepL" d="M13 206 C7 223 4 246 -1 264 C5 271 15 272 21 264 C31 254 38 238 43 219 C39 207 34 200 30 202 C25 209 19 210 13 206 Z" />
+          <Part id="tricepR" d="M195 206 C201 223 204 246 209 264 C203 271 193 272 187 264 C177 254 170 238 165 219 C169 207 174 200 178 202 C183 209 189 210 195 206 Z" />
+          <Part id="foreBL" d="M-1 264 C-8 276 -8 293 2 303 C7 300 6 289 10 283 C10 291 12 300 17 301 C21 300 20 288 20 281 C24 287 29 288 31 283 C30 272 23 266 21 264 C15 272 5 271 -1 264 Z" />
+          <Part id="foreBR" d="M209 264 C216 276 216 293 206 303 C201 300 202 289 198 283 C198 291 196 300 191 301 C187 300 188 288 188 281 C184 287 179 288 177 283 C178 272 185 266 187 264 C193 272 203 271 209 264 Z" />
+
+          <Body d="M82 234 C92 232 99 240 104 254 C109 240 116 232 126 234 C136 260 138 312 131 353 C126 366 117 366 112 354 C107 323 105 294 104 272 C103 294 101 323 96 354 C91 366 82 366 77 353 C70 312 72 260 82 234 Z" />
+          <Part id="gluteL" d="M82 234 C94 232 102 242 104 254 L104 292 C91 296 77 291 74 275 C73 258 76 244 82 234 Z" />
+          <Part id="gluteR" d="M126 234 C114 232 106 242 104 254 L104 292 C117 296 131 291 134 275 C135 258 132 244 126 234 Z" />
+          <Part id="hamL" d="M75 276 C84 292 96 295 104 292 C103 313 101 333 96 354 C91 366 82 366 77 353 C72 326 70 298 75 276 Z" />
+          <Part id="hamR" d="M133 276 C124 292 112 295 104 292 C105 313 107 333 112 354 C117 366 126 366 131 353 C136 326 138 298 133 276 Z" />
+          <Line d="M104 254 L104 292 M104 292 C102 314 100 336 96 354 M104 292 C106 314 108 336 112 354" width={2} />
+          <Part id="calfBL" d="M77 353 C72 371 74 397 80 411 C87 416 93 411 95 400 C98 411 104 417 110 411 C112 394 110 372 105 356 C99 362 91 361 88 354 C84 362 80 363 77 353 Z" />
+          <Part id="calfBR" d="M131 353 C136 371 134 397 128 411 C121 416 115 411 113 400 C110 411 104 417 98 411 C96 394 98 372 103 356 C109 362 117 361 120 354 C124 362 128 363 131 353 Z" />
+          <Body d="M80 411 C70 417 66 424 72 428 C79 428 85 434 93 434 C99 432 101 426 99 416 C93 413 87 416 80 411 Z" />
+          <Body d="M128 411 C138 417 142 424 136 428 C129 428 123 434 115 434 C109 432 107 426 109 416 C115 413 121 416 128 411 Z" />
+        </g>
+      </svg>
+    );
+  }
+
+  // Three-view anatomy plate matching the attached reference: gray figure,
+  // soft muscle-panel outlines, and red overlays for targeted regions.
+  function BodyAnatomy({ highlights }) {
+    const ink = "#969b98";
+    const inkDark = "#858985";
+    const bodyFill = "#d7dad7";
+    const plateFill = "#eef0ee";
+    const targetFill = "#f11222";
+    const sw = 2.1;
+    const hot = (id) => Boolean(highlights && highlights[id]);
+    const fill = (id) => hot(id) ? targetFill : plateFill;
+    const op = (id) => hot(id) ? Math.max(0.68, highlights[id].opacity || 1) : 1;
+
+    const Base = ({ d, fill: f = bodyFill, width = sw }) => (
+      <path d={d} fill={f} stroke={ink} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    );
+    const Plate = ({ id, region, d, width = sw }) => {
+      const key = region || id;
+      return (
+        <path
+          id={id}
+          d={d}
+          fill={fill(key)}
+          opacity={op(key)}
+          stroke={ink}
+          strokeWidth={width}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    };
+    const Line = ({ d, width = 1.9, alpha = 1 }) => (
+      <path d={d} fill="none" stroke={inkDark} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" opacity={alpha} />
+    );
+
+    return (
+      <svg
+        viewBox="0 0 560 500"
+        width="100%"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display:"block", width:"100%", height:"auto", aspectRatio:"560 / 500" }}
+      >
+        {/* Front */}
+        <g transform="translate(18 10)">
+          <Base d="M81 16 C70 19 66 29 68 43 C64 43 62 47 64 58 C65 65 68 69 72 68 C76 81 87 91 98 94 C109 91 120 81 124 68 C128 69 131 65 132 58 C134 47 132 43 128 43 C130 29 126 19 115 16 C110 10 87 10 81 16 Z" />
+          <Line d="M76 30 C83 36 94 38 101 38 C110 38 119 35 123 30" width={2} alpha={0.55} />
+          <Base d="M76 68 L76 103 C65 110 53 115 43 126 L153 126 C143 115 131 110 120 103 L120 68 C114 83 105 91 98 94 C91 91 82 83 76 68 Z" />
+          <Line d="M83 99 L98 128 L113 99 M63 112 L80 130 M133 112 L116 130" alpha={0.45} />
+
+          <Base d="M43 126 C31 132 25 145 21 164 C16 184 10 200 3 217 C-6 239 -13 264 -17 282 L4 292 C14 274 25 254 37 243 C50 233 61 213 63 191 C65 174 61 145 43 126 Z" />
+          <Base d="M153 126 C165 132 171 145 175 164 C180 184 186 200 193 217 C202 239 209 264 213 282 L192 292 C182 274 171 254 159 243 C146 233 135 213 133 191 C131 174 135 145 153 126 Z" />
+          <Base d="M4 292 C-1 304 -3 319 1 330 C5 332 9 324 11 313 C11 324 13 334 18 334 C23 334 23 323 22 314 C27 321 33 322 35 317 C33 304 25 295 19 290 C13 294 8 294 4 292 Z" />
+          <Base d="M192 292 C197 304 199 319 195 330 C191 332 187 324 185 313 C185 324 183 334 178 334 C173 334 173 323 174 314 C169 321 163 322 161 317 C163 304 171 295 177 290 C183 294 188 294 192 292 Z" />
+
+          <Base d="M57 126 C47 150 52 178 65 201 C62 221 64 242 75 260 L121 260 C132 242 134 221 131 201 C144 178 149 150 139 126 C126 116 112 112 98 123 C84 112 70 116 57 126 Z" />
+          <Plate id="delFrontL" d="M43 126 C28 129 22 142 21 164 C30 158 42 154 54 155 C62 147 69 135 76 124 C65 120 53 121 43 126 Z" />
+          <Plate id="delFrontR" d="M153 126 C168 129 174 142 175 164 C166 158 154 154 142 155 C134 147 127 135 120 124 C131 120 143 121 153 126 Z" />
+          <Plate id="delSideL" d="M22 164 C16 178 13 194 15 211 C19 215 25 215 30 210 C37 191 45 174 54 155 C42 154 30 158 22 164 Z" />
+          <Plate id="delSideR" d="M174 164 C180 178 183 194 181 211 C177 215 171 215 166 210 C159 191 151 174 142 155 C154 154 166 158 174 164 Z" />
+          <Plate id="chestUpL" d="M76 124 C85 117 94 118 98 127 L98 145 C84 143 70 137 57 126 C62 126 69 125 76 124 Z" />
+          <Plate id="chestUpR" d="M120 124 C111 117 102 118 98 127 L98 145 C112 143 126 137 139 126 C134 126 127 125 120 124 Z" />
+          <Plate id="chestL" d="M57 126 C70 137 84 143 98 145 L98 166 C83 174 66 168 58 156 C53 146 53 136 57 126 Z" />
+          <Plate id="chestR" d="M139 126 C126 137 112 143 98 145 L98 166 C113 174 130 168 138 156 C143 146 143 136 139 126 Z" />
+          <Plate id="chestLoL" d="M58 156 C66 168 83 174 98 166 C96 181 88 189 77 187 C67 185 60 174 58 156 Z" />
+          <Plate id="chestLoR" d="M138 156 C130 168 113 174 98 166 C100 181 108 189 119 187 C129 185 136 174 138 156 Z" />
+          <Plate id="obliqueL" d="M66 186 C57 203 56 229 65 249 C73 245 77 232 77 216 C77 204 73 194 66 186 Z" />
+          <Plate id="obliqueR" d="M130 186 C139 203 140 229 131 249 C123 245 119 232 119 216 C119 204 123 194 130 186 Z" />
+          <Plate id="abs" d="M78 187 C84 184 92 185 98 192 C104 185 112 184 118 187 C123 216 118 248 98 260 C78 248 73 216 78 187 Z" />
+          <Line d="M98 192 L98 260 M78 199 C86 197 92 198 98 203 C104 198 110 197 118 199 M77 217 C86 215 92 216 98 221 C104 216 110 215 119 217 M80 235 C87 233 93 234 98 239 C103 234 109 233 116 235" width={2} />
+          <Plate id="bicepL" d="M15 211 C4 224 -6 256 -17 282 C-11 290 -1 293 4 292 C14 274 25 254 37 243 C46 229 53 210 51 192 C42 209 31 218 15 211 Z" />
+          <Plate id="bicepR" d="M181 211 C192 224 202 256 213 282 C207 290 197 293 192 292 C182 274 171 254 159 243 C150 229 143 210 145 192 C154 209 165 218 181 211 Z" />
+          <Plate id="foreFL" d="M-17 282 C-13 264 -6 239 3 217 C12 220 22 230 26 241 C17 258 10 276 4 292 C-3 293 -11 290 -17 282 Z" />
+          <Plate id="foreFR" d="M213 282 C209 264 202 239 193 217 C184 220 174 230 170 241 C179 258 186 276 192 292 C199 293 207 290 213 282 Z" />
+
+          <Base d="M75 260 C64 291 61 340 72 386 C76 397 87 396 94 385 C97 352 99 318 98 282 C97 318 99 352 102 385 C109 396 120 397 124 386 C135 340 132 291 121 260 Z" />
+          <Plate id="quadL" d="M75 260 C64 291 61 340 72 386 C76 397 87 396 94 385 C97 352 99 318 98 282 C92 272 84 265 75 260 Z" />
+          <Plate id="quadR" d="M121 260 C132 291 135 340 124 386 C120 397 109 396 102 385 C99 352 97 318 98 282 C104 272 112 265 121 260 Z" />
+          <Line d="M98 282 C94 316 91 354 86 386 M98 282 C102 316 105 354 110 386" width={2} />
+          <Plate id="calfFL" d="M73 386 C67 407 68 433 77 450 C84 457 95 453 100 441 C100 420 98 402 94 385 C87 396 76 397 73 386 Z" />
+          <Plate id="calfFR" d="M123 386 C129 407 128 433 119 450 C112 457 101 453 96 441 C96 420 98 402 102 385 C109 396 120 397 123 386 Z" />
+          <Base d="M77 450 C65 456 60 464 70 467 C75 466 79 472 85 471 C91 475 100 468 102 460 C98 452 86 455 77 450 Z" />
+          <Base d="M119 450 C131 456 136 464 126 467 C121 466 117 472 111 471 C105 475 96 468 94 460 C98 452 110 455 119 450 Z" />
+        </g>
+
+        {/* Side */}
+        <g transform="translate(220 22)">
+          <Base d="M66 8 C53 10 46 22 47 39 C48 55 57 67 68 69 C78 67 87 56 88 42 C89 26 82 11 70 8 C68 7 67 7 66 8 Z" />
+          <Line d="M80 34 C88 35 91 38 82 41 M60 36 C64 31 70 30 76 33" width={1.9} alpha={0.45} />
+          <Base d="M62 68 L62 101 C51 110 43 128 43 154 C43 178 53 203 54 231 C56 246 60 261 67 272 C77 271 89 264 94 252 C86 224 85 199 91 176 C98 148 94 122 80 104 L73 69 C70 70 66 70 62 68 Z" />
+          <Plate region="traps" d="M62 70 C69 83 76 95 84 106 C75 105 66 100 59 90 C59 82 60 75 62 70 Z" />
+          <Plate region="delSideR" d="M47 111 C34 118 31 137 39 152 C49 150 58 139 61 126 C62 116 56 110 47 111 Z" />
+          <Plate region="chestR" d="M61 111 C75 117 82 130 82 146 C73 149 65 141 60 128 C58 120 58 114 61 111 Z" />
+          <Plate region="abs" d="M71 146 C77 168 77 205 70 230 C63 226 61 210 61 190 C61 171 65 154 71 146 Z" />
+          <Plate region="obliqueR" d="M52 150 C58 170 59 205 54 231 C46 209 45 172 52 150 Z" />
+          <Plate region="latR" d="M48 151 C61 170 64 199 58 231 C50 223 43 199 43 174 C43 164 45 156 48 151 Z" />
+          <Plate region="tricepR" d="M39 152 C28 168 27 200 37 225 C44 227 51 221 53 211 C48 190 48 169 52 152 C47 153 43 153 39 152 Z" />
+          <Plate region="foreBR" d="M37 225 C35 245 47 270 60 285 C67 282 68 272 62 263 C55 252 52 238 53 223 C48 227 42 228 37 225 Z" />
+          <Base d="M60 285 C54 291 55 300 63 304 C69 304 75 300 75 292 C71 287 66 284 60 285 Z" />
+          <Base d="M67 272 C55 298 55 347 69 385 C75 396 87 396 92 383 C91 357 90 328 84 307 C95 298 100 279 94 252 C89 264 77 271 67 272 Z" />
+          <Plate region="gluteR" d="M79 259 C94 259 104 270 100 285 C97 300 86 309 71 304 C65 289 68 268 79 259 Z" />
+          <Plate region="quadR" d="M66 272 C55 298 56 333 69 366 C75 369 82 365 84 354 C82 330 79 311 72 298 C67 288 65 280 66 272 Z" />
+          <Plate region="hamR" d="M72 304 C83 313 89 341 88 373 C84 386 76 391 69 385 C61 358 60 325 65 306 C67 304 69 303 72 304 Z" />
+          <Plate region="calfBR" d="M69 385 C63 405 64 433 73 452 C81 458 91 454 95 441 C94 418 93 400 92 383 C87 396 75 396 69 385 Z" />
+          <Base d="M73 452 C62 457 58 464 67 467 L95 467 C96 458 84 456 73 452 Z" />
+          <Line d="M72 153 C77 167 77 185 72 200 M55 158 C59 180 59 205 55 229 M74 306 C82 327 85 355 83 378" width={1.8} alpha={0.55} />
+        </g>
+
+        {/* Back */}
+        <g transform="translate(340 10)">
+          <Base d="M81 16 C70 19 66 29 68 43 C64 43 62 47 64 58 C65 65 68 69 72 68 C76 81 83 88 91 86 C94 78 102 78 105 86 C113 88 120 81 124 68 C128 69 131 65 132 58 C134 47 132 43 128 43 C130 29 126 19 115 16 C110 10 87 10 81 16 Z" />
+          <Base d="M76 68 L76 103 C65 110 53 115 43 126 L153 126 C143 115 131 110 120 103 L120 68 C113 76 107 82 105 86 C101 82 95 82 91 86 C89 82 83 76 76 68 Z" />
+          <Line d="M78 103 L98 111 L118 103 M98 111 L98 257" alpha={0.5} />
+          <Base d="M57 126 C46 147 51 182 65 209 C62 229 66 248 78 260 L118 260 C130 248 134 229 131 209 C145 182 150 147 139 126 C128 119 115 116 98 119 C81 116 68 119 57 126 Z" />
+          <Plate id="traps" d="M43 126 C62 119 81 116 98 119 C115 116 134 119 153 126 C144 135 128 139 116 137 C107 135 89 135 80 137 C68 139 52 135 43 126 Z" />
+          <Plate id="delRearL" d="M43 126 C28 129 22 142 21 164 C30 158 42 154 54 155 C62 147 69 135 76 124 C65 120 53 121 43 126 Z" />
+          <Plate id="delRearR" d="M153 126 C168 129 174 142 175 164 C166 158 154 154 142 155 C134 147 127 135 120 124 C131 120 143 121 153 126 Z" />
+          <Plate id="delSideL" d="M22 164 C16 178 13 194 15 211 C19 215 25 215 30 210 C37 191 45 174 54 155 C42 154 30 158 22 164 Z" />
+          <Plate id="delSideR" d="M174 164 C180 178 183 194 181 211 C177 215 171 215 166 210 C159 191 151 174 142 155 C154 154 166 158 174 164 Z" />
+          <Plate id="upperBack" d="M80 137 C89 135 107 135 116 137 C110 154 104 171 98 188 C92 171 86 154 80 137 Z" />
+          <Plate id="latL" d="M76 124 C91 148 99 180 94 215 C92 229 86 237 78 240 C67 219 59 196 53 172 C53 153 62 135 76 124 Z" />
+          <Plate id="latR" d="M120 124 C105 148 97 180 102 215 C104 229 110 237 118 240 C129 219 137 196 143 172 C143 153 134 135 120 124 Z" />
+          <Plate id="midBack" d="M94 215 C93 184 95 158 98 137 C101 158 103 184 102 215 C101 231 100 246 98 257 C96 246 95 231 94 215 Z" />
+          <Plate id="lowerBack" d="M78 240 C86 237 94 244 98 257 C102 244 110 237 118 240 C116 251 109 260 98 269 C87 260 80 251 78 240 Z" />
+
+          <Base d="M22 211 C12 229 3 258 -17 282 C-11 290 -1 293 4 292 C14 274 25 254 37 243 C46 229 53 210 51 192 C42 209 31 218 22 211 Z" />
+          <Base d="M174 211 C184 229 193 258 213 282 C207 290 197 293 192 292 C182 274 171 254 159 243 C150 229 143 210 145 192 C154 209 165 218 174 211 Z" />
+          <Plate id="tricepL" d="M15 211 C4 224 -6 256 -17 282 C-11 290 -1 293 4 292 C14 274 25 254 37 243 C46 229 53 210 51 192 C42 209 31 218 15 211 Z" />
+          <Plate id="tricepR" d="M181 211 C192 224 202 256 213 282 C207 290 197 293 192 292 C182 274 171 254 159 243 C150 229 143 210 145 192 C154 209 165 218 181 211 Z" />
+          <Plate id="foreBL" d="M-17 282 C-13 264 -6 239 3 217 C12 220 22 230 26 241 C17 258 10 276 4 292 C-3 293 -11 290 -17 282 Z" />
+          <Plate id="foreBR" d="M213 282 C209 264 202 239 193 217 C184 220 174 230 170 241 C179 258 186 276 192 292 C199 293 207 290 213 282 Z" />
+          <Base d="M4 292 C-1 304 -3 319 1 330 C5 332 9 324 11 313 C11 324 13 334 18 334 C23 334 23 323 22 314 C27 321 33 322 35 317 C33 304 25 295 19 290 C13 294 8 294 4 292 Z" />
+          <Base d="M192 292 C197 304 199 319 195 330 C191 332 187 324 185 313 C185 324 183 334 178 334 C173 334 173 323 174 314 C169 321 163 322 161 317 C163 304 171 295 177 290 C183 294 188 294 192 292 Z" />
+
+          <Base d="M78 260 C68 288 65 340 72 386 C76 397 87 396 92 383 C95 351 97 319 98 286 C99 319 101 351 104 383 C109 396 120 397 124 386 C131 340 128 288 118 260 Z" />
+          <Plate id="gluteL" d="M78 260 C89 253 96 260 98 274 L98 304 C84 309 70 303 67 286 C66 274 70 265 78 260 Z" />
+          <Plate id="gluteR" d="M118 260 C107 253 100 260 98 274 L98 304 C112 309 126 303 129 286 C130 274 126 265 118 260 Z" />
+          <Plate id="hamL" d="M67 286 C77 303 88 309 98 304 C97 332 95 360 92 383 C87 396 76 397 72 386 C65 350 64 312 67 286 Z" />
+          <Plate id="hamR" d="M129 286 C119 303 108 309 98 304 C99 332 101 360 104 383 C109 396 120 397 124 386 C131 350 132 312 129 286 Z" />
+          <Line d="M98 274 L98 304 M98 304 C96 333 94 361 92 383 M98 304 C100 333 102 361 104 383" width={2} />
+          <Plate id="calfBL" d="M72 386 C66 405 66 432 75 450 C82 458 91 454 94 440 C97 455 107 458 113 449 C114 427 110 403 104 383 C98 390 94 390 92 383 C87 396 76 397 72 386 Z" />
+          <Plate id="calfBR" d="M124 386 C130 405 130 432 121 450 C114 458 105 454 102 440 C99 455 89 458 83 449 C82 427 86 403 92 383 C98 390 102 390 104 383 C109 396 120 397 124 386 Z" />
+          <Base d="M75 450 C63 456 58 464 68 467 C74 466 80 472 88 471 C95 469 97 461 94 454 C88 453 82 456 75 450 Z" />
+          <Base d="M121 450 C133 456 138 464 128 467 C122 466 116 472 108 471 C101 469 99 461 102 454 C108 453 114 456 121 450 Z" />
+        </g>
+      </svg>
+    );
+  }
+
   // ── ExerciseInfoSheet — bottom-sheet modal that shows everything we know
   //    about an exercise: name, difficulty, primary + secondary muscle tags,
   //    and a body diagram with the targeted muscles highlighted.
@@ -2727,6 +2992,14 @@ import "./styles.css";
     const secondaryRaw = SECONDARY[ex.id];
     const secondaryList = secondaryRaw ? secondaryRaw.split(" · ") : [];
     const highlights = muscleHighlights(primaryMuscle, primaryGroup, secondaryList);
+    const targetMuscles = [
+      ...(primaryMuscle ? [{ name: primaryMuscle, group: primaryGroup, primary: true }] : []),
+      ...secondaryList.map((m) => ({
+        name: m,
+        group: (DB.find(d => d && d.muscle === m) || {}).group || primaryGroup,
+        primary: false,
+      })),
+    ];
     const diff = DIFFICULTY[ex.id];
     const diffCfg = diff === "H"
       ? { label: t("HARD"), bg: "rgba(204,31,66,0.14)",  color: "#CC1F42" }
@@ -2781,20 +3054,6 @@ import "./styles.css";
                       }}>{diffCfg.label}</span>
                     )}
                   </div>
-                  {/* Primary + secondary muscle chips on the row below the name */}
-                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center", marginTop:8 }}>
-                    {primaryMuscle && (
-                      <span style={S.tag(primaryGroup)}>{primaryMuscle.toUpperCase()}</span>
-                    )}
-                    {secondaryList.map((m) => {
-                      const grp = (DB.find(d => d && d.muscle === m) || {}).group || primaryGroup;
-                      return (
-                        <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
-                          {m.toUpperCase()}
-                        </span>
-                      );
-                    })}
-                  </div>
                 </div>
                 <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
               </div>
@@ -2805,13 +3064,38 @@ import "./styles.css";
               <div style={{
                 background:`color-mix(in srgb, ${th.sect} 60%, transparent)`,
                 borderRadius:14, border:`1px solid ${th.border}`,
-                padding:"16px 8px",
-                display:"flex", justifyContent:"center",
+                padding:"14px 8px 18px",
+                display:"flex",
+                flexDirection:"column",
+                alignItems:"stretch",
+                gap:12,
               }}>
+                {targetMuscles.length > 0 && (
+                  <div style={{
+                    display:"flex",
+                    flexWrap:"wrap",
+                    gap:6,
+                    alignItems:"center",
+                    justifyContent:"flex-start",
+                    padding:"0 6px 2px",
+                  }}>
+                    {targetMuscles.map((m) => (
+                      <span
+                        key={`${m.primary ? "primary" : "secondary"}-${m.name}`}
+                        style={{
+                          ...S.tag(m.group),
+                          opacity: m.primary ? 1 : 0.62,
+                          fontSize: m.primary ? 11 : 10,
+                          padding: m.primary ? "3px 8px" : "2px 7px",
+                        }}
+                      >
+                        {m.name.toUpperCase()}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <BodyAnatomy
                   highlights={highlights}
-                  baseColor={`color-mix(in srgb, ${th.inputB} 70%, ${th.card})`}
-                  outlineColor={th.muted}
                 />
               </div>
             </div>
