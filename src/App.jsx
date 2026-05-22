@@ -956,6 +956,12 @@ import "./styles.css";
     "EDITING": "DÜZENLENİYOR",
     "DONE": "TAMAM",
     "MUSCLES TRAINED": "ÇALIŞILAN KASLAR",
+    "MUSCLES TARGETED": "HEDEFLENEN KASLAR",
+    "Primary": "Birincil",
+    "Secondary": "İkincil",
+    "HARD": "ZOR",
+    "MED": "ORTA",
+    "EASY": "KOLAY",
     "Muscles Trained": "Çalışılan Kaslar",
     "LAST 7 DAYS": "SON 7 GÜN",
     "STREAK": "SERİ",
@@ -2196,6 +2202,622 @@ import "./styles.css";
         padding: "2px 6px", borderRadius: 4,
         background: cfg.bg, color: cfg.color, flexShrink: 0,
       }}>{cfg.label}</span>
+    );
+  }
+
+  // Map a DB `muscle` (and a few group fall-throughs) onto stylised body regions.
+  // The body diagram is a front + back silhouette; each region is keyed by a short id.
+  const MUSCLE_REGIONS = {
+    "Chest":         ["chestL","chestR"],
+    "Upper Chest":   ["chestUpL","chestUpR"],
+    "Lower Chest":   ["chestLoL","chestLoR"],
+    "Front Delts":   ["delFrontL","delFrontR"],
+    "Side Delts":    ["delSideL","delSideR"],
+    "Rear Delts":    ["delRearL","delRearR"],
+    "Shoulders":     ["delFrontL","delFrontR","delSideL","delSideR","delRearL","delRearR"],
+    "Traps":         ["traps"],
+    "Upper Traps":   ["traps"],
+    "Biceps":        ["bicepL","bicepR"],
+    "Brachialis":    ["bicepL","bicepR"],
+    "Triceps":       ["tricepL","tricepR"],
+    "Anconeus":      ["tricepL","tricepR"],
+    "Forearms":      ["foreFL","foreFR","foreBL","foreBR"],
+    "Lats":          ["latL","latR"],
+    "Upper Back":    ["upperBack"],
+    "Mid Back":      ["midBack"],
+    "Lower Back":    ["lowerBack"],
+    "Full Back":     ["upperBack","midBack","latL","latR","lowerBack"],
+    "Abs":           ["abs"],
+    "Obliques":      ["obliqueL","obliqueR"],
+    "Core":          ["abs","obliqueL","obliqueR"],
+    "Quads":         ["quadL","quadR"],
+    "Hip Flexors":   ["quadL","quadR"],
+    "Inner Thigh":   ["quadL","quadR"],
+    "Outer Thigh":   ["quadL","quadR"],
+    "Hamstrings":    ["hamL","hamR"],
+    "Glutes":        ["gluteL","gluteR"],
+    "Calves":        ["calfFL","calfFR","calfBL","calfBR"],
+    "Soleus":        ["calfBL","calfBR"],
+  };
+
+  // Build a per-region color map from a primary muscle/group and an optional
+  // secondary list. Primary regions are filled with the group's full color, secondary
+  // regions get the same color at lower opacity so the hierarchy is obvious.
+  function muscleHighlights(primaryMuscle, primaryGroup, secondaryNames) {
+    const out = {};
+    const primaryColor = gc(primaryGroup);
+    (MUSCLE_REGIONS[primaryMuscle] || []).forEach(r => { out[r] = { fill: primaryColor, opacity: 1 }; });
+    (secondaryNames || []).forEach(name => {
+      // Lookup that secondary muscle's natural group color so the limb gets the right hue
+      const secGroup = (DB.find(d => d && d.muscle === name) || {}).group || primaryGroup;
+      const secColor = gc(secGroup);
+      (MUSCLE_REGIONS[name] || []).forEach(r => {
+        if (!out[r]) out[r] = { fill: secColor, opacity: 0.55 };
+      });
+    });
+    return out;
+  }
+
+  // ── Body anatomy diagram ──────────────────────────────────────────────────────
+  //   Front + back anatomical figures inspired by the user's reference illustration.
+  //   The bodies follow heroic / muscular proportions: V-tapered torso (broad
+  //   shoulders, narrow waist), defined pecs and abs, separate biceps + triceps +
+  //   forearm shapes, distinct quads and calves. Each muscle group is drawn as
+  //   its own path so it can be color-highlighted independently. Subtle stroke
+  //   lines on every region preserve the pencil-shaded "anatomical drawing" feel
+  //   even when nothing is highlighted.
+  function LegacyBodyAnatomy({ highlights, baseColor, outlineColor }) {
+    const baseFill = baseColor;
+    const fill = (id) => (highlights && highlights[id]) ? highlights[id].fill : baseFill;
+    const opacity = (id) => (highlights && highlights[id]) ? highlights[id].opacity : 1;
+    const stroke = outlineColor;
+    const sw = 0.8;
+    const muscleStroke = `color-mix(in srgb, ${stroke} 50%, transparent)`;
+    const detailLine  = `color-mix(in srgb, ${stroke} 40%, transparent)`;
+
+    // Front-figure renderer — uses helper that fills the muscle path when the id
+    // is in `highlights`, otherwise renders the body's base fill. Each muscle path
+    // is positioned anatomically inside the body silhouette.
+    return (
+      <svg viewBox="0 0 300 500" width="100%" height={420} fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display:"block" }}>
+        {/* ═════════════════════════════ FRONT VIEW ═════════════════════════════ */}
+        <g>
+          {/* HEAD — oval with a slight chin taper */}
+          <path d="M73 12 C58 12 54 26 54 36 C54 52 58 60 70 62 L80 62 C92 60 96 52 96 36 C96 26 92 12 77 12 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Jaw shading line */}
+          <path d="M58 46 Q75 54 92 46" fill="none" stroke={detailLine} strokeWidth="0.5" />
+          {/* NECK + sterno-cleidomastoid lines */}
+          <path d="M65 60 L85 60 L88 76 L62 76 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M68 64 L73 76 M82 64 L77 76" stroke={detailLine} strokeWidth="0.6" fill="none" />
+
+          {/* SHOULDER YOKE / upper trap line — connects neck out to the deltoid caps */}
+          <path d="M62 74 Q48 76 36 88 L26 100 Q22 104 22 108 L38 104 Q50 90 58 84 L65 80 L85 80 L92 84 Q100 90 112 104 L128 108 Q128 104 124 100 L114 88 Q102 76 88 74 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* TORSO silhouette — V-taper from shoulders to waist, slight hip flare */}
+          <path d="M40 100 Q30 116 32 138 L36 168 L40 198 L44 226 L48 254 Q52 264 60 268 L90 268 Q98 264 102 254 L106 226 L110 198 L114 168 L118 138 Q120 116 110 100 L92 92 L58 92 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* ── FRONT MUSCLE OVERLAYS ── */}
+          {/* Front deltoids — rounded shoulder caps */}
+          <path id="delFrontL" d="M28 96 Q22 106 22 120 L26 132 L44 132 L44 108 Q44 96 36 92 Z" fill={fill("delFrontL")} opacity={opacity("delFrontL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="delFrontR" d="M122 96 Q128 106 128 120 L124 132 L106 132 L106 108 Q106 96 114 92 Z" fill={fill("delFrontR")} opacity={opacity("delFrontR")} stroke={muscleStroke} strokeWidth="0.6" />
+
+          {/* Pectoralis major — upper, middle, lower bands per side. They meet at a vertical sternum line. */}
+          <path id="chestUpL" d="M48 96 Q46 106 52 112 L74 112 L74 96 Z" fill={fill("chestUpL")} opacity={opacity("chestUpL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="chestUpR" d="M102 96 Q104 106 98 112 L76 112 L76 96 Z" fill={fill("chestUpR")} opacity={opacity("chestUpR")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="chestL"   d="M46 112 Q44 124 50 134 L74 134 L74 112 Z" fill={fill("chestL")}   opacity={opacity("chestL")}   stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="chestR"   d="M104 112 Q106 124 100 134 L76 134 L76 112 Z" fill={fill("chestR")}   opacity={opacity("chestR")}   stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="chestLoL" d="M50 134 Q52 144 60 148 L74 148 L74 134 Z" fill={fill("chestLoL")} opacity={opacity("chestLoL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="chestLoR" d="M100 134 Q98 144 90 148 L76 148 L76 134 Z" fill={fill("chestLoR")} opacity={opacity("chestLoR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Sternum / linea-alba line */}
+          <line x1="75" y1="92" x2="75" y2="250" stroke={muscleStroke} strokeWidth="0.7" />
+
+          {/* Serratus anterior — small interlocking finger-like shapes under the pec, into the rib cage */}
+          <path d="M48 138 Q52 142 54 148 M48 146 Q52 150 54 155 M48 154 Q52 158 54 162" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M102 138 Q98 142 96 148 M102 146 Q98 150 96 155 M102 154 Q98 158 96 162" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* Abdominals — 6-pack rectus */}
+          <rect id="absUL" x="62" y="152" width="13" height="16" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+          <rect id="absUR" x="75" y="152" width="13" height="16" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+          <rect id="absML" x="62" y="170" width="13" height="16" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+          <rect id="absMR" x="75" y="170" width="13" height="16" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+          <rect id="absLL" x="62" y="188" width="13" height="18" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+          <rect id="absLR" x="75" y="188" width="13" height="18" rx="2.5" fill={fill("abs")} opacity={opacity("abs")} stroke={muscleStroke} strokeWidth="0.5" />
+
+          {/* Obliques — vertical strips on each side of the abs, narrowing toward the waist */}
+          <path id="obliqueL" d="M50 150 Q42 188 50 222 L60 224 L60 150 Z" fill={fill("obliqueL")} opacity={opacity("obliqueL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="obliqueR" d="M100 150 Q108 188 100 222 L90 224 L90 150 Z" fill={fill("obliqueR")} opacity={opacity("obliqueR")} stroke={muscleStroke} strokeWidth="0.6" />
+
+          {/* Inguinal V (hip-crease line) */}
+          <path d="M52 232 Q62 256 75 264 Q88 256 98 232" fill="none" stroke={detailLine} strokeWidth="0.8" />
+
+          {/* ── ARMS — Front: bicep + brachialis + forearm ── */}
+          {/* Left upper-arm silhouette */}
+          <path d="M22 112 Q12 138 14 168 L26 192 Q36 192 42 184 L46 132 Q40 116 32 110 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Right upper-arm silhouette */}
+          <path d="M128 112 Q138 138 136 168 L124 192 Q114 192 108 184 L104 132 Q110 116 118 110 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Biceps brachii */}
+          <path id="bicepL" d="M22 126 Q14 152 22 180 L36 180 L40 134 Q36 122 30 120 Z" fill={fill("bicepL")} opacity={opacity("bicepL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="bicepR" d="M128 126 Q136 152 128 180 L114 180 L110 134 Q114 122 120 120 Z" fill={fill("bicepR")} opacity={opacity("bicepR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Bicep peak / brachialis separation */}
+          <path d="M28 146 Q24 162 28 178" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M122 146 Q126 162 122 178" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* ELBOW — small circle for definition */}
+          <circle cx="26" cy="188" r="4" fill={baseFill} stroke={muscleStroke} strokeWidth="0.5" />
+          <circle cx="124" cy="188" r="4" fill={baseFill} stroke={muscleStroke} strokeWidth="0.5" />
+
+          {/* Forearm silhouettes */}
+          <path d="M16 188 Q12 224 22 264 L34 276 L44 268 L42 224 L38 190 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M134 188 Q138 224 128 264 L116 276 L106 268 L108 224 L112 190 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Forearm muscles (brachioradialis + flexors) */}
+          <path id="foreFL" d="M20 200 Q14 232 24 262 L38 262 L40 226 L36 200 Z" fill={fill("foreFL")} opacity={opacity("foreFL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="foreFR" d="M130 200 Q136 232 126 262 L112 262 L110 226 L114 200 Z" fill={fill("foreFR")} opacity={opacity("foreFR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Forearm definition lines */}
+          <path d="M24 210 Q22 232 30 258" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M126 210 Q128 232 120 258" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* HANDS */}
+          <path d="M22 276 Q18 296 26 302 L40 300 L42 274 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M128 276 Q132 296 124 302 L110 300 L108 274 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* ── LEGS — Front: hip + quads + knee + tibialis ── */}
+          {/* Pelvis & upper leg attachment */}
+          <path d="M48 256 Q44 270 46 286 L52 296 L98 296 L104 286 Q106 270 102 256 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Left thigh silhouette */}
+          <path d="M46 292 Q40 350 46 408 L60 412 L66 296 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Right thigh silhouette */}
+          <path d="M104 292 Q110 350 104 408 L90 412 L84 296 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Quads — vastus lateralis (outer), rectus femoris (center), vastus medialis (inner) */}
+          <path id="quadL" d="M48 300 Q42 348 48 398 L62 402 L66 300 Z" fill={fill("quadL")} opacity={opacity("quadL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="quadR" d="M102 300 Q108 348 102 398 L88 402 L84 300 Z" fill={fill("quadR")} opacity={opacity("quadR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Rectus / vastus dividers */}
+          <line x1="54" y1="308" x2="55" y2="396" stroke={detailLine} strokeWidth="0.5" />
+          <line x1="61" y1="308" x2="60" y2="396" stroke={detailLine} strokeWidth="0.5" />
+          <line x1="89" y1="308" x2="90" y2="396" stroke={detailLine} strokeWidth="0.5" />
+          <line x1="96" y1="308" x2="95" y2="396" stroke={detailLine} strokeWidth="0.5" />
+          {/* Sartorius — thin diagonal cross */}
+          <path d="M50 304 Q60 360 64 408" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M100 304 Q90 360 86 408" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* KNEES */}
+          <ellipse cx="56" cy="418" rx="10" ry="7" fill={baseFill} stroke={muscleStroke} strokeWidth="0.7" />
+          <ellipse cx="94" cy="418" rx="10" ry="7" fill={baseFill} stroke={muscleStroke} strokeWidth="0.7" />
+          <path d="M51 416 Q56 422 61 416" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M89 416 Q94 422 99 416" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* SHIN / tibialis */}
+          <path d="M48 428 Q42 458 48 482 L62 482 L62 428 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M102 428 Q108 458 102 482 L88 482 L88 428 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Front calves (tibialis-anterior side) */}
+          <path id="calfFL" d="M50 432 Q44 458 50 478 L60 478 L60 432 Z" fill={fill("calfFL")} opacity={opacity("calfFL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="calfFR" d="M100 432 Q106 458 100 478 L90 478 L90 432 Z" fill={fill("calfFR")} opacity={opacity("calfFR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Shin definition line */}
+          <line x1="55" y1="436" x2="55" y2="476" stroke={detailLine} strokeWidth="0.5" />
+          <line x1="95" y1="436" x2="95" y2="476" stroke={detailLine} strokeWidth="0.5" />
+
+          {/* FEET */}
+          <path d="M46 482 Q40 496 48 498 L66 498 L66 482 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M104 482 Q110 496 102 498 L84 498 L84 482 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* Label */}
+          <text x="75" y="496" textAnchor="middle" fontSize="9" fontFamily="'Outfit',sans-serif" fontWeight="700" fill={stroke} opacity="0.55" letterSpacing="2">FRONT</text>
+        </g>
+
+        {/* ═════════════════════════════ BACK VIEW ═════════════════════════════ */}
+        <g transform="translate(150 0)">
+          {/* HEAD (back) */}
+          <path d="M73 12 C58 12 54 26 54 36 C54 52 58 60 70 62 L80 62 C92 60 96 52 96 36 C96 26 92 12 77 12 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* NECK */}
+          <path d="M65 60 L85 60 L88 76 L62 76 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* SHOULDER YOKE */}
+          <path d="M62 74 Q48 76 36 88 L26 100 Q22 104 22 108 L38 104 Q50 90 58 84 L65 80 L85 80 L92 84 Q100 90 112 104 L128 108 Q128 104 124 100 L114 88 Q102 76 88 74 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* BACK TORSO silhouette */}
+          <path d="M40 100 Q30 116 32 138 L36 168 L40 198 L44 226 L48 254 Q52 264 60 268 L90 268 Q98 264 102 254 L106 226 L110 198 L114 168 L118 138 Q120 116 110 100 L92 92 L58 92 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* ── BACK MUSCLE OVERLAYS ── */}
+          {/* Trapezius — large diamond from the base of the neck out to shoulders and down toward T12 */}
+          <path id="traps" d="M65 78 L85 78 L100 100 L92 130 L75 138 L58 130 L50 100 Z" fill={fill("traps")} opacity={opacity("traps")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Rear deltoids */}
+          <path id="delRearL" d="M28 96 Q22 106 22 120 L26 132 L44 132 L44 108 Q44 96 36 92 Z" fill={fill("delRearL")} opacity={opacity("delRearL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="delRearR" d="M122 96 Q128 106 128 120 L124 132 L106 132 L106 108 Q106 96 114 92 Z" fill={fill("delRearR")} opacity={opacity("delRearR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Side delts — small lateral strip */}
+          <path id="delSideL" d="M22 112 Q18 118 18 130 L26 130 L26 112 Z" fill={fill("delSideL")} opacity={opacity("delSideL")} stroke={muscleStroke} strokeWidth="0.5" />
+          <path id="delSideR" d="M128 112 Q132 118 132 130 L124 130 L124 112 Z" fill={fill("delSideR")} opacity={opacity("delSideR")} stroke={muscleStroke} strokeWidth="0.5" />
+          {/* Upper back / rhomboid area */}
+          <rect id="upperBack" x="52" y="130" width="46" height="18" rx="3" fill={fill("upperBack")} opacity={opacity("upperBack")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Latissimus dorsi — V-shape from the upper back out toward the waist */}
+          <path id="latL" d="M50 140 Q38 174 46 214 L62 218 L62 140 Z" fill={fill("latL")} opacity={opacity("latL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="latR" d="M100 140 Q112 174 104 214 L88 218 L88 140 Z" fill={fill("latR")} opacity={opacity("latR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Mid back (between lats — erector spinae upper) */}
+          <rect id="midBack" x="62" y="148" width="26" height="60" rx="3" fill={fill("midBack")} opacity={opacity("midBack")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Spine line */}
+          <line x1="75" y1="80" x2="75" y2="248" stroke={muscleStroke} strokeWidth="0.7" />
+          {/* Lower back — erector spinae lower (lumbar) */}
+          <path id="lowerBack" d="M52 220 Q48 242 60 252 L90 252 Q102 242 98 220 Z" fill={fill("lowerBack")} opacity={opacity("lowerBack")} stroke={muscleStroke} strokeWidth="0.6" />
+
+          {/* Teres major / scapular detail line */}
+          <path d="M48 130 Q42 152 50 168" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M102 130 Q108 152 100 168" stroke={detailLine} strokeWidth="0.5" fill="none" />
+
+          {/* ── ARMS — Back: triceps (3 heads) + forearm extensors ── */}
+          <path d="M22 112 Q12 138 14 168 L26 192 Q36 192 42 184 L46 132 Q40 116 32 110 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M128 112 Q138 138 136 168 L124 192 Q114 192 108 184 L104 132 Q110 116 118 110 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Triceps */}
+          <path id="tricepL" d="M22 126 Q12 156 22 180 L36 180 L42 132 Q38 122 30 120 Z" fill={fill("tricepL")} opacity={opacity("tricepL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="tricepR" d="M128 126 Q138 156 128 180 L114 180 L108 132 Q112 122 120 120 Z" fill={fill("tricepR")} opacity={opacity("tricepR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Tricep head separators */}
+          <path d="M28 142 Q24 162 28 180 M34 138 Q34 162 34 178" stroke={detailLine} strokeWidth="0.45" fill="none" />
+          <path d="M122 142 Q126 162 122 180 M116 138 Q116 162 116 178" stroke={detailLine} strokeWidth="0.45" fill="none" />
+
+          {/* Elbows */}
+          <circle cx="26" cy="188" r="4" fill={baseFill} stroke={muscleStroke} strokeWidth="0.5" />
+          <circle cx="124" cy="188" r="4" fill={baseFill} stroke={muscleStroke} strokeWidth="0.5" />
+
+          {/* Forearm silhouettes */}
+          <path d="M16 188 Q12 224 22 264 L34 276 L44 268 L42 224 L38 190 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M134 188 Q138 224 128 264 L116 276 L106 268 L108 224 L112 190 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Back forearm muscles (extensors) */}
+          <path id="foreBL" d="M20 200 Q14 232 24 262 L38 262 L40 226 L36 200 Z" fill={fill("foreBL")} opacity={opacity("foreBL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="foreBR" d="M130 200 Q136 232 126 262 L112 262 L110 226 L114 200 Z" fill={fill("foreBR")} opacity={opacity("foreBR")} stroke={muscleStroke} strokeWidth="0.6" />
+
+          {/* HANDS */}
+          <path d="M22 276 Q18 296 26 302 L40 300 L42 274 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M128 276 Q132 296 124 302 L110 300 L108 274 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* ── GLUTES — large rounded twin shapes ── */}
+          <path d="M48 256 Q44 272 48 290 L52 296 L98 296 L102 290 Q106 272 102 256 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path id="gluteL" d="M50 254 Q44 276 56 298 L75 296 L75 254 Z" fill={fill("gluteL")} opacity={opacity("gluteL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="gluteR" d="M100 254 Q106 276 94 298 L75 296 L75 254 Z" fill={fill("gluteR")} opacity={opacity("gluteR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Glute crease */}
+          <line x1="75" y1="254" x2="75" y2="294" stroke={detailLine} strokeWidth="0.6" />
+
+          {/* ── LEGS — Back: hamstrings + gastroc + soleus ── */}
+          <path d="M46 296 Q40 350 46 408 L60 412 L66 296 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M104 296 Q110 350 104 408 L90 412 L84 296 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Hamstrings (biceps femoris + semitendinosus + semimembranosus) */}
+          <path id="hamL" d="M48 300 Q42 348 48 398 L62 402 L66 300 Z" fill={fill("hamL")} opacity={opacity("hamL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="hamR" d="M102 300 Q108 348 102 398 L88 402 L84 300 Z" fill={fill("hamR")} opacity={opacity("hamR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Hamstring head separator */}
+          <line x1="56" y1="308" x2="58" y2="396" stroke={detailLine} strokeWidth="0.5" />
+          <line x1="94" y1="308" x2="92" y2="396" stroke={detailLine} strokeWidth="0.5" />
+
+          {/* Knees (back of knee = popliteal fossa) */}
+          <ellipse cx="56" cy="418" rx="10" ry="7" fill={baseFill} stroke={muscleStroke} strokeWidth="0.7" />
+          <ellipse cx="94" cy="418" rx="10" ry="7" fill={baseFill} stroke={muscleStroke} strokeWidth="0.7" />
+
+          {/* Calves (gastrocnemius + soleus) */}
+          <path d="M48 428 Q42 460 48 482 L62 482 L62 428 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M102 428 Q108 460 102 482 L88 482 L88 428 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          {/* Gastrocnemius two heads */}
+          <path id="calfBL" d="M50 430 Q44 458 50 476 L60 476 L60 430 Z" fill={fill("calfBL")} opacity={opacity("calfBL")} stroke={muscleStroke} strokeWidth="0.6" />
+          <path id="calfBR" d="M100 430 Q106 458 100 476 L90 476 L90 430 Z" fill={fill("calfBR")} opacity={opacity("calfBR")} stroke={muscleStroke} strokeWidth="0.6" />
+          {/* Gastroc midline (between medial + lateral heads) */}
+          <path d="M55 435 Q52 460 55 474" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          <path d="M95 435 Q98 460 95 474" stroke={detailLine} strokeWidth="0.5" fill="none" />
+          {/* Achilles taper */}
+          <line x1="56" y1="476" x2="56" y2="486" stroke={detailLine} strokeWidth="0.6" />
+          <line x1="94" y1="476" x2="94" y2="486" stroke={detailLine} strokeWidth="0.6" />
+
+          {/* FEET (heels visible from behind) */}
+          <path d="M46 482 Q40 496 48 498 L66 498 L66 482 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+          <path d="M104 482 Q110 496 102 498 L84 498 L84 482 Z" fill={baseFill} stroke={stroke} strokeWidth={sw} />
+
+          {/* Label */}
+          <text x="75" y="496" textAnchor="middle" fontSize="9" fontFamily="'Outfit',sans-serif" fontWeight="700" fill={stroke} opacity="0.55" letterSpacing="2">BACK</text>
+        </g>
+      </svg>
+    );
+  }
+
+  // Clean anatomical line-art renderer used by the exercise info sheet.
+  // It keeps the same region ids as the old diagram so existing highlights
+  // still work, but redraws the body with three tapered reference-style views.
+  function BodyAnatomy({ highlights, baseColor, outlineColor }) {
+    const baseFill = baseColor;
+    const fill = (id) => (highlights && highlights[id]) ? highlights[id].fill : baseFill;
+    const opacity = (id) => (highlights && highlights[id]) ? highlights[id].opacity : 1;
+    const stroke = outlineColor;
+    const sw = 1.15;
+    const muscleStroke = `color-mix(in srgb, ${stroke} 58%, transparent)`;
+    const detailLine = `color-mix(in srgb, ${stroke} 48%, transparent)`;
+
+    const Shape = ({ d, width = sw, children }) => (
+      <path d={d} fill={baseFill} stroke={stroke} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round">
+        {children}
+      </path>
+    );
+    const Muscle = ({ id, d, width = 0.78 }) => (
+      <path
+        id={id}
+        d={d}
+        fill={fill(id)}
+        opacity={opacity(id)}
+        stroke={muscleStroke}
+        strokeWidth={width}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+    const Detail = ({ d, width = 0.72, alpha = 0.6 }) => (
+      <path
+        d={d}
+        fill="none"
+        stroke={detailLine}
+        strokeWidth={width}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity={alpha}
+      />
+    );
+    const SideMuscle = ({ region, d, width = 0.72 }) => (
+      <path
+        d={d}
+        fill={fill(region)}
+        opacity={opacity(region)}
+        stroke={muscleStroke}
+        strokeWidth={width}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    );
+
+    return (
+      <svg
+        viewBox="0 0 360 520"
+        width="100%"
+        height={420}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid meet"
+        style={{ display:"block", overflow:"visible" }}
+      >
+        <g transform="translate(10 8)" vectorEffect="non-scaling-stroke">
+          {/* Front view */}
+          <Shape d="M50 12 C39 12 33 22 33 39 C33 55 40 66 50 66 C60 66 67 55 67 39 C67 22 61 12 50 12 Z" />
+          <path d="M34 36 C29 37 29 48 35 50 M66 36 C71 37 71 48 65 50" fill={baseFill} stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <Detail d="M39 32 C43 29 47 29 50 31 C53 29 57 29 61 32 M40 43 C45 46 55 46 60 43 M43 53 C48 56 53 56 58 53" alpha={0.54} />
+
+          <Shape d="M42 65 L58 65 C58 75 61 82 69 88 L82 97 C74 103 65 101 59 94 L50 86 L41 94 C35 101 26 103 18 97 L31 88 C39 82 42 75 42 65 Z" />
+          <Detail d="M43 70 C43 80 47 84 50 88 M57 70 C57 80 53 84 50 88 M33 91 C39 95 44 96 50 96 C56 96 61 95 67 91" />
+
+          <Shape d="M29 94 C21 103 18 116 19 132 C21 153 28 170 30 194 C33 222 31 242 40 262 L60 262 C69 242 67 222 70 194 C72 170 79 153 81 132 C82 116 79 103 71 94 C64 88 57 86 50 86 C43 86 36 88 29 94 Z" />
+
+          <Muscle id="delFrontL" d="M29 91 C18 94 10 104 9 118 C8 131 16 139 28 135 C36 132 38 120 35 107 C34 99 33 94 29 91 Z" />
+          <Muscle id="delFrontR" d="M71 91 C82 94 90 104 91 118 C92 131 84 139 72 135 C64 132 62 120 65 107 C66 99 67 94 71 91 Z" />
+          <Muscle id="delSideL" d="M10 119 C8 134 12 147 20 153 C23 146 26 139 29 132 C25 125 19 120 10 119 Z" />
+          <Muscle id="delSideR" d="M90 119 C92 134 88 147 80 153 C77 146 74 139 71 132 C75 125 81 120 90 119 Z" />
+          <Detail d="M16 104 C22 107 28 112 34 120 M84 104 C78 107 72 112 66 120" />
+
+          <Muscle id="chestUpL" d="M33 96 C39 91 46 91 50 97 L50 112 C42 112 35 107 31 101 Z" />
+          <Muscle id="chestUpR" d="M67 96 C61 91 54 91 50 97 L50 112 C58 112 65 107 69 101 Z" />
+          <Muscle id="chestL" d="M31 101 C38 110 44 113 50 113 L50 136 C39 136 30 129 27 119 Z" />
+          <Muscle id="chestR" d="M69 101 C62 110 56 113 50 113 L50 136 C61 136 70 129 73 119 Z" />
+          <Muscle id="chestLoL" d="M28 121 C35 136 43 141 50 139 L50 151 C39 152 30 143 26 132 Z" />
+          <Muscle id="chestLoR" d="M72 121 C65 136 57 141 50 139 L50 151 C61 152 70 143 74 132 Z" />
+          <Detail d="M36 108 C40 114 44 117 50 119 M64 108 C60 114 56 117 50 119 M31 130 C38 136 44 139 50 139 M69 130 C62 136 56 139 50 139" />
+
+          <Muscle id="abs" d="M42 151 C46 148 54 148 58 151 C61 169 60 199 56 224 C54 235 46 235 44 224 C40 199 39 169 42 151 Z" />
+          <Muscle id="obliqueL" d="M31 143 C25 165 27 201 38 229 C41 222 42 205 41 186 C40 169 38 154 31 143 Z" />
+          <Muscle id="obliqueR" d="M69 143 C75 165 73 201 62 229 C59 222 58 205 59 186 C60 169 62 154 69 143 Z" />
+          <Detail d="M50 151 L50 228 M42 163 C47 166 53 166 58 163 M41 179 C47 182 53 182 59 179 M41 195 C47 198 53 198 59 195 M43 212 C48 215 52 215 57 212 M33 153 C37 164 39 176 40 190 M67 153 C63 164 61 176 60 190" />
+          <Detail d="M34 230 C40 246 45 256 50 261 C55 256 60 246 66 230" width={0.82} />
+
+          <Shape d="M18 133 C11 156 11 181 19 203 C23 211 31 208 33 198 C31 172 33 150 37 133 C32 130 24 129 18 133 Z" />
+          <Shape d="M82 133 C89 156 89 181 81 203 C77 211 69 208 67 198 C69 172 67 150 63 133 C68 130 76 129 82 133 Z" />
+          <Muscle id="bicepL" d="M19 136 C13 158 14 181 22 197 C28 199 32 190 32 176 C32 158 29 143 26 136 Z" />
+          <Muscle id="bicepR" d="M81 136 C87 158 86 181 78 197 C72 199 68 190 68 176 C68 158 71 143 74 136 Z" />
+          <Detail d="M25 144 C22 160 23 181 28 194 M75 144 C78 160 77 181 72 194" />
+          <Shape d="M19 203 C12 222 12 248 20 265 C25 271 34 267 36 258 C33 236 33 217 31 202 C27 199 23 199 19 203 Z" />
+          <Shape d="M81 203 C88 222 88 248 80 265 C75 271 66 267 64 258 C67 236 67 217 69 202 C73 199 77 199 81 203 Z" />
+          <Muscle id="foreFL" d="M19 207 C14 226 16 248 23 262 C28 263 33 257 34 249 C31 230 30 215 28 206 Z" />
+          <Muscle id="foreFR" d="M81 207 C86 226 84 248 77 262 C72 263 67 257 66 249 C69 230 70 215 72 206 Z" />
+          <Detail d="M24 214 C23 231 25 248 30 260 M76 214 C77 231 75 248 70 260" />
+          <Shape d="M20 265 C13 270 12 280 19 286 L31 284 C36 276 31 266 25 263 Z" />
+          <Shape d="M80 265 C87 270 88 280 81 286 L69 284 C64 276 69 266 75 263 Z" />
+
+          <Shape d="M39 258 C35 272 34 286 38 300 L62 300 C66 286 65 272 61 258 Z" />
+          <Muscle id="quadL" d="M38 299 C28 330 27 371 36 407 C43 412 50 407 51 395 L50 302 Z" />
+          <Muscle id="quadR" d="M62 299 C72 330 73 371 64 407 C57 412 50 407 49 395 L50 302 Z" />
+          <Detail d="M37 306 C42 330 45 365 44 400 M48 306 C48 338 48 370 47 400 M63 306 C58 330 55 365 56 400 M52 306 C52 338 52 370 53 400 M38 309 C47 347 49 384 47 405 M62 309 C53 347 51 384 53 405" />
+          <Shape d="M35 408 C34 420 39 427 47 425 C51 421 51 413 47 407 C42 404 38 404 35 408 Z" />
+          <Shape d="M65 408 C66 420 61 427 53 425 C49 421 49 413 53 407 C58 404 62 404 65 408 Z" />
+          <Muscle id="calfFL" d="M36 426 C29 450 31 475 39 493 L49 493 C50 468 49 446 47 428 Z" />
+          <Muscle id="calfFR" d="M64 426 C71 450 69 475 61 493 L51 493 C50 468 51 446 53 428 Z" />
+          <Detail d="M42 431 C38 451 39 472 44 489 M58 431 C62 451 61 472 56 489" />
+          <Shape d="M37 493 C28 499 27 506 38 508 L51 503 L49 493 Z" />
+          <Shape d="M63 493 C72 499 73 506 62 508 L49 503 L51 493 Z" />
+        </g>
+
+        <g transform="translate(132 8)" vectorEffect="non-scaling-stroke">
+          {/* Back view */}
+          <Shape d="M50 12 C39 12 33 22 33 39 C33 55 40 66 50 66 C60 66 67 55 67 39 C67 22 61 12 50 12 Z" />
+          <path d="M34 36 C29 37 29 48 35 50 M66 36 C71 37 71 48 65 50" fill={baseFill} stroke={stroke} strokeWidth={sw} strokeLinecap="round" />
+          <Detail d="M40 57 C45 61 55 61 60 57" />
+          <Shape d="M42 65 L58 65 C58 75 61 82 69 88 L83 98 C75 104 66 101 59 94 L50 86 L41 94 C34 101 25 104 17 98 L31 88 C39 82 42 75 42 65 Z" />
+          <Shape d="M28 95 C20 106 17 123 20 143 C24 171 30 198 32 225 C34 242 39 257 44 265 L56 265 C61 257 66 242 68 225 C70 198 76 171 80 143 C83 123 80 106 72 95 C65 89 58 86 50 86 C42 86 35 89 28 95 Z" />
+
+          <Muscle id="traps" d="M41 80 C45 84 55 84 59 80 L72 99 C68 119 59 137 50 146 C41 137 32 119 28 99 Z" />
+          <Muscle id="delRearL" d="M28 91 C17 95 9 106 9 121 C9 134 17 141 28 136 C36 132 38 120 35 107 C34 99 32 94 28 91 Z" />
+          <Muscle id="delRearR" d="M72 91 C83 95 91 106 91 121 C91 134 83 141 72 136 C64 132 62 120 65 107 C66 99 68 94 72 91 Z" />
+          <path d="M10 120 C8 135 12 148 20 154 C23 146 26 139 29 132 C25 125 19 120 10 120 Z" fill={fill("delSideL")} opacity={opacity("delSideL")} stroke={muscleStroke} strokeWidth="0.72" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M90 120 C92 135 88 148 80 154 C77 146 74 139 71 132 C75 125 81 120 90 120 Z" fill={fill("delSideR")} opacity={opacity("delSideR")} stroke={muscleStroke} strokeWidth="0.72" strokeLinecap="round" strokeLinejoin="round" />
+
+          <Muscle id="upperBack" d="M31 125 C39 119 61 119 69 125 C67 139 59 149 50 154 C41 149 33 139 31 125 Z" />
+          <Muscle id="latL" d="M29 136 C20 162 21 203 37 231 C45 221 48 188 47 151 C41 145 35 140 29 136 Z" />
+          <Muscle id="latR" d="M71 136 C80 162 79 203 63 231 C55 221 52 188 53 151 C59 145 65 140 71 136 Z" />
+          <Muscle id="midBack" d="M43 148 C47 152 53 152 57 148 C60 172 59 204 54 225 L46 225 C41 204 40 172 43 148 Z" />
+          <Muscle id="lowerBack" d="M35 224 C41 218 59 218 65 224 C63 244 57 257 50 263 C43 257 37 244 35 224 Z" />
+          <Detail d="M50 82 L50 260 M34 104 C41 117 45 131 47 147 M66 104 C59 117 55 131 53 147 M33 136 C39 146 45 152 50 154 M67 136 C61 146 55 152 50 154 M36 165 C41 173 45 185 46 202 M64 165 C59 173 55 185 54 202 M41 224 C44 236 47 247 50 257 M59 224 C56 236 53 247 50 257" />
+
+          <Shape d="M18 133 C11 157 11 181 19 203 C23 211 31 208 33 198 C31 172 33 150 37 133 C32 130 24 129 18 133 Z" />
+          <Shape d="M82 133 C89 157 89 181 81 203 C77 211 69 208 67 198 C69 172 67 150 63 133 C68 130 76 129 82 133 Z" />
+          <Muscle id="tricepL" d="M18 136 C12 159 14 184 23 198 C29 198 32 188 32 174 C31 157 29 143 26 136 Z" />
+          <Muscle id="tricepR" d="M82 136 C88 159 86 184 77 198 C71 198 68 188 68 174 C69 157 71 143 74 136 Z" />
+          <Detail d="M24 142 C22 160 23 181 28 195 M30 144 C29 161 29 179 31 194 M76 142 C78 160 77 181 72 195 M70 144 C71 161 71 179 69 194" />
+          <Shape d="M19 203 C12 222 12 248 20 265 C25 271 34 267 36 258 C33 236 33 217 31 202 C27 199 23 199 19 203 Z" />
+          <Shape d="M81 203 C88 222 88 248 80 265 C75 271 66 267 64 258 C67 236 67 217 69 202 C73 199 77 199 81 203 Z" />
+          <Muscle id="foreBL" d="M19 207 C14 226 16 248 23 262 C28 263 33 257 34 249 C31 230 30 215 28 206 Z" />
+          <Muscle id="foreBR" d="M81 207 C86 226 84 248 77 262 C72 263 67 257 66 249 C69 230 70 215 72 206 Z" />
+          <Detail d="M24 214 C23 231 25 248 30 260 M76 214 C77 231 75 248 70 260" />
+          <Shape d="M20 265 C13 270 12 280 19 286 L31 284 C36 276 31 266 25 263 Z" />
+          <Shape d="M80 265 C87 270 88 280 81 286 L69 284 C64 276 69 266 75 263 Z" />
+
+          <Shape d="M38 258 C34 274 34 290 39 303 L61 303 C66 290 66 274 62 258 Z" />
+          <Muscle id="gluteL" d="M39 260 C31 281 38 301 50 304 L50 263 C46 259 42 258 39 260 Z" />
+          <Muscle id="gluteR" d="M61 260 C69 281 62 301 50 304 L50 263 C54 259 58 258 61 260 Z" />
+          <Detail d="M50 262 L50 304 M36 285 C41 298 46 303 50 304 M64 285 C59 298 54 303 50 304" />
+          <Muscle id="hamL" d="M38 303 C29 335 28 373 36 407 C43 412 50 407 51 395 L50 304 Z" />
+          <Muscle id="hamR" d="M62 303 C71 335 72 373 64 407 C57 412 50 407 49 395 L50 304 Z" />
+          <Detail d="M39 310 C43 340 45 370 44 400 M48 310 C48 339 48 369 47 400 M61 310 C57 340 55 370 56 400 M52 310 C52 339 52 369 53 400" />
+          <Shape d="M35 408 C34 420 39 427 47 425 C51 421 51 413 47 407 C42 404 38 404 35 408 Z" />
+          <Shape d="M65 408 C66 420 61 427 53 425 C49 421 49 413 53 407 C58 404 62 404 65 408 Z" />
+          <Muscle id="calfBL" d="M36 426 C28 451 31 476 40 494 L50 494 C50 469 49 446 47 428 Z" />
+          <Muscle id="calfBR" d="M64 426 C72 451 69 476 60 494 L50 494 C50 469 51 446 53 428 Z" />
+          <Detail d="M42 431 C37 452 39 474 45 490 M58 431 C63 452 61 474 55 490 M46 492 L46 502 M54 492 L54 502" />
+          <Shape d="M38 493 C30 499 30 506 41 508 L52 503 L50 493 Z" />
+          <Shape d="M62 493 C70 499 70 506 59 508 L48 503 L50 493 Z" />
+        </g>
+
+        <g transform="translate(264 10)" vectorEffect="non-scaling-stroke">
+          {/* Side view */}
+          <Shape d="M33 13 C47 13 55 24 54 40 C53 54 45 65 35 65 C25 65 19 54 20 39 C21 24 25 15 33 13 Z" />
+          <Detail d="M49 34 C55 36 55 40 49 42 M44 49 C40 53 35 54 29 51 M26 31 C31 29 36 30 40 33" alpha={0.58} />
+          <Shape d="M34 64 C37 75 39 82 46 91 C56 101 60 116 59 135 C58 161 52 189 55 221 C56 238 60 252 65 266 C54 270 42 268 34 262 C28 244 26 220 27 194 C28 170 31 147 29 128 C28 111 27 96 31 84 C33 78 34 71 34 64 Z" />
+          <SideMuscle region="traps" d="M34 65 C42 74 47 85 49 98 C41 94 35 87 31 78 Z" />
+          <SideMuscle region="chestR" d="M44 93 C56 101 60 116 57 132 C50 133 44 128 40 117 C39 107 40 99 44 93 Z" />
+          <SideMuscle region="latR" d="M35 118 C45 132 49 157 47 187 C39 184 33 171 31 151 C30 138 31 126 35 118 Z" />
+          <SideMuscle region="abs" d="M42 136 C48 154 48 190 44 216 C39 214 36 200 36 179 C36 160 38 145 42 136 Z" />
+          <SideMuscle region="obliqueR" d="M30 134 C35 152 35 191 31 218 C27 199 27 157 30 134 Z" />
+          <Detail d="M42 145 C46 154 46 164 42 172 M42 178 C46 187 46 198 42 207 M32 145 C36 160 37 178 36 197 M49 105 C45 112 43 121 43 130 M35 120 C41 137 44 158 44 184" />
+          <Shape d="M30 93 C21 103 18 119 20 137 C21 156 24 177 28 198 C31 203 39 202 41 196 C38 171 36 149 37 126 C38 111 36 101 30 93 Z" />
+          <SideMuscle region="delSideR" d="M30 91 C21 98 17 109 20 122 C26 124 34 119 37 110 C38 102 36 96 30 91 Z" />
+          <SideMuscle region="tricepR" d="M24 122 C20 144 23 173 31 195 C37 195 39 187 37 176 C33 155 33 137 34 125 Z" />
+          <SideMuscle region="foreBR" d="M31 197 C27 216 31 244 41 262 C48 262 50 253 47 244 C40 226 37 210 38 198 Z" />
+          <Detail d="M29 132 C27 150 29 174 35 193 M36 205 C36 224 39 244 44 259" />
+          <Shape d="M42 260 C35 265 35 275 43 280 L55 277 C56 268 50 260 42 260 Z" />
+          <Shape d="M31 257 C29 274 33 293 41 307 C47 318 50 340 48 367 C47 384 49 399 56 412 C64 411 68 404 66 394 C60 364 63 337 60 314 C58 290 53 272 65 266 C54 270 42 268 31 257 Z" />
+          <SideMuscle region="gluteR" d="M49 261 C62 260 70 270 70 284 C68 297 58 307 43 307 C37 291 39 273 49 261 Z" />
+          <SideMuscle region="hamR" d="M43 306 C51 319 54 343 52 371 C49 383 51 397 57 410 C48 414 42 406 40 392 C39 367 36 337 32 315 C34 308 38 305 43 306 Z" />
+          <SideMuscle region="quadR" d="M31 261 C24 289 26 326 35 363 C40 369 47 367 50 359 C48 334 44 315 39 302 C34 290 32 274 31 261 Z" />
+          <Detail d="M36 273 C34 299 38 335 45 362 M43 315 C48 336 49 357 47 379 M52 273 C62 282 63 296 56 306" />
+          <Shape d="M50 411 C47 433 49 468 58 493 L69 493 C70 469 67 441 64 415 C59 411 54 410 50 411 Z" />
+          <SideMuscle region="calfBR" d="M52 416 C47 442 50 472 60 493 L68 493 C69 467 66 441 63 417 Z" />
+          <Detail d="M58 421 C55 446 57 471 63 491" />
+          <Shape d="M58 493 C51 500 53 507 66 508 L77 504 C74 497 67 493 58 493 Z" />
+        </g>
+      </svg>
+    );
+  }
+
+  // ── ExerciseInfoSheet — bottom-sheet modal that shows everything we know
+  //    about an exercise: name, difficulty, primary + secondary muscle tags,
+  //    and a body diagram with the targeted muscles highlighted.
+  function ExerciseInfoSheet({ ex, onClose }) {
+    const th = useTheme();
+    const S = useS();
+    const t = useT();
+    const [closing, setClosing] = useState(false);
+    const close = () => { setClosing(true); setTimeout(onClose, 300); };
+    const db = DB.find((d) => d.id === ex.id) || {};
+    const name = db.name || ex.name || ex.id;
+    const primaryMuscle = db.muscle || "";
+    const primaryGroup = db.group || "Chest";
+    const secondaryRaw = SECONDARY[ex.id];
+    const secondaryList = secondaryRaw ? secondaryRaw.split(" · ") : [];
+    const highlights = muscleHighlights(primaryMuscle, primaryGroup, secondaryList);
+    const diff = DIFFICULTY[ex.id];
+    const diffCfg = diff === "H"
+      ? { label: t("HARD"), bg: "rgba(204,31,66,0.14)",  color: "#CC1F42" }
+      : diff === "M"
+      ? { label: t("MED"),  bg: "rgba(232,97,44,0.14)",  color: "#E8612C" }
+      : diff === "E"
+      ? { label: t("EASY"), bg: "rgba(13,158,142,0.14)", color: "#0D9E8E" }
+      : null;
+    return (
+      <>
+        <style>{`
+          @keyframes eiFadeIn  { from{opacity:0} to{opacity:1} }
+          @keyframes eiFadeOut { from{opacity:1} to{opacity:0} }
+          @keyframes eiSlideUp   { from{transform:translateY(100%);opacity:0.6} to{transform:translateY(0);opacity:1} }
+          @keyframes eiSlideDown { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+        `}</style>
+        <div onClick={close} style={{
+          position:"fixed", inset:0, zIndex:70,
+          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: closing ? "eiFadeOut 0.3s ease-in forwards" : "eiFadeIn 0.25s ease-out forwards",
+        }} />
+        <div style={{
+          position:"fixed", inset:0, zIndex:71,
+          display:"flex", flexDirection:"column", justifyContent:"flex-end",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"auto",
+            display:"flex", flexDirection:"column", overflow:"hidden",
+            height:"72vh", minHeight:"72vh",
+            pointerEvents:"auto",
+            animation: closing ? "eiSlideDown 0.34s cubic-bezier(0.4,0,1,1) forwards" : "eiSlideUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            {/* Header */}
+            <div style={{ padding:"18px 18px 12px", borderBottom:`1px solid ${th.border}` }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
+                <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
+              </div>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
+                <div style={{ flex:1, minWidth:0 }}>
+                  {/* Exercise name with the difficulty badge inline */}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                    <span className="bebas" style={{ fontSize:22, letterSpacing:1.5, color:th.text, lineHeight:1.15, textAlign:"left" }}>{name}</span>
+                    {diffCfg && (
+                      <span style={{
+                        fontSize:10, fontWeight:700, letterSpacing:"0.8px",
+                        padding:"3px 8px", borderRadius:5,
+                        background: diffCfg.bg, color: diffCfg.color,
+                      }}>{diffCfg.label}</span>
+                    )}
+                  </div>
+                  {/* Primary + secondary muscle chips on the row below the name */}
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:6, alignItems:"center", marginTop:8 }}>
+                    {primaryMuscle && (
+                      <span style={S.tag(primaryGroup)}>{primaryMuscle.toUpperCase()}</span>
+                    )}
+                    {secondaryList.map((m) => {
+                      const grp = (DB.find(d => d && d.muscle === m) || {}).group || primaryGroup;
+                      return (
+                        <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                          {m.toUpperCase()}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+                <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
+              </div>
+            </div>
+            {/* Body */}
+            <div style={{ flex:1, overflowY:"auto", padding:"18px" }}>
+              <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("MUSCLES TARGETED")}</div>
+              <div style={{
+                background:`color-mix(in srgb, ${th.sect} 60%, transparent)`,
+                borderRadius:14, border:`1px solid ${th.border}`,
+                padding:"16px 8px",
+                display:"flex", justifyContent:"center",
+              }}>
+                <BodyAnatomy
+                  highlights={highlights}
+                  baseColor={`color-mix(in srgb, ${th.inputB} 70%, ${th.card})`}
+                  outlineColor={th.muted}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -4089,6 +4711,7 @@ import "./styles.css";
     const sets = ex.sets || [];
     const [removing, setRemoving] = useState(false);
     const [removingSet, setRemovingSet] = useState(null);
+    const [showInfo, setShowInfo] = useState(false);
 
     const animateRemoveEx = () => {
       setRemoving(true);
@@ -4165,27 +4788,60 @@ import "./styles.css";
                 </div>
               </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                animateRemoveEx();
-              }}
-              style={{
-                background: "rgba(220,50,50,0.12)",
-                border: "1px solid rgba(220,50,50,0.3)",
-                borderRadius: 7,
-                color: th.delText,
-                cursor: "pointer",
-                fontSize: 13,
-                padding: "4px 9px",
-                flexShrink: 0,
-                marginLeft: 8,
-                alignSelf: "flex-start",
-              }}
-            >
-              ✕
-            </button>
+            <div style={{
+              display: "flex", flexDirection: "column", gap: 14,
+              flexShrink: 0, marginLeft: 8, alignSelf: "flex-start",
+            }}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  animateRemoveEx();
+                }}
+                style={{
+                  background: "rgba(220,50,50,0.12)",
+                  border: "1px solid rgba(220,50,50,0.3)",
+                  borderRadius: 7,
+                  color: th.delText,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  padding: "4px 9px",
+                  lineHeight: 1,
+                }}
+              >
+                ✕
+              </button>
+              {/* Info button — opens the muscles-targeted sheet with primary/secondary highlights.
+                  Sized identically to the X above (same fontSize / padding / lineHeight) so they
+                  match visually and feel like a balanced action column. */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInfo(true);
+                }}
+                aria-label="Info"
+                style={{
+                  background: `color-mix(in srgb, ${th.accentBg} 12%, transparent)`,
+                  border: `1px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)`,
+                  borderRadius: 7,
+                  color: th.accentFg,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  fontFamily: "'Georgia',serif",
+                  fontStyle: "italic",
+                  padding: "4px 9px",
+                  lineHeight: 1,
+                  minWidth: 26,
+                }}
+              >
+                i
+              </button>
+            </div>
           </div>
+          {showInfo && createPortal(
+            <ExerciseInfoSheet ex={ex} onClose={() => setShowInfo(false)} />,
+            document.body
+          )}
 
           {/* Set rows — smooth expand/collapse via max-height transition */}
           <div style={{
