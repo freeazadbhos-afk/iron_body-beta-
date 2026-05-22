@@ -3702,20 +3702,18 @@ import "./styles.css";
       <svg
         width={size}
         height={size}
-        viewBox="0 0 22 22"
+        viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect
-          x="2"
-          y="2"
-          width="18"
-          height="18"
-          rx="2"
+        {/* Roof + walls in one continuous path so corners join cleanly */}
+        <path
+          d="M3 11.2L12 4l9 7.2V20a1 1 0 0 1-1 1h-4v-6h-8v6H4a1 1 0 0 1-1-1v-8.8z"
           stroke={color}
-          strokeWidth="2"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+          strokeLinejoin="round"
         />
-        <rect x="6" y="6" width="10" height="10" fill={color} />
       </svg>
     );
   }
@@ -15402,7 +15400,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.8.3 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.0 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
@@ -16508,31 +16506,30 @@ import "./styles.css";
     ].includes(view);
 
     const tLang = (en) => (lang === "tr" && TR[en] != null ? TR[en] : en);
+    // Nav bar: icon-only — labels removed, icons enlarged to fill the row.
+    const NAV_ICON = 34;
     const NAV = [
       {
         id: "home",
         label: tLang("HOME"),
-        icon: (c) => <HomeIcon color={c} size={22} />,
+        icon: (c) => <HomeIcon color={c} size={NAV_ICON} />,
       },
       {
         id: "programs",
         label: tLang("WORKOUTS"),
         icon: (c) => (
-          <svg width="24" height="22" viewBox="0 0 24 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            {/* Left collar */}
-            <rect x="1" y="8" width="2.5" height="6" rx="1.25" fill={c} />
-            {/* Left plate */}
-            <rect x="3.5" y="6" width="2" height="10" rx="1" fill={c} />
-            {/* Left handle grip */}
-            <rect x="5.5" y="9.75" width="4" height="2.5" rx="1.25" fill={c} />
-            {/* Grip centre bar */}
-            <rect x="9.5" y="9.75" width="5" height="2.5" rx="1.25" fill={c} />
-            {/* Right handle grip */}
-            <rect x="14.5" y="9.75" width="4" height="2.5" rx="1.25" fill={c} />
-            {/* Right plate */}
-            <rect x="18.5" y="6" width="2" height="10" rx="1" fill={c} />
-            {/* Right collar */}
-            <rect x="20.5" y="8" width="2.5" height="6" rx="1.25" fill={c} />
+          // Angled dumbbell: bar tilted upward to the right for a more dynamic, "in motion" feel.
+          <svg width={NAV_ICON} height={NAV_ICON} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g transform="rotate(-32 12 12)">
+              {/* Outer end caps (collars) */}
+              <line x1="2.4" y1="9.5" x2="2.4" y2="14.5" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
+              <line x1="21.6" y1="9.5" x2="21.6" y2="14.5" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
+              {/* Weight plates */}
+              <rect x="4" y="7.5" width="3.4" height="9" rx="1.2" stroke={c} strokeWidth="1.6" />
+              <rect x="16.6" y="7.5" width="3.4" height="9" rx="1.2" stroke={c} strokeWidth="1.6" />
+              {/* Bar */}
+              <line x1="7.6" y1="12" x2="16.4" y2="12" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+            </g>
           </svg>
         ),
       },
@@ -16540,10 +16537,10 @@ import "./styles.css";
         id: "history",
         label: tLang("HISTORY"),
         icon: (c) => (
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="11" cy="11" r="8.5" stroke={c} strokeWidth="2" />
-            <line x1="11" y1="11" x2="11"  y2="6"  stroke={c} strokeWidth="2" strokeLinecap="round" />
-            <line x1="11" y1="11" x2="14.5" y2="11" stroke={c} strokeWidth="2" strokeLinecap="round" />
+          // Cleaner clock: outer ring + single L-shaped hand path.
+          <svg width={NAV_ICON} height={NAV_ICON} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="9" stroke={c} strokeWidth="1.6" />
+            <path d="M12 7v5l3.2 2" stroke={c} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ),
       },
@@ -16552,17 +16549,19 @@ import "./styles.css";
         label: tLang("SHARING"),
         icon: (c) => (
           <div style={{ position: "relative", display: "inline-flex" }}>
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="7" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
-              <path d="M1 19c0-3.314 2.686-6 6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-              <circle cx="15" cy="7" r="2.8" stroke={c} strokeWidth="1.8" />
-              <path d="M21 19c0-3.314-2.686-6-6-6" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
-              <line x1="10" y1="13.5" x2="12" y2="13.5" stroke={c} strokeWidth="1.8" strokeLinecap="round" />
+            {/* Two overlapping figures — front person fully visible, back person peeking. */}
+            <svg width={NAV_ICON} height={NAV_ICON} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Back figure (partially hidden behind the front one) */}
+              <circle cx="16.5" cy="8.5" r="2.6" stroke={c} strokeWidth="1.6" />
+              <path d="M14.5 14.2c1-.4 2-.6 3-.6 2.8 0 5.2 2 5.7 4.7" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
+              {/* Front figure */}
+              <circle cx="9.5" cy="9" r="3.2" stroke={c} strokeWidth="1.6" />
+              <path d="M2.5 20c.6-3.4 3.6-6 7-6s6.4 2.6 7 6" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
             </svg>
             {(pendingInvitations.length > 0 || unreadStars > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
               <div style={{
                 position: "absolute", top: -3, right: -3,
-                width: 9, height: 9, borderRadius: "50%",
+                width: 11, height: 11, borderRadius: "50%",
                 background: unreadStars > 0 ? th.accentFg : "#CC1F42",
                 border: `1.5px solid ${th.nav}`,
                 animation: "pulse 1.5s ease-in-out infinite",
@@ -17416,36 +17415,17 @@ import "./styles.css";
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      padding: "10px 0 10px",
+                      padding: "14px 0",
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
-                      gap: 6,
-                      fontFamily: "'Outfit',sans-serif",
-                      // Turkish labels are longer — slightly larger than before but still
-                      // smaller than English so they fit on narrow screens.
-                      fontSize: lang === "tr" ? 9.5 : 10,
-                      fontWeight: 700,
-                      letterSpacing: lang === "tr" ? "0.6px" : "1.5px",
+                      justifyContent: "center",
                       color: col,
                       transition: "color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                       position: "relative",
                       WebkitTapHighlightColor: "transparent",
                     }}
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 6,
-                        marginTop: -1,
-                      }}
-                    >
-                      {tab.icon(col, user?.email === "freeazadbhos@gmail.com")}
-                      <span>{tab.label}</span>
-                    </div>
-
+                    {tab.icon(col, user?.email === "freeazadbhos@gmail.com")}
                   </button>
                 );
               })}
