@@ -575,6 +575,13 @@ import "./styles.css";
     "LEADERBOARD": "LİDERLİK TABLOSU",
     "Loading scores…": "Skorlar yükleniyor…",
     "Scored on intensity · calories · consistency · volume": "Yoğunluk · kalori · tutarlılık · hacme göre puanlanır",
+    "Every workout earns points · intensity · calories · volume · duration": "Her antrenman puan kazandırır · yoğunluk · kalori · hacim · süre",
+    "Completion": "Tamamlama",
+    "Earned for every logged session": "Kaydedilen her antrenman için kazanılır",
+    "One point per intensity rating (0–10)": "Yoğunluk derecesi başına bir puan (0–10)",
+    "One point per 50 kcal burned": "Yakılan 50 kcal başına bir puan",
+    "One point per 1 000 kg lifted (sets×reps×weight)": "Kaldırılan 1 000 kg başına bir puan (set×tekrar×ağırlık)",
+    "One point per 10 minutes of training": "Her 10 dakika antrenman için bir puan",
     "COMPETE INVITATION": "YARIŞMA DAVETİ",
     "Challenges you to a 7-day workout competition.": "Seni 7 günlük bir antrenman yarışmasına davet ediyor.",
     "DECLINE": "REDDET",
@@ -3465,8 +3472,10 @@ import "./styles.css";
     };
   }
   function intColor(n, th) {
-    const hi = th ? th.accentFg : "#c8f030";
-    return n >= 8 ? hi : n >= 5 ? "#E8612C" : "#CC1F42";
+    // Intensity color scale runs easy → hard = green → orange → red.
+    // n is a 0–10 self-reported intensity rating.
+    const easy = th ? th.accentFg : "#c8f030";
+    return n >= 8 ? "#CC1F42" : n >= 5 ? "#E8612C" : easy;
   }
   function sessionVol(s) {
     return (s?.exercises || []).reduce(
@@ -5333,8 +5342,20 @@ import "./styles.css";
       );
     };
     const confirmAdd = () => {
-      pending.forEach((id) => onAdd(id));
-      closeMe();
+      // Snapshot the selection at click time so any state change mid-loop
+      // (rapid taps, parent re-render) can't drop selections. Catch errors
+      // per-add so one failing exercise doesn't silently skip the rest.
+      const ids = pending.slice();
+      if (ids.length === 0) return;
+      ids.forEach((id) => {
+        try { onAdd(id); }
+        catch (e) { console.warn("Add exercise failed for", id, e); }
+      });
+      // Clear pending immediately so the ADD button hides for instant feedback,
+      // and defer the sheet close one tick so React has flushed the parent's
+      // state updates first.
+      setPending([]);
+      setTimeout(() => closeMe(), 0);
     };
 
     return (
@@ -5670,6 +5691,11 @@ import "./styles.css";
       setErr("");
       try {
         const trimmedName = name.trim();
+        const lowerEmail = email.trim().toLowerCase();
+        // Stash a pending-signup name keyed by email BEFORE Firebase creates the user.
+        // onAuthStateChanged may fire before fbUpdateProfile/saveLocalProfile complete,
+        // so this is a guaranteed fallback for the very first user object built.
+        lsSet("ib3-pending-signup", { email: lowerEmail, name: trimmedName });
         const cred = await createUserWithEmailAndPassword(
           fbAuth,
           email.trim(),
@@ -5680,8 +5706,10 @@ import "./styles.css";
         // 2. Write to local cache IMMEDIATELY — guarantees onAuthStateChanged finds the name
         saveLocalProfile(cred.user.uid, {
           name: trimmedName,
-          email: email.trim().toLowerCase(),
+          email: lowerEmail,
         });
+        // Pending stash no longer needed once the proper profile cache is in place
+        lsDel("ib3-pending-signup");
         // 3. Seed default programs, but keep shortcuts empty so home tab is clean
         lsSet(uKey(cred.user.uid, "programs"), DEFAULT_PROGRAMS);
         lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"], hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false });
@@ -7101,8 +7129,8 @@ import "./styles.css";
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <div style={{ ...S.label, textAlign:"left" }}>{t("DASHBOARDS")}</div>
           <div style={{ display:"flex", gap:6 }}>
-            <button onClick={() => dismiss(onCancel)} style={{ background:"none", border:`1px solid ${th.inputB}`, borderRadius:9, color:th.muted, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>{t("Cancel")}</button>
-            <button onClick={() => dismiss(() => onSave(order))} style={{ background:`linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 70%, transparent) 0%, color-mix(in srgb, ${th.accentBg} 88%, transparent) 100%)`, backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:`0 2px 12px color-mix(in srgb, ${th.accentBg} 38%, transparent), inset 0 1px 0 rgba(255,255,255,0.15)`, border:`1.5px solid color-mix(in srgb, ${th.accentBg} 55%, transparent)`, borderRadius:9, color:th.accentT, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>{t("SAVE")}</button>
+            <button onClick={() => dismiss(onCancel)} style={{ ...buttonTexture(th, "neutral"), borderRadius:9, padding:"6px 12px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>{t("Cancel")}</button>
+            <button onClick={() => dismiss(() => onSave(order))} style={{ ...buttonTexture(th, "accent"), borderRadius:9, padding:"6px 14px", cursor:"pointer", fontSize:12, fontFamily:"'Outfit',sans-serif", fontWeight:700 }}>{t("SAVE")}</button>
           </div>
         </div>
 
@@ -9389,7 +9417,7 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setShowCoachRules(false)}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(200,40,40,0.14) 0%, rgba(160,20,20,0.22) 100%)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", boxShadow:"0 1px 8px rgba(200,40,40,0.18), inset 0 1px 0 rgba(255,255,255,0.08)", border:`1.5px solid rgba(200,40,40,0.4)`, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.delText }}>{t("CANCEL")}</button>
+                  style={{ ...buttonTexture(th, "neutral"), flex:1, borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>{t("CANCEL")}</button>
                 <button onClick={confirmSendCoachRequest}
                   style={{ flex:2, background:"linear-gradient(135deg, rgba(91,156,246,0.72) 0%, rgba(60,110,218,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(91,156,246,0.38), inset 0 1px 0 rgba(255,255,255,0.18)", border:"1.5px solid rgba(91,156,246,0.65)", borderRadius:13, padding:"13px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", letterSpacing:"0.5px" }}>
                   {t("SEND REQUEST TO")} {friend.name.split(" ")[0].toUpperCase()}
@@ -9443,9 +9471,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setShowStopCoach(false)}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>{t("CANCEL")}</button>
+                  style={{ ...buttonTexture(th, "neutral"), flex:1, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>{t("CANCEL")}</button>
                 <button onClick={confirmStopCoaching} disabled={stoppingCoach}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff", opacity:stoppingCoach?0.5:1 }}>
+                  style={{ ...buttonTexture(th, "danger", stoppingCoach), flex:1, borderRadius:12, padding:"11px 0", cursor:stoppingCoach?"default":"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, opacity:stoppingCoach?0.5:1 }}>
                   {stoppingCoach ? "…" : coachBtnState === "active" ? (iAmCoach ? t("STOP COACHING") : t("STOP")) : t("WITHDRAW")}
                 </button>
               </div>
@@ -9526,51 +9554,29 @@ import "./styles.css";
       onGetFriendSessions(friend.uid).then(s => setFriendSessions(s || []));
     }, [friend.uid, comp?.id, comp?.status]);
 
+    // Per-workout points that accumulate over the 7-day window — no cap.
+    // Same family of bonuses as the monthly Iron Board so the two scoring
+    // systems stay consistent. Cardio durations stored on individual cardio
+    // sets are folded into the duration component.
+    const sessionMins = (s) => {
+      if (s.duration && s.duration > 0) return s.duration;
+      return (s.exercises || []).reduce((b, ex) =>
+        b + (ex.sets || []).filter(st => st.done !== false).reduce((c, st) => c + (st.duration || 0), 0), 0);
+    };
+    const sessionScore = (s) => {
+      let pts = 5;
+      pts += s.intensity || 0;
+      pts += (s.calories || 0) / 50;
+      pts += sessionMins(s) / 10;
+      pts += sessionVol(s) / 1000;
+      return pts;
+    };
     const calcScore = (sessions) => {
       if (!sessions) return null;
       const relevant = sessions.filter(compFilter);
       if (!relevant.length) return 0;
-
-      // ── Intensity (30%) — avg of sessions that logged it ──
-      const withInt   = relevant.filter(s => (s.intensity || 0) > 0);
-      const intensAvg = withInt.length
-        ? withInt.reduce((a, s) => a + s.intensity, 0) / withInt.length
-        : 0;
-      const intensScore = (intensAvg / 10) * 10 * 0.30;
-
-      // ── Calories (30%) — avg kcal per session, cap at 500/session ──
-      const totalCals = relevant.reduce((a, s) => a + (s.calories || 0), 0);
-      const avgCals   = totalCals / relevant.length;
-      const calScore  = Math.min(avgCals / 500, 1) * 10 * 0.30;
-
-      // ── Consistency (20%) — unique training days, cap at 7 ──
-      const trainedDays = new Set(
-        relevant.map(s => {
-          const d = new Date(toMs(s.endTime) || toMs(s.startTime));
-          d.setHours(0,0,0,0);
-          return d.getTime();
-        })
-      ).size;
-      const consistScore = Math.min(trainedDays / 7, 1) * 10 * 0.20;
-
-      // ── Activity (20%) — session duration first (covers cardio), then volume ──
-      // Duration from session.duration field, OR sum of individual cardio set durations
-      const totalMins = relevant.reduce((a, s) => {
-        if (s.duration && s.duration > 0) return a + s.duration;
-        // Sum cardio set durations (stored in minutes)
-        const cardioMins = (s.exercises || []).reduce((b, ex) =>
-          b + (ex.sets || []).filter(st => st.done !== false).reduce((c, st) => c + (st.duration || 0), 0), 0);
-        return a + cardioMins;
-      }, 0);
-      const totalVol  = relevant.reduce((a, s) => a + sessionVol(s), 0);
-      const avgMins   = totalMins / relevant.length;
-      const avgVol    = totalVol  / relevant.length;
-      // Prefer duration (benefits cardio), fallback to volume (benefits resistance)
-      const actScore  = avgMins > 0
-        ? Math.min(avgMins / 90, 1) * 10 * 0.20    // 90 min/session = full score
-        : Math.min(avgVol  / 5000, 1) * 10 * 0.20; // 5,000 kg/session = full score
-
-      return Math.round((intensScore + calScore + consistScore + actScore) * 10) / 10;
+      const total = relevant.reduce((sum, s) => sum + sessionScore(s), 0);
+      return Math.round(total);
     };
 
     const myScore     = isActive ? calcScore(mySessions) : null;
@@ -9583,10 +9589,14 @@ import "./styles.css";
       ? myScore > friendScore ? "you" : friendScore > myScore ? "friend" : "tied"
       : null;
 
-    const ScoreRing = ({ score, label, color, size = 90 }) => {
+    // Ring fills relative to the leader (max of both scores) so the leader's
+    // ring is full and the trailer's shows the relative gap. Scores are open-
+    // ended PTS now (no /10 cap).
+    const ScoreRing = ({ score, label, color, max, size = 90 }) => {
       const r = (size - 10) / 2;
       const circ = 2 * Math.PI * r;
-      const pct = Math.min((score || 0) / 10, 1);
+      const denom = Math.max(max || 0, 1);
+      const pct = Math.min((score || 0) / denom, 1);
       return (
         <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
           <div style={{ position:"relative", width:size, height:size }}>
@@ -9598,8 +9608,8 @@ import "./styles.css";
                 style={{ transition:"stroke-dashoffset 0.8s cubic-bezier(0.34,1.2,0.64,1)" }} />
             </svg>
             <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-              <div className="bebas" style={{ fontSize:22, color, lineHeight:1 }}>{score !== null ? score.toFixed(1) : "—"}</div>
-              <div style={{ fontSize:8, color:th.dim, letterSpacing:"1px" }}>/10</div>
+              <div className="bebas" style={{ fontSize:24, color, lineHeight:1 }}>{score !== null ? Math.round(score) : "—"}</div>
+              <div style={{ fontSize:8, color:th.dim, letterSpacing:"1px", marginTop:2 }}>PTS</div>
             </div>
           </div>
           <div style={{ fontSize:12, fontWeight:700, color:th.sub }}>{label}</div>
@@ -9665,10 +9675,11 @@ import "./styles.css";
                   <div style={{ ...S.card, padding:"14px 16px", marginBottom:20, textAlign:"left" }}>
                     <div style={{ ...S.label, marginBottom:10 }}>{t("RULES")}</div>
                     {[
-                      { pct:"30%", label:t("Intensity"), desc:t("Avg self-reported intensity rating per session (0–10)") },
-                      { pct:"30%", label:t("Calories"), desc:t("Total calories burned across all sessions") },
-                      { pct:"20%", label:t("Consistency"), desc:t("Every session logged earns points. 7 sessions = max") },
-                      { pct:"20%", label:t("Activity"), desc:t("Total duration or volume when calories not logged") },
+                      { pct:"+5", label:t("Completion"), desc:t("Earned for every logged session") },
+                      { pct:"+1×", label:t("Intensity"), desc:t("One point per intensity rating (0–10)") },
+                      { pct:"÷50", label:t("Calories"), desc:t("One point per 50 kcal burned") },
+                      { pct:"÷1k", label:t("Volume"), desc:t("One point per 1 000 kg lifted (sets×reps×weight)") },
+                      { pct:"÷10", label:t("Duration"), desc:t("One point per 10 minutes of training") },
                     ].map(({ pct, label, desc }) => (
                       <div key={label} style={{ display:"flex", gap:10, marginBottom:8 }}>
                         <div className="bebas" style={{ fontSize:16, color:th.accentFg, flexShrink:0, width:32, textAlign:"right" }}>{pct}</div>
@@ -9719,16 +9730,23 @@ import "./styles.css";
                     </div>
                   )}
 
-                  {/* Score rings */}
+                  {/* Score rings — fill relative to the leader so the trailing ring shows the gap */}
                   <div style={{ display:"flex", justifyContent:"space-around", alignItems:"center", marginBottom:24 }}>
-                    <ScoreRing score={myScore} label={t("YOU")} color={myColor} size={110} />
-                    <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
-                      {leading==="you"    && <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"1.5px" }}>{t("LEADING ↑")}</div>}
-                      {leading==="friend" && <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"1.5px" }}>{t("BEHIND ↓")}</div>}
-                      {leading==="tied"   && <div style={{ fontSize:11, fontWeight:700, color:th.dim,  letterSpacing:"1.5px" }}>{t("TIED")}</div>}
-                      <div className="bebas" style={{ fontSize:34, color:th.dim, letterSpacing:4 }}>{t("VS")}</div>
-                    </div>
-                    <ScoreRing score={friendScore} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} size={110} />
+                    {(() => {
+                      const ringMax = Math.max(myScore || 0, friendScore || 0, 1);
+                      return (
+                        <>
+                          <ScoreRing score={myScore} max={ringMax} label={t("YOU")} color={myColor} size={110} />
+                          <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:6 }}>
+                            {leading==="you"    && <div style={{ fontSize:11, fontWeight:700, color:myColor, letterSpacing:"1.5px" }}>{t("LEADING ↑")}</div>}
+                            {leading==="friend" && <div style={{ fontSize:11, fontWeight:700, color:frColor, letterSpacing:"1.5px" }}>{t("BEHIND ↓")}</div>}
+                            {leading==="tied"   && <div style={{ fontSize:11, fontWeight:700, color:th.dim,  letterSpacing:"1.5px" }}>{t("TIED")}</div>}
+                            <div className="bebas" style={{ fontSize:34, color:th.dim, letterSpacing:4 }}>{t("VS")}</div>
+                          </div>
+                          <ScoreRing score={friendScore} max={ringMax} label={friend.name.split(" ")[0].toUpperCase()} color={frColor} size={110} />
+                        </>
+                      );
+                    })()}
                   </div>
 
                   {/* Stats breakdown */}
@@ -10229,6 +10247,8 @@ import "./styles.css";
       // Sheet may have been closed during the await — don't setState on unmount.
       if (mountedRef.current) setSending(false);
     };
+    const canSendComment = text.trim().length > 0 && !sending;
+    const sendIconColor = canSendComment ? th.accentT : th.muted;
 
     return (
       <>
@@ -10312,11 +10332,27 @@ import "./styles.css";
                 placeholder={tr("Add a comment…")}
                 style={{ flex:1, background:th.sect, border:`1px solid ${th.border}`, borderRadius:20, padding:"9px 14px", fontSize:14, color:th.text, fontFamily:"'Outfit',sans-serif", outline:"none" }}
               />
-              <button onClick={send} disabled={!text.trim() || sending}
-                style={{ background: text.trim() ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : th.inputB, border:"none", borderRadius:"50%", width:36,height:36, display:"flex",alignItems:"center",justifyContent:"center", cursor: text.trim() ? "pointer" : "default", transition:"background .18s", flexShrink:0 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2L11 13" stroke={text.trim() ? th.accentT : th.dim} strokeWidth="2" strokeLinecap="round"/>
-                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={text.trim() ? th.accentT : th.dim} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              <button onClick={send} disabled={!canSendComment}
+                style={{
+                  WebkitAppearance:"none",
+                  appearance:"none",
+                  background: canSendComment
+                    ? `color-mix(in srgb, ${th.accentBg} 92%, ${th.card})`
+                    : `color-mix(in srgb, ${th.inputB} 72%, ${th.card})`,
+                  border:`1px solid ${canSendComment ? th.accentBg : th.border}`,
+                  borderRadius:"50%", width:38, height:38,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  cursor: canSendComment ? "pointer" : "default",
+                  transition:"background .18s, color .18s, border-color .18s, transform .18s",
+                  flexShrink:0,
+                  color: sendIconColor,
+                  opacity:1,
+                  padding:0,
+                  boxShadow: canSendComment ? `0 0 0 3px color-mix(in srgb, ${th.accentBg} 14%, transparent)` : "none",
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ display:"block", color:sendIconColor, opacity:1 }}>
+                  <path d="M22 2L11 13" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </button>
             </div>
@@ -10393,20 +10429,35 @@ import "./styles.css";
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
     const monthName = now.toLocaleString("en-US", { month:"long" });
 
+    // ── Monthly leaderboard scoring ────────────────────────────────────────────
+    // Per-workout points that accumulate across the month — no cap. Each session
+    // contributes a base completion reward plus quality-driven bonuses so that
+    // training more often, harder, and longer all push the score up fairly.
+    //
+    //   • Completion ............ +5 per session (just showing up earns)
+    //   • Intensity (0–10) ...... +(intensity)   → 7/10 RPE = +7
+    //   • Calories .............. +(kcal / 50)   → 300 kcal = +6
+    //   • Volume (kg×reps) ...... +(vol / 1000)  → 5 000 kg  = +5
+    //   • Duration (min) ........ +(min / 10)    → 45 min    = +4.5
+    //
+    // A typical strength session ends up at ~20–35 pts; a hard long session can
+    // push 40+. Over a month, regular trainees land in the 200–600 range.
+    const sessionScore = (s) => {
+      let pts = 5;
+      pts += s.intensity || 0;
+      pts += (s.calories || 0) / 50;
+      pts += (s.duration || 0) / 10;
+      const vol = (s.exercises || []).reduce((b, ex) =>
+        b + (ex.sets || []).filter(st => st.done !== false).reduce((c, st) => c + (st.weight || 0) * (st.reps || 0), 0), 0);
+      pts += vol / 1000;
+      return pts;
+    };
     const calcScore = (sessions) => {
       if (!sessions?.length) return 0;
-      const relevant = sessions.filter(s => (s.startTime||0) >= monthStart);
+      const relevant = sessions.filter(s => (s.startTime || 0) >= monthStart);
       if (!relevant.length) return 0;
-      const withInt   = relevant.filter(s => (s.intensity||0) > 0);
-      const intensAvg = withInt.length ? withInt.reduce((a,s)=>a+s.intensity,0)/withInt.length : 0;
-      const intensScore = (intensAvg/10)*10*0.30;
-      const avgCals = relevant.reduce((a,s)=>a+(s.calories||0),0)/relevant.length;
-      const calScore = Math.min(avgCals/500,1)*10*0.30;
-      const trainedDays = new Set(relevant.map(s=>{ const d=new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })).size;
-      const consistScore = Math.min(trainedDays/20,1)*10*0.20;
-      const totalVol = relevant.reduce((a,s)=> a+(s.exercises||[]).reduce((b,ex)=>(ex.sets||[]).filter(st=>st.done!==false).reduce((c,st)=>c+(st.weight||0)*(st.reps||0),0)+b,0),0);
-      const actScore = Math.min(totalVol/50000,1)*10*0.20;
-      return Math.round((intensScore+calScore+consistScore+actScore)*10)/10;
+      const total = relevant.reduce((sum, s) => sum + sessionScore(s), 0);
+      return Math.round(total);
     };
 
     useEffect(() => {
@@ -10515,7 +10566,7 @@ import "./styles.css";
             </div>
           );
         })}
-        <div style={{ fontSize:11, color:th.dim, textAlign:"center", marginTop:4 }}>{t("Scored on intensity · calories · consistency · volume")}</div>
+        <div style={{ fontSize:11, color:th.dim, textAlign:"center", marginTop:4 }}>{t("Every workout earns points · intensity · calories · volume · duration")}</div>
       </div>
     );
   }
@@ -10667,6 +10718,8 @@ import "./styles.css";
     // Load suggestions from publicProfiles only (invitations collection requires broad access)
     useEffect(() => {
       if (!user?.id || !user?.email) return;
+      // Always re-register the public profile so newly-signed-up users appear in other
+      // users' suggestions right away.
       fsRegisterPublicProfile(user.id, user.name || "", user.photoURL || null, user.email);
       const friendUidSet = new Set(friends.map(f => f.uid));
       const pendingEmails = new Set([
@@ -10676,15 +10729,19 @@ import "./styles.css";
       ]);
       setSuggestLoading(true);
       const unsub = fsListenPublicProfiles(all => {
+        // Looser filter: only require uid + email so brand-new users still see suggestions
+        // even when some existing public profiles haven't synced a name yet. Display layer
+        // falls back to an email-derived name when the profile lacks one.
         const filtered = all
-          .filter(u => u.uid && u.uid !== user.id && u.name && u.email
+          .filter(u => u.uid && u.uid !== user.id && u.email
             && !friendUidSet.has(u.uid)
-            && !pendingEmails.has((u.email||"").toLowerCase()));
+            && !pendingEmails.has((u.email||"").toLowerCase()))
+          .map(u => ({ ...u, name: u.name || (u.email ? u.email.split("@")[0] : "Friend") }));
         setSuggestedUsers(filtered);
         setSuggestLoading(false);
       });
       return () => unsub();
-    }, [user?.id, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
+    }, [user?.id, user?.email, friends.map(f=>f.uid).join(","), pendingInvitations.length, sentInvitations.length]);
 
     const W7 = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const sessionFeedItems = friends.flatMap(f => {
@@ -10875,7 +10932,18 @@ import "./styles.css";
                       zIndex:0,
                     }} />
                     <span style={{ position:"relative", zIndex:1 }}>
-                      {tabId === "feed" ? t("FEED") : t("FRIENDS")}
+                      {tabId === "feed"
+                        ? t("FEED")
+                        : (() => {
+                            // Show a (N) counter on the FRIENDS tab when there are any
+                            // pending things to act on: friend invites, coach requests,
+                            // or compete invites received.
+                            const pendCount =
+                              (pendingInvitations?.length || 0) +
+                              ((pendingCoachRequests || []).length) +
+                              competitions.filter(c => c.toUid === user.id && c.status === "pending").length;
+                            return pendCount > 0 ? `${t("FRIENDS")} (${pendCount})` : t("FRIENDS");
+                          })()}
                     </span>
                   </button>
                 );
@@ -11200,9 +11268,9 @@ import "./styles.css";
               </div>
               <div style={{ display:"flex", gap:8 }}>
                 <button onClick={() => setConfirmRemoveFriend(null)}
-                  style={{ flex:1, background:`color-mix(in srgb, ${th.inputB} 30%, transparent)`, backdropFilter:"blur(14px)", WebkitBackdropFilter:"blur(14px)", boxShadow:"inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.08)", border:`1.5px solid ${th.border}`, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:th.muted }}>{t("CANCEL")}</button>
+                  style={{ ...buttonTexture(th, "neutral"), flex:1, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>{t("CANCEL")}</button>
                 <button onClick={() => { onRemoveFriend(confirmRemoveFriend.uid); setConfirmRemoveFriend(null); }}
-                  style={{ flex:1, background:"linear-gradient(135deg, rgba(220,50,50,0.72) 0%, rgba(170,25,25,0.88) 100%)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", boxShadow:"0 2px 14px rgba(200,30,30,0.35), inset 0 1px 0 rgba(255,255,255,0.14)", border:"1.5px solid rgba(220,50,50,0.6)", borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, color:"#fff" }}>{t("REMOVE")}</button>
+                  style={{ ...buttonTexture(th, "danger"), flex:1, borderRadius:12, padding:"11px 0", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13 }}>{t("REMOVE")}</button>
               </div>
             </div>
           </div>
@@ -13068,6 +13136,17 @@ import "./styles.css";
     const [exercises, setExercises] = useState(() =>
       (session.exercises || []).map(normalizeWorkoutExercise)
     );
+    // Collapsed exercise cards — tracked by ex.uid so the open/closed state survives
+    // reordering. Tapping the header toggles whether the sets list is shown, just
+    // like the ExerciseEditCard behaviour in the Workouts tab.
+    const [collapsedSet, setCollapsedSet] = useState(() => new Set());
+    const toggleCollapse = (uid) => {
+      setCollapsedSet(prev => {
+        const next = new Set(prev);
+        if (next.has(uid)) next.delete(uid); else next.add(uid);
+        return next;
+      });
+    };
     const [showExPicker, setShowExPicker] = useState(false);
     const [milestoneMsg, setMilestoneMsg] = useState(null);
     const [milestoneExIdx, setMilestoneExIdx] = useState(null);
@@ -13311,13 +13390,16 @@ import "./styles.css";
                   </div>
                 </div>
               )}
-              {/* Exercise header */}
+              {/* Exercise header — tap to collapse/expand the sets list below */}
               <div
+                onClick={() => toggleCollapse(ex.uid)}
                 style={{
                   padding: "12px 14px 9px",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "flex-start",
+                  cursor: "pointer",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -13381,7 +13463,7 @@ import "./styles.css";
                   </div>
                 </div>
                 <button
-                  onClick={() => removeEx(eIdx)}
+                  onClick={(e) => { e.stopPropagation(); removeEx(eIdx); }}
                   style={{
                     background: "rgba(220,50,50,0.12)",
                     border: "1px solid rgba(220,50,50,0.3)",
@@ -13400,7 +13482,16 @@ import "./styles.css";
                 </button>
               </div>
 
-              {/* Set rows — cardio gets log fields, strength gets reps/weight */}
+              {/* Set rows — wrapped in a max-height container so the card can
+                  smoothly collapse when the user taps the header. */}
+              <div style={{
+                maxHeight: collapsedSet.has(ex.uid) ? "0px" : "1200px",
+                opacity: collapsedSet.has(ex.uid) ? 0 : 1,
+                overflow: "hidden",
+                transition: collapsedSet.has(ex.uid)
+                  ? "max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s ease"
+                  : "max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease",
+              }}>
               <div style={{ borderTop: `1px solid ${th.border}` }}>
                 {ex.type === "cardio"
                   ? ex.sets.map((set, sIdx) => (
@@ -13556,6 +13647,7 @@ import "./styles.css";
                   </span>
                   {ex.type === "cardio" ? t("Add lap / segment") : t("Add set")}
                 </div>
+              </div>
               </div>
             </div>
           );
@@ -14041,14 +14133,13 @@ import "./styles.css";
                       <button
                         onClick={() => setConfirmDelete(null)}
                         style={{
-                          background: "none",
-                          border: `1px solid ${th.inputB}`,
+                          ...buttonTexture(th, "neutral"),
                           borderRadius: 7,
-                          color: th.muted,
                           fontSize: 12,
                           padding: "5px 12px",
                           cursor: "pointer",
                           fontFamily: "'Outfit',sans-serif",
+                          fontWeight: 700,
                         }}
                       >
                         {t("Cancel")}
@@ -14059,12 +14150,8 @@ import "./styles.css";
                           setConfirmDelete(null);
                         }}
                         style={{
-                          background: "rgba(220, 50, 50, 0.15)",
-                          backdropFilter: "blur(10px)",
-                          WebkitBackdropFilter: "blur(10px)",
-                          border: "1px solid rgba(220, 50, 50, 0.3)",
+                          ...buttonTexture(th, "danger"),
                           borderRadius: 7,
-                          color: th.delText,
                           fontSize: 12,
                           fontWeight: 700,
                           padding: "5px 12px",
@@ -14956,14 +15043,13 @@ import "./styles.css";
                       setUpgErr("");
                     }}
                     style={{
+                      ...buttonTexture(th, "neutral"),
                       flex: 1,
-                      background: th.row,
-                      border: "none",
                       borderRadius: 10,
-                      color: th.muted,
                       padding: "11px",
                       cursor: "pointer",
                       fontSize: 13,
+                      fontWeight: 700,
                       fontFamily: "'Outfit',sans-serif",
                     }}
                   >
@@ -15044,12 +15130,8 @@ import "./styles.css";
                 setEGender(user.gender || "");
               }}
               style={{
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                background: editMode ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
-                border: `1px solid ${editMode ? th.accentBg : th.inputB}`,
+                ...buttonTexture(th, editMode ? "accent" : "neutral"),
                 borderRadius: 9,
-                color: editMode ? th.accentT : th.muted,
                 padding: "7px 12px",
                 cursor: "pointer",
                 fontSize: 12,
@@ -16223,15 +16305,13 @@ import "./styles.css";
                                 }
                               }}
                               style={{
-                                background: "none",
-                                border: `1px solid ${th.inputB}`,
+                                ...buttonTexture(th, isEditingThis ? "accent" : "neutral"),
                                 borderRadius: 7,
-                                color: isEditingThis ? th.accentFg : th.muted,
                                 fontSize: 11,
                                 padding: "3px 10px",
                                 cursor: "pointer",
                                 fontFamily: "'Outfit',sans-serif",
-                                fontWeight: 600,
+                                fontWeight: 700,
                               }}
                             >
                               {isEditingThis ? t("Cancel") : t("Edit")}
@@ -16636,8 +16716,19 @@ import "./styles.css";
           // Firebase displayName may lag on first fire; local cache is the source of truth
           const isGuest = fbUser.isAnonymous || local.isGuest || false;
           // Priority: 1) local cache (written at signup before this fires)
-          // 2) Firebase displayName  3) Never fall back to email
-          const resolvedName = local.name || fbUser.displayName || "";
+          // 2) Firebase displayName  3) pending-signup stash (email-matched)  4) email prefix
+          let resolvedName = local.name || fbUser.displayName || "";
+          if (!resolvedName) {
+            const pending = ls("ib3-pending-signup", null);
+            if (pending && pending.email === (fbUser.email || "").toLowerCase() && pending.name) {
+              resolvedName = pending.name;
+              // Persist the name to the proper profile cache now that the uid is known
+              saveLocalProfile(fbUser.uid, { name: pending.name, email: fbUser.email || "" });
+              lsDel("ib3-pending-signup");
+              // And push displayName to Firebase so subsequent sessions don't need this fallback
+              fbUpdateProfile(fbUser, { displayName: pending.name }).catch(() => {});
+            }
+          }
           const resolvedPhoto = local.photoURL || null;
           setUser({
             id: fbUser.uid,
@@ -16909,10 +17000,17 @@ import "./styles.css";
       setSessions(s);
       lsSet(uKey(user.id, "sessions"), s);
     };
-    const savePrograms = (p) => {
-      setPrograms(p);
-      lsSet(uKey(user.id, "programs"), p);
-      fsSavePrograms(user.id, p);
+    // savePrograms accepts either an array or an updater function. The functional form
+    // is important when multiple deletes (or any rapid mutations) happen in the same
+    // render tick — without it, each call would filter from a stale `programs` snapshot
+    // and only the last change would stick, losing earlier removals.
+    const savePrograms = (pOrFn) => {
+      setPrograms(prev => {
+        const p = typeof pOrFn === "function" ? pOrFn(prev) : pOrFn;
+        lsSet(uKey(user.id, "programs"), p);
+        fsSavePrograms(user.id, p);
+        return p;
+      });
     };
     const saveSettings = (s) => {
       setSettings(s);
@@ -17446,8 +17544,8 @@ import "./styles.css";
     ].includes(view);
 
     const tLang = (en) => (lang === "tr" && TR[en] != null ? TR[en] : en);
-    // Nav bar: icon-only — labels removed, icons enlarged to fill the row.
-    const NAV_ICON = 34;
+    // Nav bar: enlarged icons with the standard text labels underneath.
+    const NAV_ICON = 28;
     const NAV = [
       {
         id: "home",
@@ -17659,14 +17757,19 @@ import "./styles.css";
                   <button
                     onClick={toggleWorkoutPause}
                     style={{
-                      background: paused
-                        ? "linear-gradient(135deg, rgba(232,97,44,0.55) 0%, rgba(180,55,10,0.72) 100%)"
-                        : "rgba(255,255,255,0.06)",
-                      backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
-                      boxShadow: paused ? "0 2px 10px rgba(232,97,44,0.35), inset 0 1px 0 rgba(255,255,255,0.18)" : "inset 0 1px 0 rgba(255,255,255,0.10)",
-                      border: `1.5px solid ${paused ? "rgba(232,97,44,0.65)" : "rgba(255,255,255,0.14)"}`,
+                      // Use the shared neutral texture so the button outline reads in both
+                      // light and dark themes. The previous translucent-white border was
+                      // nearly invisible on the light header.
+                      ...(paused
+                        ? {
+                            background: "linear-gradient(135deg, rgba(232,97,44,0.55) 0%, rgba(180,55,10,0.72) 100%)",
+                            backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)",
+                            boxShadow: "0 2px 10px rgba(232,97,44,0.35), inset 0 1px 0 rgba(255,255,255,0.18)",
+                            border: "1.5px solid rgba(232,97,44,0.65)",
+                            color: "#fff",
+                          }
+                        : buttonTexture(th, "neutral")),
                       borderRadius: 9,
-                      color: paused ? "#fff" : th.muted,
                       fontSize: 10,
                       padding: "6px 10px",
                       cursor: "pointer",
@@ -17879,18 +17982,21 @@ import "./styles.css";
                     {bellRipple && (
                       <div style={{ position:"absolute", width:44, height:44, borderRadius:"50%", background:"currentColor", animation:"bellRipple 0.5s ease-out forwards", pointerEvents:"none" }} />
                     )}
-                    {unreadStars > 0 && (
-                      <div style={{
-                        position: "absolute", top: 2, right: 2,
-                        minWidth: 16, height: 16, borderRadius: 8,
-                        background: th.accentFg, border: `2px solid ${th.bg}`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 9, fontWeight: 700, color: th.accentT,
-                        fontFamily: "'Outfit',sans-serif", padding: "0 3px",
-                        animation: "pulse 1.5s ease-in-out infinite",
-                      }}>{unreadStars > 9 ? "9+" : unreadStars}</div>
-                    )}
                   </div>
+                  {/* Counter bubble — positioned OUTSIDE the bell circle so it sits ON TOP of
+                      the button (top-right corner), like a standard mobile badge. */}
+                  {unreadStars > 0 && (
+                    <div style={{
+                      position: "absolute", top: -4, right: -4,
+                      minWidth: 18, height: 18, borderRadius: 9,
+                      background: "#CC1F42", border: `2px solid ${th.bg}`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 10, fontWeight: 700, color: "#fff",
+                      fontFamily: "'Outfit',sans-serif", padding: "0 4px",
+                      pointerEvents: "none",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.35)",
+                    }}>{unreadStars > 9 ? "9+" : unreadStars}</div>
+                  )}
                 </button>
               )}
               {/* Profile icon — absolutely positioned into the top padding space, doesn't affect row height */}
@@ -18156,7 +18262,7 @@ import "./styles.css";
                   setView("editProgram");
                 }}
                 onDelete={(id) =>
-                  savePrograms(programs.filter((p) => p.id !== id))
+                  savePrograms((prev) => prev.filter((p) => p.id !== id))
                 }
                 onStart={handleTemplate}
                 settings={settings}
@@ -18355,10 +18461,16 @@ import "./styles.css";
                       background: "none",
                       border: "none",
                       cursor: "pointer",
-                      padding: "14px 0",
+                      padding: "10px 0",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
+                      gap: 5,
+                      fontFamily: "'Outfit',sans-serif",
+                      // Turkish labels are longer — slightly smaller so they still fit.
+                      fontSize: lang === "tr" ? 9.5 : 10,
+                      fontWeight: 700,
+                      letterSpacing: lang === "tr" ? "0.6px" : "1.5px",
                       color: col,
                       transition: "color .2s, transform .22s cubic-bezier(0.25,0.46,0.45,0.94), opacity .22s ease",
                       position: "relative",
@@ -18366,6 +18478,7 @@ import "./styles.css";
                     }}
                   >
                     {tab.icon(col, user?.email === "freeazadbhos@gmail.com")}
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
