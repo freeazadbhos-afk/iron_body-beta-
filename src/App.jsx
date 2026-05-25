@@ -5091,14 +5091,19 @@ import "./styles.css";
                   animateRemoveEx();
                 }}
                 style={{
-                  background: "rgba(220,50,50,0.12)",
-                  border: "1px solid rgba(220,50,50,0.3)",
-                  borderRadius: 7,
+                  background: "none",
+                  border: "none",
                   color: th.delText,
                   cursor: "pointer",
-                  fontSize: 13,
-                  padding: "4px 9px",
+                  fontSize: 22,
+                  width: 34,
+                  height: 34,
+                  padding: 0,
                   lineHeight: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >
                 ✕
@@ -5269,15 +5274,20 @@ import "./styles.css";
                           animateRemoveSet(sIdx);
                         }}
                         style={{
-                          background: "rgba(220,50,50,0.12)",
-                          border: "1px solid rgba(220,50,50,0.3)",
-                          borderRadius: 6,
+                          background: "none",
+                          border: "none",
                           color: th.delText,
                           cursor: "pointer",
-                          fontSize: 12,
+                          fontSize: 22,
                           lineHeight: 1,
-                          padding: "3px 7px",
+                          width: 32,
+                          height: 32,
+                          padding: 0,
                           flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         ✕
@@ -9029,12 +9039,13 @@ import "./styles.css";
                 }}
                 style={{
                   position:"absolute", top:-8, right:-8, zIndex:50,
-                  background:"rgba(200,10,10,0.65)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                  border:"1px solid rgba(220,50,50,0.3)", borderRadius:"50%",
-                  width:24, height:24, minWidth:24, minHeight:24,
+                  background:"none",
+                  border:"none", borderRadius:"50%",
+                  width:34, height:34, minWidth:34, minHeight:34,
                   padding:0, display:"flex", alignItems:"center", justifyContent:"center",
-                  cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
-                                    animation:"coachXPop 0.38s cubic-bezier(0.34,1.5,0.64,1) forwards",
+                  cursor:"pointer", color:th.delText, fontSize:22, lineHeight:1,
+                  WebkitTapHighlightColor:"transparent",
+                  animation:"coachXPop 0.38s cubic-bezier(0.34,1.5,0.64,1) forwards",
                 }}
               >✕</button>
             )}
@@ -11977,12 +11988,13 @@ import "./styles.css";
                     }}
                     style={{
                       position:"absolute", top:-8, right:-8, zIndex:50,
-                      background:"rgba(200,10,10,0.65)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
-                      border:"1px solid rgba(220,50,50,0.3)", borderRadius:"50%",
-                      minWidth:24, minHeight:24, width:24, height:24, aspectRatio:"1/1",
-                      padding:0, boxSizing:"content-box",
+                      background:"none",
+                      border:"none", borderRadius:"50%",
+                      minWidth:34, minHeight:34, width:34, height:34, aspectRatio:"1/1",
+                      padding:0, boxSizing:"border-box",
                       display:"flex", alignItems:"center", justifyContent:"center",
-                      cursor:"pointer", color:"#fff", fontSize:12, fontWeight:700, lineHeight:1,
+                      cursor:"pointer", color:th.delText, fontSize:22, lineHeight:1,
+                      WebkitTapHighlightColor:"transparent",
                       animation:"progXPop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                     }}>✕</button>
                 )}
@@ -12737,10 +12749,17 @@ import "./styles.css";
                         style={{
                           background: "none",
                           border: "none",
-                          color: th.dim,
+                          color: th.delText,
                           cursor: "pointer",
-                          fontSize: 15,
-                          padding: "2px 6px",
+                          fontSize: 22,
+                          width: 34,
+                          height: 34,
+                          padding: 0,
+                          lineHeight: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          WebkitTapHighlightColor: "transparent",
                         }}
                       >
                         ✕
@@ -13053,11 +13072,17 @@ import "./styles.css";
             style={{
               background: "none",
               border: "none",
-              color: th.dim,
+              color: th.delText,
               cursor: "pointer",
-              fontSize: 15,
-              padding: "2px 6px",
-              opacity: 0.6,
+              fontSize: 22,
+              width: 34,
+              height: 34,
+              padding: 0,
+              lineHeight: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              WebkitTapHighlightColor: "transparent",
             }}
           >
             ✕
@@ -13609,16 +13634,20 @@ import "./styles.css";
                           onClick={() => removeSet(eIdx, sIdx)}
                           title={t("Remove set")}
                           style={{
-                            background: "rgba(220,50,50,0.12)",
-                            border: "1px solid rgba(220,50,50,0.3)",
-                            borderRadius: 6,
+                            background: "none",
+                            border: "none",
                             color: th.delText,
                             cursor: "pointer",
-                            fontSize: 16,
+                            fontSize: 22,
                             lineHeight: 1,
-                            padding: "4px",
+                            width: 34,
+                            height: 34,
+                            padding: 0,
                             flexShrink: 0,
-                            opacity: 0.6,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            WebkitTapHighlightColor: "transparent",
                           }}
                         >
                           ✕
@@ -14239,16 +14268,20 @@ import "./styles.css";
                         setConfirmDelete(isPendingDelete ? null : s.id);
                       }}
                       style={{
-                        background: "rgba(220,50,50,0.12)",
-                        border: "1px solid rgba(220,50,50,0.3)",
-                        borderRadius: 7,
+                        background: "none",
+                        border: "none",
                         color: th.delText,
                         cursor: "pointer",
-                        padding: "4px 9px",
-                        fontSize: 13,
+                        width: 34,
+                        height: 34,
+                        padding: 0,
+                        fontSize: 22,
                         lineHeight: 1,
-                        fontWeight: 700,
                         alignSelf: "flex-start",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        WebkitTapHighlightColor: "transparent",
                       }}
                     >
                       ✕
