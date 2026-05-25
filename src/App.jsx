@@ -5074,6 +5074,33 @@ import "./styles.css";
                       </span>
                     );
                   })}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowInfo(true);
+                    }}
+                    aria-label="Info"
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#D4AF37",
+                      cursor: "pointer",
+                      fontSize: 15,
+                      fontWeight: 700,
+                      padding: "0 2px",
+                      lineHeight: 1,
+                      width: 22,
+                      height: 20,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      opacity: 0.95,
+                      WebkitTapHighlightColor: "transparent",
+                    }}
+                  >
+                    ⓘ
+                  </button>
                 </div>
                 {/* Row 3: sets info */}
                 <div style={{ fontSize:11, color:th.muted, marginTop:4 }}>
@@ -5107,32 +5134,6 @@ import "./styles.css";
                 }}
               >
                 ✕
-              </button>
-              {/* Info button — opens the muscles-targeted sheet with primary/secondary highlights.
-                  Sized identically to the X above (same fontSize / padding / lineHeight) so they
-                  match visually and feel like a balanced action column. */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowInfo(true);
-                }}
-                aria-label="Info"
-                style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 12%, transparent)`,
-                  border: `1px solid color-mix(in srgb, ${th.accentBg} 35%, transparent)`,
-                  borderRadius: 7,
-                  color: th.accentFg,
-                  cursor: "pointer",
-                  fontSize: 13,
-                  fontWeight: 700,
-                  fontFamily: "'Georgia',serif",
-                  fontStyle: "italic",
-                  padding: "4px 9px",
-                  lineHeight: 1,
-                  minWidth: 26,
-                }}
-              >
-                i
               </button>
             </div>
           </div>
@@ -10883,7 +10884,17 @@ import "./styles.css";
         {(() => {
           const tabs = ["feed","friends"];
           return (
-            <div style={{ display:"flex", position:"relative", marginBottom:16, padding:"3px", background:th.row, borderRadius:14 }}>
+            <div style={{
+              display:"flex",
+              position:"sticky",
+              top:0,
+              zIndex:30,
+              marginBottom:16,
+              padding:"3px",
+              background:th.row,
+              borderRadius:14,
+              boxShadow:`0 8px 20px color-mix(in srgb, ${th.bg} 82%, transparent)`,
+            }}>
               {tabs.map(tabId => {
                 const active = sharingTab === tabId;
                 return (
