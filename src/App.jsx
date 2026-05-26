@@ -912,6 +912,11 @@ import "./styles.css";
     "20 workouts in {month}": "{month} ayında 20 antrenman",
     "Perfect Week": "Mükemmel Hafta",
     "5 workouts this week": "Bu hafta 5 antrenman",
+    "ACHIEVEMENT UNLOCKED": "BAŞARIM AÇILDI",
+    "Award unlocked": "Başarım açıldı",
+    "You unlocked": "Şunu açtın",
+    "Nice work. This award has been added to your profile.": "Güzel iş. Bu başarım profiline eklendi.",
+    "NICE WORK": "GÜZEL İŞ",
 
     // Suggestions / NEW PROGRAM editor (deduped subset)
     "SUGGESTED PROGRAMS": "ÖNERİLEN PROGRAMLAR",
@@ -4189,7 +4194,7 @@ import "./styles.css";
     "Rest days are earned. Now earn them.",
     "The barbell doesn't negotiate.",
   ];
-  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false, earnedAwards: [] };
+  const DEFAULT_SETTINGS = { homePrograms: null, homeDashboards: null, hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false, earnedAwards: [], notifiedAwards: [] };
   const ALL_DASHBOARDS = [
     { id: "muscles",    label: "Muscles Trained",      icon: "💪" },
     { id: "streak",     label: "Streak Calendar",       icon: "🗓" },
@@ -10587,7 +10592,7 @@ import "./styles.css";
                   {/* End competition */}
                   <button
                     onClick={async () => { if (window.confirm(t("End this competition?"))) { await onWithdrawCompeteInvite(comp.id); close(); } }}
-                    style={{ width:"100%", marginTop:16, background:"rgba(220, 50, 50, 0.45)", backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)", border:"1px solid rgba(220, 50, 50, 0.3)", borderRadius:13, padding:14, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14, color:th.text }}
+                    style={{ width:"100%", marginTop:16, ...buttonTexture(th, "danger"), borderRadius:13, padding:14, cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:14 }}
                   >{t("END COMPETITION")}</button>
                 </>
               )}
@@ -15358,6 +15363,9 @@ import "./styles.css";
     const S = useS();
     const t = useT();
     const [aPage, setAPage] = useState(0);
+    const [awardPopup, setAwardPopup] = useState(null);
+    const pendingAwardPopupsRef = useRef([]);
+    const awardNotifyGuardRef = useRef(new Set());
 
     const daySet = new Set(sessions.map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); }));
     const sortedDays = [...daySet].sort((a,b) => b-a);
@@ -15418,6 +15426,7 @@ import "./styles.css";
     // Persisted earned streak awards: once unlocked, they stay earned forever
     // regardless of whether the current live streak has since dropped.
     const persistedEarned = Array.isArray(settings?.earnedAwards) ? settings.earnedAwards : [];
+    const notifiedAwards = Array.isArray(settings?.notifiedAwards) ? settings.notifiedAwards : [];
     const isPersisted = (id) => persistedEarned.includes(id);
 
     const awards = [
@@ -15430,17 +15439,48 @@ import "./styles.css";
       { id:"weekly",   icon:"🗓️", label:weekLabel,          desc:t("5 workouts this week"),           earned: daysThisWeek >= 5 },
     ];
 
-    // Persist any newly-earned persistable awards so they survive a broken streak.
-    // Union with any prior earnedAwards rather than replacing, so we never lose
-    // historical achievements even if `settings` is briefly stale.
+    const earnedAwardIds = awards.filter(a => a.earned).map(a => a.id).join(",");
+    const closeAwardPopup = () => {
+      const next = pendingAwardPopupsRef.current.shift();
+      setAwardPopup(next || null);
+    };
+
+    // Persist any newly-earned persistable awards so they survive a broken streak,
+    // and notify the user exactly once when any award is first achieved.
     useEffect(() => {
       if (!onUpdateSettings) return;
+      const knownAwards = new Set([...persistedEarned, ...notifiedAwards]);
       const newlyEarned = awards.filter(a => a.persistable && a.earned && !persistedEarned.includes(a.id)).map(a => a.id);
-      if (newlyEarned.length) {
-        const union = Array.from(new Set([...persistedEarned, ...newlyEarned]));
-        onUpdateSettings({ ...settings, earnedAwards: union });
+      const newlyUnlocked = awards.filter(a =>
+        a.earned &&
+        !knownAwards.has(a.id) &&
+        !awardNotifyGuardRef.current.has(a.id)
+      );
+      if (!newlyEarned.length && !newlyUnlocked.length) return;
+
+      newlyUnlocked.forEach(a => awardNotifyGuardRef.current.add(a.id));
+
+      if (newlyUnlocked.length) {
+        pendingAwardPopupsRef.current.push(...newlyUnlocked.slice(1));
+        setAwardPopup(prev => prev || newlyUnlocked[0]);
+        if (user?.id) {
+          newlyUnlocked.forEach(a => {
+            fsPushNotification(user.id, {
+              type: "award_earned",
+              name: "Iron Body",
+              awardId: a.id,
+              awardIcon: a.icon,
+              awardLabel: a.label,
+              text: `${t("Award unlocked")}: ${a.label}`,
+            });
+          });
+        }
       }
-    }, [bestStreak, streak, persistedEarned.join(",")]);
+
+      const earnedUnion = Array.from(new Set([...persistedEarned, ...newlyEarned]));
+      const notifiedUnion = Array.from(new Set([...notifiedAwards, ...newlyUnlocked.map(a => a.id)]));
+      onUpdateSettings({ ...settings, earnedAwards: earnedUnion, notifiedAwards: notifiedUnion });
+    }, [earnedAwardIds, persistedEarned.join(","), notifiedAwards.join(","), user?.id]);
 
     const PAGE = 3;
     const totalPages = Math.ceil(awards.length / PAGE);
@@ -15452,6 +15492,7 @@ import "./styles.css";
     );
 
     return (
+      <>
       <div {...swipe} style={{ ...S.card, padding:"18px 18px 14px", marginBottom:14, touchAction:"pan-y" }}>
         <style>{`@keyframes awSlideL{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}} @keyframes awSlideR{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}`}</style>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
@@ -15482,6 +15523,65 @@ import "./styles.css";
           ))}
         </div>
       </div>
+      {awardPopup && createPortal(
+        <>
+          <style>{`
+            @keyframes awardPopIn{from{opacity:0;transform:translateY(calc(-50% + 18px)) scale(0.94)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+          `}</style>
+          <div
+            onClick={closeAwardPopup}
+            style={{ position:"fixed", inset:0, zIndex:88, background:"rgba(0,0,0,0.48)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)" }}
+          />
+          <div style={{
+            position:"fixed",
+            left:18,
+            right:18,
+            top:"50%",
+            transform:"translateY(-50%)",
+            zIndex:89,
+            maxWidth:360,
+            margin:"0 auto",
+            borderRadius:22,
+            padding:"24px 20px 18px",
+            textAlign:"center",
+            background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
+            border:`1px solid ${th.border}`,
+            boxShadow:"0 24px 70px rgba(0,0,0,0.42)",
+            animation:"awardPopIn 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards",
+          }}>
+            <div style={{
+              width:74,
+              height:74,
+              borderRadius:20,
+              margin:"0 auto 14px",
+              display:"flex",
+              alignItems:"center",
+              justifyContent:"center",
+              fontSize:38,
+              background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.card})`,
+              border:`1px solid color-mix(in srgb, ${th.accentBg} 48%, transparent)`,
+              boxShadow:`0 10px 28px color-mix(in srgb, ${th.accentBg} 24%, transparent)`,
+            }}>
+              {awardPopup.icon}
+            </div>
+            <div style={{ ...S.label, textAlign:"center", color:th.accentFg, marginBottom:6 }}>{t("ACHIEVEMENT UNLOCKED")}</div>
+            <div className="bebas" style={{ fontSize:30, letterSpacing:1.4, color:th.text, marginBottom:8 }}>
+              {awardPopup.label}
+            </div>
+            <div style={{ fontSize:13, color:th.muted, lineHeight:1.5, marginBottom:18 }}>
+              {awardPopup.desc}<br />{t("Nice work. This award has been added to your profile.")}
+            </div>
+            <button
+              onClick={closeAwardPopup}
+              style={{ width:"100%", ...buttonTexture(th, "accent"), borderRadius:13, padding:"13px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:13, letterSpacing:0.6 }}
+            >
+              {t("NICE WORK")}
+            </button>
+          </div>
+        </>,
+        document.body
+      )}
+      </>
     );
   }
 
@@ -17839,6 +17939,9 @@ import "./styles.css";
               const prevAwards   = Array.isArray(prev.earnedAwards)   ? prev.earnedAwards   : [];
               const remoteAwards = Array.isArray(remote.earnedAwards) ? remote.earnedAwards : [];
               merged.earnedAwards = Array.from(new Set([...prevAwards, ...remoteAwards]));
+              const prevNotifiedAwards   = Array.isArray(prev.notifiedAwards)   ? prev.notifiedAwards   : [];
+              const remoteNotifiedAwards = Array.isArray(remote.notifiedAwards) ? remote.notifiedAwards : [];
+              merged.notifiedAwards = Array.from(new Set([...prevNotifiedAwards, ...remoteNotifiedAwards]));
               // Onboarding flags are sticky — once dismissed locally, never revert
               // even if a stale snapshot still has the old false value
               ["hasDashOnboarded", "hasProgramOnboarded", "hasProgramBuildOnboarded", "hasSharingOnboarded", "hasSharingOnboardedV2", "hasSharingOnboardedV3"].forEach(k => {
@@ -17848,6 +17951,7 @@ import "./styles.css";
                 JSON.stringify(merged.homeDashboards) !== JSON.stringify(prev.homeDashboards) ||
                 JSON.stringify(merged.homePrograms)   !== JSON.stringify(prev.homePrograms)   ||
                 JSON.stringify(merged.earnedAwards)   !== JSON.stringify(prevAwards)          ||
+                JSON.stringify(merged.notifiedAwards) !== JSON.stringify(prevNotifiedAwards)  ||
                 merged.hasDashOnboarded         !== prev.hasDashOnboarded         ||
                 merged.hasProgramOnboarded      !== prev.hasProgramOnboarded      ||
                 merged.hasProgramBuildOnboarded !== prev.hasProgramBuildOnboarded ||
@@ -19583,12 +19687,16 @@ import "./styles.css";
                     : diff < 86400000 ? `${Math.floor(diff/3600000)}${tLang("h ago")}`
                     : d === 1 ? tLang("1 day ago")
                     : `${d} ${tLang("days ago")}`;
-                  const iconBg = n.type === "compete_accepted" || n.type === "compete_invite"
+                  const iconBg = n.type === "award_earned"
+                    ? "rgba(212,175,55,0.18)"
+                    : n.type === "compete_accepted" || n.type === "compete_invite"
                     ? "rgba(212,175,55,0.18)"
                     : n.type === "coach_request" || n.type === "coach_accepted"
                     ? "rgba(91,156,246,0.18)"
                     : `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`;
-                  const icon = n.type === "compete_accepted" || n.type === "compete_invite"
+                  const icon = n.type === "award_earned"
+                    ? <span style={{ fontSize:15 }}>{n.awardIcon || "🏅"}</span>
+                    : n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
                     : n.type === "coach_request" || n.type === "coach_accepted"
                     ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="3" width="16" height="19" rx="2" stroke="#5B9CF6" strokeWidth="2" fill="none"/><rect x="9" y="1.5" width="6" height="4" rx="1" stroke="#5B9CF6" strokeWidth="1.6" fill="rgba(91,156,246,0.25)"/><line x1="7" y1="10" x2="17" y2="10" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round"/><line x1="7" y1="14" x2="17" y2="14" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.7"/><line x1="7" y1="18" x2="14" y2="18" stroke="#5B9CF6" strokeWidth="1.6" strokeLinecap="round" opacity="0.45"/></svg>
@@ -19622,6 +19730,9 @@ import "./styles.css";
                     }
                     if (n.type === "coach_accepted") {
                       return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("accepted your coaching request")}</span></>;
+                    }
+                    if (n.type === "award_earned") {
+                      return <><span style={{ fontWeight:700 }}>{tLang("Award unlocked")}</span><span style={{ color:th.muted }}> · </span><span style={{ fontWeight:700, color:th.text }}>{n.awardLabel || n.text}</span></>;
                     }
                     return n.text || <span style={{ color:th.text }}>{who}</span>;
                   };
