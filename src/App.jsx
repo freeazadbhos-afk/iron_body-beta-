@@ -3789,14 +3789,6 @@ import "./styles.css";
         primary: false,
       })),
     ];
-    const diff = DIFFICULTY[ex.id];
-    const diffCfg = diff === "H"
-      ? { label: t("HARD"), bg: "rgba(204,31,66,0.14)",  color: "#CC1F42" }
-      : diff === "M"
-      ? { label: t("MED"),  bg: "rgba(232,97,44,0.14)",  color: "#E8612C" }
-      : diff === "E"
-      ? { label: t("EASY"), bg: "rgba(13,158,142,0.14)", color: "#0D9E8E" }
-      : null;
     return (
       <>
         <style>{`
@@ -3835,13 +3827,7 @@ import "./styles.css";
                   {/* Exercise name with the difficulty badge inline */}
                   <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                     <span className="bebas" style={{ fontSize:22, letterSpacing:1.5, color:th.text, lineHeight:1.15, textAlign:"left" }}>{name}</span>
-                    {diffCfg && (
-                      <span style={{
-                        fontSize:10, fontWeight:700, letterSpacing:"0.8px",
-                        padding:"3px 8px", borderRadius:5,
-                        background: diffCfg.bg, color: diffCfg.color,
-                      }}>{diffCfg.label}</span>
-                    )}
+                    <DiffBadge id={ex.id} />
                   </div>
                 </div>
                 <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, padding:"4px 6px" }}>✕</button>
@@ -9827,14 +9813,18 @@ import "./styles.css";
                   else { const next = (friendPrograms||[]).filter(x=>x.id!==p.id); setFriendPrograms(next); onSaveCoachPrograms(friend.uid, next); }
                 }}
                 style={{
-                  position:"absolute", top:-8, right:-8, zIndex:50,
-                  background:"none",
-                  border:"none", borderRadius:"50%",
-                  width:34, height:34, minWidth:34, minHeight:34,
-                  padding:0, display:"flex", alignItems:"center", justifyContent:"center",
-                  cursor:"pointer", color:th.delText, fontSize:22, lineHeight:1,
+                  position:"absolute", top:-4, right:-4, zIndex:50,
+                  background:"rgba(160, 10, 10, 0.65)",
+                  backdropFilter:"blur(10px)",
+                  WebkitBackdropFilter:"blur(10px)",
+                  border:"1px solid rgba(220, 50, 50, 0.3)",
+                  borderRadius:"50%",
+                  minWidth:22, minHeight:22, width:22, height:22, aspectRatio:"1 / 1",
+                  padding:0, boxSizing:"content-box",
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  cursor:"pointer", color:"#fff", fontSize:11, fontWeight:700, lineHeight:1,
                   WebkitTapHighlightColor:"transparent",
-                  animation:"coachXPop 0.38s cubic-bezier(0.34,1.5,0.64,1) forwards",
+                  animation:"xBadgePop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                 }}
               >✕</button>
             )}
@@ -9947,7 +9937,6 @@ import "./styles.css";
           @keyframes fdBdIn  { from{opacity:0} to{opacity:1} }
           @keyframes fdBdOut { from{opacity:1} to{opacity:0} }
           @keyframes coachPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
-          @keyframes coachXPop  { 0%{transform:scale(0) rotate(-45deg);opacity:0} 65%{transform:scale(1.25) rotate(5deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
           @keyframes removeSlide { to{transform:translateX(-100%);opacity:0} }
           @keyframes sheetUp { from{transform:translateY(100%);opacity:.5} to{transform:translateY(0);opacity:1} }
         `}</style>
@@ -12752,9 +12741,8 @@ import "./styles.css";
       onUpdateSettings && onUpdateSettings({ ...settings, hasProgramOnboarded: true });
     };
     return (
-      <div className="slide-up" style={{ paddingBottom: 160 }}>
+        <div className="slide-up" style={{ paddingBottom: 160 }}>
         <style>{`
-          @keyframes progXPop   { 0%{transform:scale(0) rotate(-45deg);opacity:0} 70%{transform:scale(1.2) rotate(4deg);opacity:1} 100%{transform:scale(1) rotate(0);opacity:1} }
           @keyframes playPulse  { 0%{transform:scale(1);opacity:1} 40%{transform:scale(0.91);opacity:0.85} 100%{transform:scale(1);opacity:1} }
           @keyframes playRipple { 0%{transform:translate(-50%,-50%) scale(0.6);opacity:0.5} 100%{transform:translate(-50%,-50%) scale(2.4);opacity:0} }
         `}</style>
@@ -12795,15 +12783,18 @@ import "./styles.css";
                       else onDelete(p.id);
                     }}
                     style={{
-                      position:"absolute", top:-8, right:-8, zIndex:50,
-                      background:"none",
-                      border:"none", borderRadius:"50%",
-                      minWidth:34, minHeight:34, width:34, height:34, aspectRatio:"1/1",
-                      padding:0, boxSizing:"border-box",
+                      position:"absolute", top:-4, right:-4, zIndex:50,
+                      background:"rgba(160, 10, 10, 0.65)",
+                      backdropFilter:"blur(10px)",
+                      WebkitBackdropFilter:"blur(10px)",
+                      border:"1px solid rgba(220, 50, 50, 0.3)",
+                      borderRadius:"50%",
+                      minWidth:22, minHeight:22, width:22, height:22, aspectRatio:"1 / 1",
+                      padding:0, boxSizing:"content-box",
                       display:"flex", alignItems:"center", justifyContent:"center",
-                      cursor:"pointer", color:th.delText, fontSize:22, lineHeight:1,
+                      cursor:"pointer", color:"#fff", fontSize:11, fontWeight:700, lineHeight:1,
                       WebkitTapHighlightColor:"transparent",
-                      animation:"progXPop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
+                      animation:"xBadgePop 0.4s cubic-bezier(0.54,1.56,0.64,0.8) forwards",
                     }}>✕</button>
                 )}
                 <div style={{ padding:"15px 16px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
@@ -19063,6 +19054,11 @@ import "./styles.css";
               0%   { opacity: 1; transform: translateX(0)   scaleY(1); max-height: 200px; }
               60%  { opacity: 0; transform: translateX(24px) scaleY(0.8); }
               100% { opacity: 0; transform: translateX(24px) scaleY(0); max-height: 0; padding: 0; margin: 0; }
+            }
+            @keyframes xBadgePop {
+              0%   { transform: scale(0) rotate(-45deg); opacity: 0; }
+              70%  { transform: scale(1.18) rotate(4deg); opacity: 1; }
+              100% { transform: scale(1) rotate(0deg); opacity: 1; }
             }
             @keyframes dropFromAbove {
               0%   { transform: translateY(-28px) scale(1.03); opacity: 0.7; box-shadow: 0 12px 28px rgba(0,0,0,0.22); }
