@@ -2835,7 +2835,7 @@ import "./styles.css";
 
   // Three-view anatomy plate matching the attached reference: gray figure,
   // soft muscle-panel outlines, and red overlays for targeted regions.
-  function BodyAnatomy({ highlights }) {
+  function BodyAnatomyLegacyThreeView({ highlights }) {
     const ink = "#969b98";
     const inkDark = "#858985";
     const bodyFill = "#d7dad7";
@@ -2983,6 +2983,356 @@ import "./styles.css";
     );
   }
 
+  function BodyAnatomyStravaDraft({ highlights, targetMuscles = [], view = "front" }) {
+    const th = useTheme();
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
+    const bg = dark ? "#20211f" : "#fbfbfa";
+    const outline = dark ? "#7d7f7a" : "#989995";
+    const plate = dark ? "#444541" : "#3f403c";
+    const chipBg = dark ? "rgba(78,78,75,0.94)" : "rgba(255,255,255,0.96)";
+    const chipText = dark ? "#ffffff" : "#111111";
+    const chipBorder = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    const gap = dark ? 7 : 8;
+    const showBack = view === "back";
+    const labels = Array.from(new Map(targetMuscles.map(m => [m.name, m])).values()).slice(0, 5);
+    const hot = (id) => Boolean(highlights && highlights[id]);
+    const hotOpacity = (ids) => {
+      const activeIds = (Array.isArray(ids) ? ids : [ids]).filter(hot);
+      if (!activeIds.length) return 1;
+      return Math.max(0.78, ...activeIds.map(id => highlights[id]?.opacity || 1));
+    };
+    const Shape = ({ ids, d, strokeWidth = gap }) => {
+      const activeIds = Array.isArray(ids) ? ids : [ids];
+      const active = activeIds.some(hot);
+      return (
+        <path
+          d={d}
+          fill={active ? "url(#stravaHeat)" : plate}
+          opacity={active ? hotOpacity(activeIds) : 1}
+          stroke={bg}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    };
+    const Outline = ({ d, width = 4 }) => (
+      <path d={d} fill="none" stroke={outline} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    );
+    const PlateLine = ({ d, width = 4 }) => (
+      <path d={d} fill="none" stroke={bg} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} />
+    );
+
+    const FrontFigure = () => (
+      <g>
+        <Outline d="M180 23 C151 23 139 49 144 86 C147 117 160 137 180 139 C200 137 213 117 216 86 C221 49 209 23 180 23 Z" />
+        <Outline d="M158 131 C160 154 158 166 146 175 C128 184 104 188 91 205 C77 224 75 259 71 291 C67 323 58 360 51 389 C43 423 62 445 67 470 C75 511 82 561 90 606 C96 644 98 680 92 708 C82 714 75 723 80 731 C92 736 103 740 115 737 C125 733 128 723 122 711 C124 681 128 645 125 609 C122 563 127 527 141 484 C151 526 157 568 161 613 C166 662 166 690 163 713 C154 722 158 733 170 737 C177 741 187 741 194 737 C206 733 210 722 201 713 C198 690 198 662 203 613 C207 568 213 526 223 484 C237 527 242 563 239 609 C236 645 240 681 242 711 C236 723 239 733 249 737 C261 740 272 736 284 731 C289 723 282 714 268 708 C262 680 264 644 270 606 C278 561 285 511 293 470 C298 445 317 423 309 389 C302 360 293 323 289 291 C285 259 283 224 269 205 C256 188 232 184 214 175 C202 166 200 154 202 131" />
+        <Outline d="M146 175 C154 187 168 193 180 193 C192 193 206 187 214 175" width={3} />
+
+        <Shape ids={["traps"]} d="M139 184 C151 174 169 172 180 179 C191 172 209 174 221 184 C210 194 195 197 184 195 L176 195 C165 197 150 194 139 184 Z" />
+        <Shape ids={["delFrontL", "delSideL"]} d="M102 205 C117 190 144 183 160 192 C151 211 133 224 108 228 C99 222 97 213 102 205 Z" />
+        <Shape ids={["delFrontR", "delSideR"]} d="M258 205 C243 190 216 183 200 192 C209 211 227 224 252 228 C261 222 263 213 258 205 Z" />
+        <Shape ids={["chestL", "chestUpL", "chestLoL"]} d="M132 211 C146 199 168 199 177 214 C180 232 178 258 174 276 C154 284 131 276 124 260 C121 236 122 220 132 211 Z" />
+        <Shape ids={["chestR", "chestUpR", "chestLoR"]} d="M228 211 C214 199 192 199 183 214 C180 232 182 258 186 276 C206 284 229 276 236 260 C239 236 238 220 228 211 Z" />
+        <Shape ids={["abs"]} d="M151 281 C160 276 171 278 180 287 C189 278 200 276 209 281 C214 329 205 382 180 407 C155 382 146 329 151 281 Z" />
+        <PlateLine d="M180 287 L180 407 M151 306 C163 302 173 304 180 312 C187 304 197 302 209 306 M150 332 C163 328 173 330 180 338 C187 330 197 328 210 332 M154 360 C166 356 174 358 180 366 C186 358 194 356 206 360" width={5} />
+        <Shape ids={["obliqueL"]} d="M131 286 C119 313 121 357 139 385 C150 374 153 347 150 322 C148 305 141 293 131 286 Z" />
+        <Shape ids={["obliqueR"]} d="M229 286 C241 313 239 357 221 385 C210 374 207 347 210 322 C212 305 219 293 229 286 Z" />
+        <Shape ids={["bicepL"]} d="M85 245 C94 226 111 220 121 233 C124 257 115 295 100 315 C88 310 82 292 81 273 C80 263 81 253 85 245 Z" />
+        <Shape ids={["bicepR"]} d="M275 245 C266 226 249 220 239 233 C236 257 245 295 260 315 C272 310 278 292 279 273 C280 263 279 253 275 245 Z" />
+        <Shape ids={["foreFL"]} d="M63 337 C72 316 86 301 100 311 C98 339 86 375 72 397 C60 390 56 361 63 337 Z" />
+        <Shape ids={["foreFR"]} d="M297 337 C288 316 274 301 260 311 C262 339 274 375 288 397 C300 390 304 361 297 337 Z" />
+        <Shape ids={["quadL"]} d="M127 415 C143 428 153 472 151 526 C150 562 141 598 128 607 C112 587 106 517 110 464 C112 438 118 422 127 415 Z" />
+        <Shape ids={["quadR"]} d="M233 415 C217 428 207 472 209 526 C210 562 219 598 232 607 C248 587 254 517 250 464 C248 438 242 422 233 415 Z" />
+        <PlateLine d="M180 407 C173 449 171 507 174 565 M180 407 C187 449 189 507 186 565" width={5} />
+        <Shape ids={["calfFL", "calfBL"]} d="M94 609 C86 641 88 681 99 707 C110 717 124 710 128 690 C124 656 124 632 125 609 C115 619 103 619 94 609 Z" />
+        <Shape ids={["calfFR", "calfBR"]} d="M266 609 C274 641 272 681 261 707 C250 717 236 710 232 690 C236 656 236 632 235 609 C245 619 257 619 266 609 Z" />
+      </g>
+    );
+
+    const BackFigure = () => (
+      <g>
+        <Outline d="M180 23 C151 23 139 49 144 86 C147 116 160 135 174 135 C178 128 182 128 186 135 C200 135 213 116 216 86 C221 49 209 23 180 23 Z" />
+        <Outline d="M158 131 C160 154 158 166 146 175 C128 184 104 188 91 205 C77 224 75 259 71 291 C67 323 58 360 51 389 C43 423 62 445 67 470 C75 511 82 561 90 606 C96 644 98 680 92 708 C82 714 75 723 80 731 C92 736 103 740 115 737 C125 733 128 723 122 711 C124 681 128 645 125 609 C122 563 127 527 141 484 C151 526 157 568 161 613 C166 662 166 690 163 713 C154 722 158 733 170 737 C177 741 187 741 194 737 C206 733 210 722 201 713 C198 690 198 662 203 613 C207 568 213 526 223 484 C237 527 242 563 239 609 C236 645 240 681 242 711 C236 723 239 733 249 737 C261 740 272 736 284 731 C289 723 282 714 268 708 C262 680 264 644 270 606 C278 561 285 511 293 470 C298 445 317 423 309 389 C302 360 293 323 289 291 C285 259 283 224 269 205 C256 188 232 184 214 175 C202 166 200 154 202 131" />
+        <Outline d="M146 175 C158 184 170 186 180 185 C190 186 202 184 214 175" width={3} />
+
+        <Shape ids={["traps", "upperBack"]} d="M111 192 C130 180 158 174 180 177 C202 174 230 180 249 192 C237 210 212 214 196 209 C187 206 173 206 164 209 C148 214 123 210 111 192 Z" />
+        <Shape ids={["delRearL", "delSideL"]} d="M102 205 C117 190 144 183 160 192 C151 211 133 224 108 228 C99 222 97 213 102 205 Z" />
+        <Shape ids={["delRearR", "delSideR"]} d="M258 205 C243 190 216 183 200 192 C209 211 227 224 252 228 C261 222 263 213 258 205 Z" />
+        <Shape ids={["latL"]} d="M131 211 C147 225 154 262 151 314 C148 345 139 365 127 370 C113 328 103 269 110 232 C114 220 122 213 131 211 Z" />
+        <Shape ids={["latR"]} d="M229 211 C213 225 206 262 209 314 C212 345 221 365 233 370 C247 328 257 269 250 232 C246 220 238 213 229 211 Z" />
+        <Shape ids={["midBack"]} d="M160 217 C170 211 190 211 200 217 C199 270 194 334 180 357 C166 334 161 270 160 217 Z" />
+        <Shape ids={["lowerBack"]} d="M145 356 C158 349 172 356 180 374 C188 356 202 349 215 356 C211 378 197 393 180 405 C163 393 149 378 145 356 Z" />
+        <Shape ids={["tricepL"]} d="M85 245 C94 226 111 220 121 233 C124 257 115 295 100 315 C88 310 82 292 81 273 C80 263 81 253 85 245 Z" />
+        <Shape ids={["tricepR"]} d="M275 245 C266 226 249 220 239 233 C236 257 245 295 260 315 C272 310 278 292 279 273 C280 263 279 253 275 245 Z" />
+        <Shape ids={["foreBL"]} d="M63 337 C72 316 86 301 100 311 C98 339 86 375 72 397 C60 390 56 361 63 337 Z" />
+        <Shape ids={["foreBR"]} d="M297 337 C288 316 274 301 260 311 C262 339 274 375 288 397 C300 390 304 361 297 337 Z" />
+        <Shape ids={["gluteL"]} d="M124 383 C149 372 175 388 176 420 C174 451 150 466 124 452 C107 435 106 400 124 383 Z" />
+        <Shape ids={["gluteR"]} d="M236 383 C211 372 185 388 184 420 C186 451 210 466 236 452 C253 435 254 400 236 383 Z" />
+        <Shape ids={["hamL"]} d="M119 469 C135 484 144 526 142 579 C140 611 131 640 118 648 C101 627 96 557 101 512 C104 491 110 476 119 469 Z" />
+        <Shape ids={["hamR"]} d="M241 469 C225 484 216 526 218 579 C220 611 229 640 242 648 C259 627 264 557 259 512 C256 491 250 476 241 469 Z" />
+        <PlateLine d="M180 374 L180 452 M180 452 C172 497 168 556 171 614 M180 452 C188 497 192 556 189 614" width={5} />
+        <Shape ids={["calfBL", "calfFL"]} d="M94 609 C86 641 88 681 99 707 C110 717 124 710 128 690 C124 656 124 632 125 609 C115 619 103 619 94 609 Z" />
+        <Shape ids={["calfBR", "calfFR"]} d="M266 609 C274 641 272 681 261 707 C250 717 236 710 232 690 C236 656 236 632 235 609 C245 619 257 619 266 609 Z" />
+      </g>
+    );
+
+    return (
+      <div style={{
+        position:"relative",
+        width:"100%",
+        maxWidth:360,
+        margin:"0 auto",
+        borderRadius:18,
+        overflow:"hidden",
+        background:bg,
+      }}>
+        <svg
+          viewBox="0 0 360 760"
+          width="100%"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display:"block", width:"100%", height:"auto", aspectRatio:"360 / 760" }}
+        >
+          <defs>
+            <radialGradient id="stravaHeat" cx="47%" cy="54%" r="74%">
+              <stop offset="0%" stopColor="#ffc045" />
+              <stop offset="42%" stopColor="#ff7a23" />
+              <stop offset="100%" stopColor="#f4511e" />
+            </radialGradient>
+          </defs>
+          <rect width="360" height="760" fill={bg} />
+          {showBack ? <BackFigure /> : <FrontFigure />}
+        </svg>
+        {labels.length > 0 && (
+          <div style={{
+            position:"absolute",
+            right:14,
+            bottom:54,
+            display:"flex",
+            flexDirection:"column",
+            alignItems:"flex-end",
+            gap:8,
+            pointerEvents:"none",
+          }}>
+            {labels.map((m) => (
+              <span key={`${m.primary ? "p" : "s"}-${m.name}`} style={{
+                maxWidth:150,
+                padding:"6px 10px",
+                borderRadius:6,
+                border:`1px solid ${chipBorder}`,
+                background:chipBg,
+                color:chipText,
+                boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.08)",
+                fontSize:12,
+                lineHeight:1,
+                fontWeight:800,
+                whiteSpace:"nowrap",
+              }}>
+                {m.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function BodyAnatomy({ highlights, targetMuscles = [] }) {
+    const th = useTheme();
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
+    const bg = dark ? "#20211f" : "#fbfbfa";
+    const outline = dark ? "#7d7f7a" : "#989995";
+    const plate = dark ? "#444541" : "#3f403c";
+    const chipBg = dark ? "rgba(78,78,75,0.94)" : "rgba(255,255,255,0.96)";
+    const chipText = dark ? "#ffffff" : "#111111";
+    const chipBorder = dark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+    const gap = dark ? 7 : 8;
+    const labels = Array.from(new Map(targetMuscles.map(m => [m.name, m])).values()).slice(0, 5);
+    const hot = (id) => Boolean(highlights && highlights[id]);
+    const hotOpacity = (ids) => {
+      const activeIds = (Array.isArray(ids) ? ids : [ids]).filter(hot);
+      if (!activeIds.length) return 1;
+      return Math.max(0.78, ...activeIds.map(id => highlights[id]?.opacity || 1));
+    };
+    const Shape = ({ ids, d, strokeWidth = gap }) => {
+      const activeIds = Array.isArray(ids) ? ids : [ids];
+      const active = activeIds.some(hot);
+      return (
+        <path
+          d={d}
+          fill={active ? "url(#stravaHeatRefined)" : plate}
+          opacity={active ? hotOpacity(activeIds) : 1}
+          stroke={bg}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      );
+    };
+    const Outline = ({ d, width = 4 }) => (
+      <path d={d} fill="none" stroke={outline} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+    );
+    const DividerLine = ({ d, width = 3, gutter = 8 }) => (
+      <>
+        <path d={d} fill="none" stroke={bg} strokeWidth={gutter} strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke={outline} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    );
+    const PlateLine = ({ d, width = 4 }) => (
+      <path d={d} fill="none" stroke={bg} strokeWidth={width} strokeLinecap="round" strokeLinejoin="round" opacity={0.94} />
+    );
+
+    const frontShapes = [
+      { ids:["traps"], d:"M138 185 C149 177 169 175 176 181 L175 199 C157 199 143 196 130 190 C132 188 135 186 138 185 Z" },
+      { ids:["traps"], d:"M222 185 C211 177 191 175 184 181 L185 199 C203 199 217 196 230 190 C228 188 225 186 222 185 Z" },
+      { ids:["delFrontL", "delSideL"], d:"M101 204 C118 189 146 183 161 193 C151 215 132 228 108 232 C98 224 96 211 101 204 Z" },
+      { ids:["delFrontR", "delSideR"], d:"M259 204 C242 189 214 183 199 193 C209 215 228 228 252 232 C262 224 264 211 259 204 Z" },
+      { ids:["chestL", "chestUpL", "chestLoL"], d:"M132 214 C147 201 169 201 177 216 C180 234 178 259 174 278 C154 287 130 278 123 261 C120 238 122 222 132 214 Z" },
+      { ids:["chestR", "chestUpR", "chestLoR"], d:"M228 214 C213 201 191 201 183 216 C180 234 182 259 186 278 C206 287 230 278 237 261 C240 238 238 222 228 214 Z" },
+      { ids:["abs"], d:"M155 285 C164 281 173 282 180 291 C187 282 196 281 205 285 C208 303 205 319 198 328 C189 331 184 327 180 321 C176 327 171 331 162 328 C155 319 152 303 155 285 Z" },
+      { ids:["abs"], d:"M154 333 C163 329 173 330 180 338 C187 330 197 329 206 333 C209 352 205 369 198 379 C188 382 184 377 180 370 C176 377 172 382 162 379 C155 369 151 352 154 333 Z" },
+      { ids:["abs"], d:"M158 383 C167 379 174 381 180 390 C186 381 193 379 202 383 C202 405 193 423 180 431 C167 423 158 405 158 383 Z" },
+      { ids:["obliqueL"], d:"M131 286 C120 312 121 356 139 386 C150 374 153 348 150 322 C148 305 141 293 131 286 Z" },
+      { ids:["obliqueR"], d:"M229 286 C240 312 239 356 221 386 C210 374 207 348 210 322 C212 305 219 293 229 286 Z" },
+      { ids:["frontSideTorsoL"], d:"M122 279 C132 302 136 346 131 385 C118 371 112 339 113 310 C114 296 117 286 122 279 Z" },
+      { ids:["frontSideTorsoR"], d:"M238 279 C228 302 224 346 229 385 C242 371 248 339 247 310 C246 296 243 286 238 279 Z" },
+      { ids:["bicepL"], d:"M84 244 C93 225 111 220 121 233 C123 259 114 294 99 316 C87 311 81 292 80 273 C79 262 81 252 84 244 Z" },
+      { ids:["bicepR"], d:"M276 244 C267 225 249 220 239 233 C237 259 246 294 261 316 C273 311 279 292 280 273 C281 262 279 252 276 244 Z" },
+      { ids:["foreFL"], d:"M62 337 C72 316 86 302 100 312 C97 342 86 375 72 398 C60 390 56 362 62 337 Z" },
+      { ids:["foreFR"], d:"M298 337 C288 316 274 302 260 312 C263 342 274 375 288 398 C300 390 304 362 298 337 Z" },
+      { ids:["quadL"], d:"M126 417 C141 427 151 469 150 522 C149 561 140 598 127 608 C112 589 105 519 109 465 C111 439 117 423 126 417 Z" },
+      { ids:["quadL"], d:"M154 433 C166 462 170 515 165 564 C163 588 158 606 151 614 C145 593 143 545 146 501 C148 469 150 447 154 433 Z" },
+      { ids:["quadR"], d:"M234 417 C219 427 209 469 210 522 C211 561 220 598 233 608 C248 589 255 519 251 465 C249 439 243 423 234 417 Z" },
+      { ids:["quadR"], d:"M206 433 C194 462 190 515 195 564 C197 588 202 606 209 614 C215 593 217 545 214 501 C212 469 210 447 206 433 Z" },
+      { ids:["frontOuterThighL"], d:"M101 464 C112 480 119 523 118 566 C117 591 112 610 105 616 C96 590 94 526 97 489 C98 477 99 469 101 464 Z" },
+      { ids:["frontOuterThighR"], d:"M259 464 C248 480 241 523 242 566 C243 591 248 610 255 616 C264 590 266 526 263 489 C262 477 261 469 259 464 Z" },
+      { ids:["calfFL", "calfBL"], d:"M94 611 C87 642 89 679 100 705 C110 715 123 708 127 689 C124 657 124 633 125 611 C115 620 103 620 94 611 Z" },
+      { ids:["calfFR", "calfBR"], d:"M266 611 C273 642 271 679 260 705 C250 715 237 708 233 689 C236 657 236 633 235 611 C245 620 257 620 266 611 Z" },
+    ];
+
+    const backShapes = [
+      { ids:["traps", "upperBack"], d:"M111 191 C130 180 158 175 180 178 C202 175 230 180 249 191 C237 210 212 215 196 210 C187 207 173 207 164 210 C148 215 123 210 111 191 Z" },
+      { ids:["delRearL", "delSideL"], d:"M101 204 C118 189 146 183 161 193 C151 215 132 228 108 232 C98 224 96 211 101 204 Z" },
+      { ids:["delRearR", "delSideR"], d:"M259 204 C242 189 214 183 199 193 C209 215 228 228 252 232 C262 224 264 211 259 204 Z" },
+      { ids:["latL"], d:"M131 212 C147 226 154 262 151 314 C148 346 139 366 127 371 C113 329 103 270 110 233 C114 221 122 214 131 212 Z" },
+      { ids:["latR"], d:"M229 212 C213 226 206 262 209 314 C212 346 221 366 233 371 C247 329 257 270 250 233 C246 221 238 214 229 212 Z" },
+      { ids:["midBack"], d:"M160 217 C170 211 190 211 200 217 C199 270 194 334 180 358 C166 334 161 270 160 217 Z" },
+      { ids:["lowerBack"], d:"M145 356 C158 350 172 357 180 375 C188 357 202 350 215 356 C211 379 197 394 180 406 C163 394 149 379 145 356 Z" },
+      { ids:["backSideRibL"], d:"M122 232 C135 245 142 279 139 318 C130 305 122 272 119 247 C119 240 120 235 122 232 Z" },
+      { ids:["backSideRibR"], d:"M238 232 C225 245 218 279 221 318 C230 305 238 272 241 247 C241 240 240 235 238 232 Z" },
+      { ids:["tricepL"], d:"M84 244 C93 225 111 220 121 233 C123 259 114 294 99 316 C87 311 81 292 80 273 C79 262 81 252 84 244 Z" },
+      { ids:["tricepR"], d:"M276 244 C267 225 249 220 239 233 C237 259 246 294 261 316 C273 311 279 292 280 273 C281 262 279 252 276 244 Z" },
+      { ids:["foreBL"], d:"M62 337 C72 316 86 302 100 312 C97 342 86 375 72 398 C60 390 56 362 62 337 Z" },
+      { ids:["foreBR"], d:"M298 337 C288 316 274 302 260 312 C263 342 274 375 288 398 C300 390 304 362 298 337 Z" },
+      { ids:["gluteL"], d:"M124 383 C149 373 175 388 176 420 C174 451 150 466 124 452 C107 435 106 400 124 383 Z" },
+      { ids:["gluteR"], d:"M236 383 C211 373 185 388 184 420 C186 451 210 466 236 452 C253 435 254 400 236 383 Z" },
+      { ids:["backOuterThighL"], d:"M101 464 C112 480 119 523 118 566 C117 591 112 610 105 616 C96 590 94 526 97 489 C98 477 99 469 101 464 Z" },
+      { ids:["backOuterThighR"], d:"M259 464 C248 480 241 523 242 566 C243 591 248 610 255 616 C264 590 266 526 263 489 C262 477 261 469 259 464 Z" },
+      { ids:["hamL"], d:"M119 469 C135 484 144 526 142 579 C140 611 131 640 118 648 C101 627 96 557 101 512 C104 491 110 476 119 469 Z" },
+      { ids:["hamR"], d:"M241 469 C225 484 216 526 218 579 C220 611 229 640 242 648 C259 627 264 557 259 512 C256 491 250 476 241 469 Z" },
+      { ids:["calfBL", "calfFL"], d:"M94 611 C87 642 89 679 100 705 C110 715 123 708 127 689 C124 657 124 633 125 611 C115 620 103 620 94 611 Z" },
+      { ids:["calfBR", "calfFR"], d:"M266 611 C273 642 271 679 260 705 C250 715 237 708 233 689 C236 657 236 633 235 611 C245 620 257 620 266 611 Z" },
+    ];
+
+    const FigureFrame = ({ children, back = false }) => (
+      <g>
+        {children}
+        <DividerLine d="M114 217 C121 249 119 280 108 306 C95 336 87 365 81 398" gutter={9} />
+        <DividerLine d="M246 217 C239 249 241 280 252 306 C265 336 273 365 279 398" gutter={9} />
+        <DividerLine d="M180 442 C171 494 168 559 171 616 C174 656 174 690 169 713" gutter={10} />
+        <DividerLine d="M180 442 C189 494 192 559 189 616 C186 656 186 690 191 713" gutter={10} />
+        <Outline d={back
+          ? "M180 24 C153 24 142 48 146 86 C149 116 162 135 174 135 C178 128 182 128 186 135 C198 135 211 116 214 86 C218 48 207 24 180 24 Z"
+          : "M180 24 C153 24 142 48 146 86 C149 117 162 136 180 138 C198 136 211 117 214 86 C218 48 207 24 180 24 Z"} />
+        <Outline d="M158 131 C160 153 158 164 146 174 C132 183 117 188 105 203 C88 207 78 225 75 252 C72 288 61 316 53 348 C43 387 40 416 47 431 C50 438 59 449 64 462 C69 476 82 474 81 457 C86 470 96 472 99 462 C101 452 97 440 91 429 C97 433 105 431 106 423 C101 412 91 405 82 398 C89 363 98 329 111 302 C113 279 112 247 108 220 C121 192 142 184 158 176" />
+        <Outline d="M202 131 C200 153 202 164 214 174 C228 183 243 188 255 203 C272 207 282 225 285 252 C288 288 299 316 307 348 C317 387 320 416 313 431 C310 438 301 449 296 462 C291 476 278 474 279 457 C274 470 264 472 261 462 C259 452 263 440 269 429 C263 433 255 431 254 423 C259 412 269 405 278 398 C271 363 262 329 249 302 C247 279 248 247 252 220 C239 192 218 184 202 176" />
+        <Outline d="M146 174 C130 194 121 238 121 286 C121 335 130 381 146 413 C156 432 170 442 180 442 C190 442 204 432 214 413 C230 381 239 335 239 286 C239 238 230 194 214 174" />
+        <Outline d="M146 413 C133 449 128 498 131 549 C134 591 142 643 141 678 C140 692 137 704 132 713 C120 719 113 728 121 733 C131 739 147 739 156 731 C163 725 160 716 154 709 C158 679 161 646 159 609 C157 548 165 493 180 442" />
+        <Outline d="M214 413 C227 449 232 498 229 549 C226 591 218 643 219 678 C220 692 223 704 228 713 C240 719 247 728 239 733 C229 739 213 739 204 731 C197 725 200 716 206 709 C202 679 199 646 201 609 C203 548 195 493 180 442" />
+      </g>
+    );
+
+    const FrontFigure = () => (
+      <FigureFrame>
+        {frontShapes.map((s, i) => <Shape key={`front-${i}`} {...s} />)}
+        <PlateLine d="M180 291 L180 431 M155 309 C165 305 173 307 180 314 C187 307 195 305 205 309 M154 342 C164 338 173 340 180 347 C187 340 196 338 206 342 M158 391 C167 388 174 389 180 397 C186 389 193 388 202 391" width={5} />
+      </FigureFrame>
+    );
+
+    const BackFigure = () => (
+      <FigureFrame back>
+        {backShapes.map((s, i) => <Shape key={`back-${i}`} {...s} />)}
+        <PlateLine d="M180 178 L180 406 M145 356 C158 365 171 370 180 375 C189 370 202 365 215 356 M180 406 L180 452" width={5} />
+      </FigureFrame>
+    );
+
+    return (
+      <div style={{
+        position:"relative",
+        width:"100%",
+        maxWidth:560,
+        margin:"0 auto",
+        borderRadius:18,
+        overflow:"hidden",
+        background:bg,
+      }}>
+        <svg
+          viewBox="0 0 720 760"
+          width="100%"
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
+          style={{ display:"block", width:"100%", height:"auto", aspectRatio:"720 / 760" }}
+        >
+          <defs>
+            <radialGradient id="stravaHeatRefined" cx="47%" cy="54%" r="74%">
+              <stop offset="0%" stopColor="#ffc045" />
+              <stop offset="42%" stopColor="#ff7a23" />
+              <stop offset="100%" stopColor="#f4511e" />
+            </radialGradient>
+          </defs>
+          <rect width="720" height="760" fill={bg} />
+          <g transform="translate(0 0)">
+            <FrontFigure />
+          </g>
+          <g transform="translate(360 0)">
+            <BackFigure />
+          </g>
+        </svg>
+        {labels.length > 0 && (
+          <div style={{
+            position:"absolute",
+            right:14,
+            bottom:54,
+            display:"flex",
+            flexDirection:"column",
+            alignItems:"flex-end",
+            gap:8,
+            pointerEvents:"none",
+          }}>
+            {labels.map((m) => (
+              <span key={`${m.primary ? "p" : "s"}-${m.name}`} style={{
+                maxWidth:150,
+                padding:"6px 10px",
+                borderRadius:6,
+                border:`1px solid ${chipBorder}`,
+                background:chipBg,
+                color:chipText,
+                boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.08)",
+                fontSize:12,
+                lineHeight:1,
+                fontWeight:800,
+                whiteSpace:"nowrap",
+              }}>
+                {m.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── ExerciseInfoSheet — bottom-sheet modal that shows everything we know
   //    about an exercise: name, difficulty, primary + secondary muscle tags,
   //    and a body diagram with the targeted muscles highlighted.
@@ -3103,6 +3453,7 @@ import "./styles.css";
                 )}
                 <BodyAnatomy
                   highlights={highlights}
+                  targetMuscles={targetMuscles}
                 />
               </div>
             </div>
@@ -5083,19 +5434,19 @@ import "./styles.css";
                     style={{
                       background: "none",
                       border: "none",
-                      color: "#D4AF37",
+                      color: th.bg === "#080809" ? "#F3D25C" : "#8A6500",
                       cursor: "pointer",
-                      fontSize: 15,
+                      fontSize: 17,
                       fontWeight: 700,
-                      padding: "0 2px",
+                      padding: 0,
                       lineHeight: 1,
-                      width: 22,
-                      height: 20,
+                      width: 24,
+                      height: 22,
                       display: "inline-flex",
                       alignItems: "center",
                       justifyContent: "center",
                       flexShrink: 0,
-                      opacity: 0.95,
+                      opacity: 1,
                       WebkitTapHighlightColor: "transparent",
                     }}
                   >
@@ -6320,10 +6671,16 @@ import "./styles.css";
         <button
           onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
           style={{
-            background:"none", border:"none", cursor:"pointer",
-            fontSize:13, lineHeight:1, padding:"0 2px",
-            color: open ? th.accentFg : th.dim, opacity: open ? 1 : 0.55,
+            background:"none",
+            border:"none",
+            cursor:"pointer",
+            fontSize:13, lineHeight:1, padding:0,
+            width:22, height:22,
+            color: open ? th.accentFg : th.muted,
+            opacity: open ? 1 : 0.88,
             fontWeight:700, flexShrink:0,
+            display:"inline-flex", alignItems:"center", justifyContent:"center",
+            WebkitTapHighlightColor:"transparent",
           }}>ⓘ</button>
         {open && createPortal(
           <div
