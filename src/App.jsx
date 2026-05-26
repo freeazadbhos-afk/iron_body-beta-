@@ -1192,8 +1192,96 @@ import "./styles.css";
       return s;
     };
   }
+
+  const MUSCLE_ACCENTS = {
+    "Chest": "#C81E45",
+    "Upper Chest": "#E43F75",
+    "Lower Chest": "#A91635",
+    "Front Delts": "#D97706",
+    "Side Delts": "#7C3AED",
+    "Rear Delts": "#0891B2",
+    "Shoulders": "#6D5DF5",
+    "Traps": "#F43F5E",
+    "Upper Traps": "#FB7185",
+    "Biceps": "#EA580C",
+    "Brachialis": "#F97316",
+    "Triceps": "#DC2626",
+    "Anconeus": "#B91C1C",
+    "Forearms": "#B45309",
+    "Lats": "#2563EB",
+    "Upper Back": "#0284C7",
+    "Mid Back": "#4F46E5",
+    "Lower Back": "#7E22CE",
+    "Full Back": "#1D4ED8",
+    "Abs": "#0F766E",
+    "Obliques": "#059669",
+    "Core": "#047857",
+    "Quads": "#1D4ED8",
+    "Hamstrings": "#C026D3",
+    "Glutes": "#E11D48",
+    "Calves": "#0D9488",
+    "Soleus": "#B45309",
+    "Hip Flexors": "#7C3AED",
+    "Inner Thigh": "#0891B2",
+    "Outer Thigh": "#65A30D",
+    "Full Body": "#475569",
+  };
+  const MUSCLE_ACCENTS_DARK = {
+    "Chest": "#FB5F86",
+    "Upper Chest": "#FF7AA2",
+    "Lower Chest": "#F04468",
+    "Front Delts": "#FBBF24",
+    "Side Delts": "#C084FC",
+    "Rear Delts": "#22D3EE",
+    "Shoulders": "#B9B2FF",
+    "Traps": "#FB7185",
+    "Upper Traps": "#FDA4AF",
+    "Biceps": "#FB923C",
+    "Brachialis": "#FDBA74",
+    "Triceps": "#F87171",
+    "Anconeus": "#EF4444",
+    "Forearms": "#F59E0B",
+    "Lats": "#60A5FA",
+    "Upper Back": "#38BDF8",
+    "Mid Back": "#818CF8",
+    "Lower Back": "#C084FC",
+    "Full Back": "#93C5FD",
+    "Abs": "#2DD4BF",
+    "Obliques": "#34D399",
+    "Core": "#10B981",
+    "Quads": "#60A5FA",
+    "Hamstrings": "#E879F9",
+    "Glutes": "#FB7185",
+    "Calves": "#2DD4BF",
+    "Soleus": "#FBBF24",
+    "Hip Flexors": "#C084FC",
+    "Inner Thigh": "#22D3EE",
+    "Outer Thigh": "#A3E635",
+    "Full Body": "#CBD5E1",
+  };
+  const muscleAccent = (muscle, group, dark = false) =>
+    ((dark ? MUSCLE_ACCENTS_DARK : MUSCLE_ACCENTS)[muscle] || MUSCLE_ACCENTS[muscle] || gc(group));
+
   function useS() {
     const th = useTheme();
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
+    const tagText = (g, muscle) => muscle ? muscleAccent(muscle, g, dark) : (dark
+      ? ({
+          Chest: "#ff5d84",
+          Back: "#8bb8ff",
+          Shoulders: "#c3bdff",
+          Arms: "#ff8c5f",
+          Legs: "#70f5d8",
+          Cardio: "#9bd2ff",
+        }[g] || gc(g))
+      : ({
+          Chest: "#a41435",
+          Back: "#2f67c8",
+          Shoulders: "#6358df",
+          Arms: "#b84918",
+          Legs: "#087f6d",
+          Cardio: "#1d6fb5",
+        }[g] || gc(g)));
     return {
       input: {
         width: "100%",
@@ -1223,15 +1311,21 @@ import "./styles.css";
         letterSpacing: "2px",
         fontWeight: 700,
       },
-      tag: (g) => ({
-        display: "inline-block",
-        padding: "3px 10px",
-        borderRadius: 6,
-        fontSize: 11,
-        fontWeight: 700,
-        background: `${gc(g)}22`,
-        color: gc(g),
-      }),
+      tag: (g, muscle) => {
+        const accent = muscle ? muscleAccent(muscle, g, dark) : gc(g);
+        const text = tagText(g, muscle);
+        return ({
+          display: "inline-block",
+          padding: "3px 10px",
+          borderRadius: 6,
+          fontSize: 11,
+          fontWeight: 800,
+          boxSizing: "border-box",
+          background: dark ? `${accent}30` : `${accent}22`,
+          border: `1px solid ${dark ? `${accent}66` : `${text}33`}`,
+          color: text,
+        });
+      },
     };
   }
 
@@ -2197,18 +2291,27 @@ import "./styles.css";
 
   // ── Difficulty badge helper ──────────────────────────────────────────────────
   function DiffBadge({ id }) {
+    const th = useTheme();
     const d = DIFFICULTY[id];
     if (!d) return null;
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const cfg = d === "H"
-      ? { label: "HARD", bg: "rgba(204,31,66,0.14)",  color: "#CC1F42" }
+      ? { label: "HARD", color: dark ? "#ff6b85" : "#a41435" }
       : d === "M"
-      ? { label: "MED",  bg: "rgba(232,97,44,0.14)",  color: "#E8612C" }
-      : { label: "EASY", bg: "rgba(13,158,142,0.14)", color: "#0D9E8E" };
+      ? { label: "MED",  color: dark ? "#ff9f5f" : "#b84918" }
+      : { label: "EASY", color: dark ? "#2dd4bf" : "#087f6d" };
     return (
       <span style={{
-        fontSize: 9, fontWeight: 700, letterSpacing: "0.8px",
-        padding: "2px 6px", borderRadius: 4,
-        background: cfg.bg, color: cfg.color, flexShrink: 0,
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: "0.8px",
+        padding: "2px 7px",
+        borderRadius: 6,
+        background: dark ? `${cfg.color}30` : `${cfg.color}20`,
+        border: `1px solid ${dark ? `${cfg.color}66` : `${cfg.color}33`}`,
+        color: cfg.color,
+        boxSizing: "border-box",
+        flexShrink: 0,
       }}>{cfg.label}</span>
     );
   }
@@ -2251,14 +2354,14 @@ import "./styles.css";
   // Build a per-region color map from a primary muscle/group and an optional
   // secondary list. Primary regions are filled with the group's full color, secondary
   // regions get the same color at lower opacity so the hierarchy is obvious.
-  function muscleHighlights(primaryMuscle, primaryGroup, secondaryNames) {
+  function muscleHighlights(primaryMuscle, primaryGroup, secondaryNames, dark = false) {
     const out = {};
-    const primaryColor = gc(primaryGroup);
+    const primaryColor = muscleAccent(primaryMuscle, primaryGroup, dark);
     (MUSCLE_REGIONS[primaryMuscle] || []).forEach(r => { out[r] = { fill: primaryColor, opacity: 1 }; });
     (secondaryNames || []).forEach(name => {
-      // Lookup that secondary muscle's natural group color so the limb gets the right hue
+      // Lookup that secondary muscle's natural group so the limb gets the right accent hue.
       const secGroup = (DB.find(d => d && d.muscle === name) || {}).group || primaryGroup;
-      const secColor = gc(secGroup);
+      const secColor = muscleAccent(name, secGroup, dark);
       (MUSCLE_REGIONS[name] || []).forEach(r => {
         if (!out[r]) out[r] = { fill: secColor, opacity: 0.55 };
       });
@@ -3663,6 +3766,7 @@ import "./styles.css";
     const th = useTheme();
     const S = useS();
     const t = useT();
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const [closing, setClosing] = useState(false);
     const close = () => { setClosing(true); setTimeout(onClose, 300); };
     const db = DB.find((d) => d.id === ex.id) || {};
@@ -3671,7 +3775,7 @@ import "./styles.css";
     const primaryGroup = db.group || "Chest";
     const secondaryRaw = SECONDARY[ex.id];
     const secondaryList = secondaryRaw ? secondaryRaw.split(" · ") : [];
-    const highlights = muscleHighlights(primaryMuscle, primaryGroup, secondaryList);
+    const highlights = muscleHighlights(primaryMuscle, primaryGroup, secondaryList, dark);
     const targetMuscles = [
       ...(primaryMuscle ? [{ name: primaryMuscle, group: primaryGroup, primary: true }] : []),
       ...secondaryList.map((m) => ({
@@ -3763,8 +3867,8 @@ import "./styles.css";
                       <span
                         key={`${m.primary ? "primary" : "secondary"}-${m.name}`}
                         style={{
-                          ...S.tag(m.group),
-                          opacity: m.primary ? 1 : 0.62,
+                          ...S.tag(m.group, m.name),
+                          opacity: 1,
                           fontSize: m.primary ? 11 : 10,
                           padding: m.primary ? "3px 8px" : "2px 7px",
                         }}
@@ -5735,14 +5839,14 @@ import "./styles.css";
                 {/* Row 2: primary + secondary muscle tags */}
                 <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4, flexWrap:"wrap" }}>
                   {db && (
-                    <span style={S.tag(db.group)}>
+                    <span style={S.tag(db.group, db.muscle)}>
                       {(db.muscle || "").toUpperCase()}
                     </span>
                   )}
                   {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
                     const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                     return (
-                      <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                      <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:10, padding:"2px 7px" }}>
                         {m.toUpperCase()}
                       </span>
                     );
@@ -6215,13 +6319,13 @@ import "./styles.css";
                       <DiffBadge id={e.id} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: gc(e.group), fontWeight: 600 }}>
+                      <span style={{ ...S.tag(e.group, e.muscle), fontSize: 10, padding: "2px 7px" }}>
                         {e.muscle.toUpperCase()}
                         </span>
                         {SECONDARY[e.id] && SECONDARY[e.id].split(" · ").map(m => {
                           const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                           return (
-                          <span key={m} style={{ ...S.tag(grp), opacity: 0.55, fontSize: 9, padding: "2px 6px" }}>
+                          <span key={m} style={{ ...S.tag(grp, m), opacity: 0.92, fontSize: 9, padding: "2px 6px" }}>
                             {m.toUpperCase()}
                             </span>
                             );
@@ -10842,15 +10946,13 @@ import "./styles.css";
                         </div>
                         <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:5 }}>
                           {dbEx && (
-                            <span style={{ fontSize:11, color:gc(dbEx.group), fontWeight:700,
-                              background:`color-mix(in srgb, ${gc(dbEx.group)}18, ${th.sect})`,
-                              borderRadius:6, padding:"2px 8px" }}>
+                            <span style={{ ...S.tag(dbEx.group, dbEx.muscle), fontSize:11, padding:"2px 8px" }}>
                               {dbEx.muscle.toUpperCase()}
                             </span>
                           )}
                           {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
                             const grp = DB.find(d=>d&&d.muscle===m)?.group||"Back";
-                            return <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:9, padding:"2px 6px" }}>{m.toUpperCase()}</span>;
+                            return <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:9, padding:"2px 6px" }}>{m.toUpperCase()}</span>;
                           })}
                         </div>
                         <div style={{ fontSize:12, color:th.dim }}>
@@ -13410,13 +13512,13 @@ import "./styles.css";
                       </div>
                       {/* Row 2: primary + secondary muscle tags */}
                       <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:4, flexWrap:"wrap" }}>
-                        <span style={S.tag(ex.group)}>
+                        <span style={S.tag(ex.group, ex.muscle)}>
                           {ex.muscle.toUpperCase()}
                         </span>
                         {SECONDARY[ex.exId] && SECONDARY[ex.exId].split(" · ").map(m => {
                           const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                           return (
-                            <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                            <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:10, padding:"2px 7px" }}>
                               {m.toUpperCase()}
                             </span>
                           );
@@ -14177,11 +14279,11 @@ import "./styles.css";
                     </div>
                   </div>
                   <div style={{ paddingLeft: 14, marginTop: 2, textAlign: "left", display:"flex", flexWrap:"wrap", gap:5 }}>
-                    <span style={S.tag(ex.group)}>{ex.muscle.toUpperCase()}</span>
+                    <span style={S.tag(ex.group, ex.muscle)}>{ex.muscle.toUpperCase()}</span>
                     {(SECONDARY[ex.exId] || SECONDARY[ex.id]) && (SECONDARY[ex.exId] || SECONDARY[ex.id]).split(" · ").map(m => {
                       const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                       return (
-                        <span key={m} style={{ ...S.tag(grp), opacity:0.55, fontSize:10, padding:"2px 7px" }}>
+                        <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:10, padding:"2px 7px" }}>
                           {m.toUpperCase()}
                         </span>
                       );
@@ -15169,7 +15271,7 @@ import "./styles.css";
                       {doneS}/{sets.length} {t("sets")} · {exVol}kg {t("volume")}
                     </div>
                   </div>
-                  <span style={S.tag(ex.group || muscle)}>{muscle.toUpperCase()}</span>
+                  <span style={S.tag(ex.group || muscle, muscle)}>{muscle.toUpperCase()}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   {sets.map((s, si) => (
@@ -15408,6 +15510,7 @@ import "./styles.css";
     const [eName, setEName] = useState(user.name);
     const [eEmail, setEEmail] = useState(user.email);
     const [ePhoto, setEPhoto] = useState(user.photoURL || "");
+    const profilePhotoInputRef = useRef(null);
     const [eAge, setEAge] = useState(user.age || "");
     const [eGender, setEGender] = useState(user.gender || "");
     const [ePw, setEPw] = useState("");
@@ -15579,6 +15682,20 @@ import "./styles.css";
       onSaveMeasurement(measurements.filter((_, i) => i !== idx));
     };
     const latest = measurements[0] || null;
+    const handleProfilePhotoFile = (e) => {
+      const file = e.target.files?.[0];
+      e.target.value = "";
+      if (!file) return;
+      if (file.size > 3 * 1024 * 1024) {
+        alert("Please choose a photo under 3MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => setEPhoto(ev.target.result);
+      reader.onerror = () =>
+        alert("Could not read the file. Please try another image.");
+      reader.readAsDataURL(file);
+    };
     const handleSaveProfile = async () => {
       setEditErr("");
       setEditOk("");
@@ -15700,6 +15817,7 @@ import "./styles.css";
         setUpgErr(friendlyError(e.code));
       }
     };
+    const displayPhoto = editMode ? ePhoto : user.photoURL || "";
 
     return (
       <div className="slide-up" style={{ paddingBottom: 90 }}>
@@ -15812,6 +15930,7 @@ import "./styles.css";
           >
             <div
               style={{
+                position: "relative",
                 width: 54,
                 height: 54,
                 borderRadius: "50%",
@@ -15823,9 +15942,9 @@ import "./styles.css";
                 justifyContent: "center",
               }}
             >
-              {user.photoURL ? (
+              {displayPhoto ? (
                 <img
-                  src={user.photoURL}
+                  src={displayPhoto}
                   alt="avatar"
                   style={{ width: "100%", height: "100%", objectFit: "cover" }}
                   onError={(e) => {
@@ -15840,6 +15959,43 @@ import "./styles.css";
                   {user.name?.[0]?.toUpperCase() || "?"}
                 </span>
               )}
+              {editMode && (
+                <button
+                  type="button"
+                  aria-label={t("Change photo")}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    profilePhotoInputRef.current?.click();
+                  }}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    border: "none",
+                    borderRadius: "50%",
+                    background: "rgba(0,0,0,0.46)",
+                    color: "#fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: 0,
+                    cursor: "pointer",
+                    backdropFilter: "blur(2px)",
+                    WebkitBackdropFilter: "blur(2px)",
+                  }}
+                >
+                  <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M7.4 7.2 8.9 5h6.2l1.5 2.2H19c1.1 0 2 .9 2 2v7.3c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V9.2c0-1.1.9-2 2-2h2.4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+                    <path d="M12 15.7a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z" stroke="currentColor" strokeWidth="2" />
+                  </svg>
+                </button>
+              )}
+              <input
+                ref={profilePhotoInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={handleProfilePhotoFile}
+              />
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 17, color: th.text, textAlign: "left" }}>
@@ -15937,102 +16093,6 @@ import "./styles.css";
                   </div>
                 </div>
               </div>
-              <div style={{ ...S.label, marginBottom: 8, textAlign: "left", }}>
-                {t("PROFILE PHOTO")}{" "}
-                <span
-                  style={{
-                    color: th.dim,
-                    fontSize: 9,
-                    fontWeight: 400,
-                    letterSpacing: 0,
-                  }}
-                >
-                  {t("(optional)")}
-                </span>
-              </div>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  background: th.row,
-                  border: `1px dashed ${th.inputB}`,
-                  borderRadius: 12,
-                  padding: "12px 16px",
-                  cursor: "pointer",
-                  marginBottom: 12,
-                }}
-              >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    background: th.accentBg,
-                    overflow: "hidden",
-                    flexShrink: 0,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {ePhoto ? (
-                    <img
-                      src={ePhoto}
-                      alt="preview"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                      }}
-                    />
-                  ) : (
-                    <span style={{ fontSize: 22 }}>📷</span>
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, textAlign: "left", fontWeight: 700, color: th.text }}>
-                    {ePhoto ? t("Change photo") : t("Upload from camera roll")}
-                  </div>
-                  <div style={{ fontSize: 11, color: th.muted, marginTop: 2 }}>
-                    {t("Tap to choose an image")}
-                  </div>
-                </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    if (file.size > 3 * 1024 * 1024) {
-                      alert("Please choose a photo under 3MB.");
-                      return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = (ev) => setEPhoto(ev.target.result);
-                    reader.onerror = () =>
-                      alert("Could not read the file. Please try another image.");
-                    reader.readAsDataURL(file);
-                  }}
-                />
-              </label>
-              {ePhoto && (
-                <button
-                  onClick={() => setEPhoto("")}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: th.dim,
-                    cursor: "pointer",
-                    fontSize: 12,
-                    marginBottom: 12,
-                    padding: 0,
-                  }}
-                >
-                  ✕ {t("Remove photo")}
-                </button>
-              )}
               <div style={{ ...S.label, marginBottom: 6, textAlign: "left", }}>
                 {t("NEW PASSWORD")}{" "}
                 <span style={{ color: th.dim, fontSize: 9, letterSpacing: 0 }}>
