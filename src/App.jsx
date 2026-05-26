@@ -1,4 +1,5 @@
 import "./styles.css";
+  import bodyMuscleAtlasUrl from "./assets/Body Muscle Atlas.svg";
   import { createPortal } from "react-dom";
   import {
     useState,
@@ -3139,7 +3140,7 @@ import "./styles.css";
     );
   }
 
-  function BodyAnatomy({ highlights, targetMuscles = [] }) {
+  function BodyAnatomyHandDrawnDraft({ highlights, targetMuscles = [] }) {
     const th = useTheme();
     const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const bg = dark ? "#20211f" : "#fbfbfa";
@@ -3495,6 +3496,162 @@ import "./styles.css";
             <FigureLabel>BACK</FigureLabel>
           </g>
         </svg>
+      </div>
+    );
+  }
+
+  function BodyAnatomy({ highlights }) {
+    const th = useTheme();
+    const dark = th.bg === "#080809" || th.card === "#0f0f12";
+    const bg = dark ? "#20211f" : "#fbfbfa";
+    const label = dark ? "#a6a8a3" : "#747570";
+    const atlasFilter = dark ? "invert(1) brightness(0.62) contrast(1.08)" : "none";
+    const activeRegions = highlights || {};
+    const regionOpacity = (active) => active.opacity >= 1
+      ? (dark ? 0.86 : 0.78)
+      : (dark ? 0.52 : 0.4);
+    const atlasShapes = [
+      { ids:["traps"], d:"M198 263 C220 246 251 248 274 266 C297 248 328 246 352 263 C333 286 304 300 274 300 C244 300 216 286 198 263 Z" },
+      { ids:["traps", "upperBack"], d:"M675 287 C700 260 729 253 754 273 C779 253 808 260 834 287 C817 321 786 341 754 341 C722 341 692 321 675 287 Z" },
+      { ids:["delFrontL", "delSideL"], d:"M99 337 C118 311 153 300 189 315 C168 346 147 392 111 414 C93 394 90 361 99 337 Z" },
+      { ids:["delFrontR", "delSideR"], d:"M459 337 C440 311 405 300 369 315 C390 346 411 392 447 414 C465 394 468 361 459 337 Z" },
+      { ids:["delRearL", "delSideL"], d:"M577 338 C602 311 641 304 677 322 C652 354 628 390 586 411 C569 393 566 361 577 338 Z" },
+      { ids:["delRearR", "delSideR"], d:"M933 338 C908 311 869 304 833 322 C858 354 882 390 924 411 C941 393 944 361 933 338 Z" },
+      { ids:["chestL"], d:"M157 328 C201 318 255 327 271 365 C276 396 271 440 261 466 C216 488 160 465 138 422 C135 383 139 349 157 328 Z" },
+      { ids:["chestR"], d:"M401 328 C357 318 303 327 287 365 C282 396 287 440 297 466 C342 488 398 465 420 422 C423 383 419 349 401 328 Z" },
+      { ids:["chestUpL"], d:"M159 326 C202 316 255 325 271 363 C228 367 184 360 146 346 C149 338 153 332 159 326 Z" },
+      { ids:["chestUpR"], d:"M399 326 C356 316 303 325 287 363 C330 367 374 360 412 346 C409 338 405 332 399 326 Z" },
+      { ids:["chestLoL"], d:"M143 394 C177 421 222 442 263 446 C260 456 255 465 248 471 C207 487 158 465 138 424 C138 412 140 402 143 394 Z" },
+      { ids:["chestLoR"], d:"M415 394 C381 421 336 442 295 446 C298 456 303 465 310 471 C351 487 400 465 420 424 C420 412 418 402 415 394 Z" },
+      { ids:["abs"], d:"M229 478 C246 467 264 470 275 486 C286 470 304 467 321 478 C331 531 326 641 276 704 C226 641 219 531 229 478 Z" },
+      { ids:["obliqueL"], d:"M190 468 C210 503 217 597 207 665 C181 644 163 587 164 530 C165 501 174 480 190 468 Z" },
+      { ids:["obliqueR"], d:"M368 468 C348 503 341 597 351 665 C377 644 395 587 394 530 C393 501 384 480 368 468 Z" },
+      { ids:["bicepL"], d:"M92 425 C122 398 150 422 153 469 C150 527 128 591 91 621 C73 576 70 462 92 425 Z" },
+      { ids:["bicepR"], d:"M466 425 C436 398 408 422 405 469 C408 527 430 591 467 621 C485 576 488 462 466 425 Z" },
+      { ids:["tricepL"], d:"M573 424 C602 398 630 422 632 470 C628 535 608 597 572 625 C552 577 550 462 573 424 Z" },
+      { ids:["tricepR"], d:"M937 424 C908 398 880 422 878 470 C882 535 902 597 938 625 C958 577 960 462 937 424 Z" },
+      { ids:["foreFL"], d:"M55 566 C84 562 106 592 100 651 C90 720 64 812 35 843 C25 772 28 642 55 566 Z" },
+      { ids:["foreFR"], d:"M503 566 C474 562 452 592 458 651 C468 720 494 812 523 843 C533 772 530 642 503 566 Z" },
+      { ids:["foreBL"], d:"M530 566 C559 562 581 592 575 651 C565 720 539 812 510 843 C500 772 503 642 530 566 Z" },
+      { ids:["foreBR"], d:"M980 566 C951 562 929 592 935 651 C945 720 971 812 1000 843 C1010 772 1007 642 980 566 Z" },
+      { ids:["latL"], d:"M655 390 C692 421 717 514 710 628 C703 721 674 793 644 823 C624 713 614 477 655 390 Z" },
+      { ids:["latR"], d:"M855 390 C818 421 793 514 800 628 C807 721 836 793 866 823 C886 713 896 477 855 390 Z" },
+      { ids:["midBack"], d:"M712 315 C737 299 773 299 798 315 C804 434 794 581 754 679 C714 581 706 434 712 315 Z" },
+      { ids:["lowerBack"], d:"M700 667 C723 645 784 645 810 667 C807 721 784 768 754 793 C724 768 702 721 700 667 Z" },
+      { ids:["gluteL"], d:"M658 718 C711 690 759 726 761 798 C757 867 710 902 657 874 C622 834 618 763 658 718 Z" },
+      { ids:["gluteR"], d:"M852 718 C799 690 751 726 749 798 C753 867 800 902 853 874 C888 834 892 763 852 718 Z" },
+      { ids:["quadL"], d:"M158 746 C211 769 242 888 236 1033 C231 1151 201 1268 158 1301 C110 1230 105 887 158 746 Z" },
+      { ids:["quadR"], d:"M400 746 C347 769 316 888 322 1033 C327 1151 357 1268 400 1301 C448 1230 453 887 400 746 Z" },
+      { ids:["hamL"], d:"M651 866 C702 891 726 1015 714 1165 C706 1271 678 1369 641 1403 C602 1304 606 992 651 866 Z" },
+      { ids:["hamR"], d:"M859 866 C808 891 784 1015 796 1165 C804 1271 832 1369 869 1403 C908 1304 904 992 859 866 Z" },
+      { ids:["calfFL"], d:"M141 1118 C179 1144 206 1215 201 1331 C197 1434 174 1510 140 1517 C108 1450 106 1202 141 1118 Z" },
+      { ids:["calfFR"], d:"M417 1118 C379 1144 352 1215 357 1331 C361 1434 384 1510 418 1517 C450 1450 452 1202 417 1118 Z" },
+      { ids:["calfBL"], d:"M639 1160 C680 1183 704 1260 696 1375 C689 1465 665 1515 637 1518 C601 1450 605 1236 639 1160 Z" },
+      { ids:["calfBR"], d:"M871 1160 C830 1183 806 1260 814 1375 C821 1465 845 1515 873 1518 C909 1450 905 1236 871 1160 Z" },
+    ];
+
+    const activeShape = (ids) => {
+      const activeIds = (Array.isArray(ids) ? ids : [ids]).filter(id => activeRegions[id]);
+      if (!activeIds.length) return null;
+      return activeIds
+        .map(id => activeRegions[id])
+        .sort((a, b) => (b.opacity || 0) - (a.opacity || 0))[0];
+    };
+
+    return (
+      <div style={{
+        position:"relative",
+        width:"100%",
+        maxWidth:460,
+        margin:"0 auto",
+        borderRadius:18,
+        overflow:"hidden",
+        background:bg,
+        padding:"8px 8px 32px",
+      }}>
+        <div style={{ position:"relative", width:"100%" }}>
+          <img
+            src={bodyMuscleAtlasUrl}
+            alt="Front and back muscle atlas"
+            draggable={false}
+            style={{
+              display:"block",
+              width:"100%",
+              height:"auto",
+              opacity: dark ? 0.42 : 0.28,
+              filter: atlasFilter,
+              pointerEvents:"none",
+              userSelect:"none",
+              WebkitUserSelect:"none",
+            }}
+          />
+          <svg
+            viewBox="0 0 1024 1536"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="xMidYMid meet"
+            style={{
+              position:"absolute",
+              inset:0,
+              width:"100%",
+              height:"100%",
+              pointerEvents:"none",
+              mixBlendMode:"normal",
+            }}
+          >
+            {atlasShapes.map((shape, i) => {
+              const active = activeShape(shape.ids);
+              if (!active) return null;
+              return (
+                <path
+                  key={`atlas-highlight-${i}`}
+                  d={shape.d}
+                  fill={active.fill || "#f4511e"}
+                  opacity={regionOpacity(active)}
+                  stroke="none"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+          <img
+            src={bodyMuscleAtlasUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            style={{
+              position:"absolute",
+              inset:0,
+              display:"block",
+              width:"100%",
+              height:"100%",
+              objectFit:"contain",
+              opacity: dark ? 0.76 : 0.72,
+              filter: atlasFilter,
+              pointerEvents:"none",
+              userSelect:"none",
+              WebkitUserSelect:"none",
+            }}
+          />
+        </div>
+        <div style={{
+          position:"absolute",
+          left:8,
+          right:8,
+          bottom:9,
+          display:"grid",
+          gridTemplateColumns:"1fr 1fr",
+          color:label,
+          fontFamily:"Outfit, sans-serif",
+          fontSize:10,
+          fontWeight:800,
+          letterSpacing:1.2,
+          textAlign:"center",
+          pointerEvents:"none",
+        }}>
+          <span>FRONT</span>
+          <span>BACK</span>
+        </div>
       </div>
     );
   }
