@@ -1359,9 +1359,9 @@ import "./styles.css";
         const text = tagText(g, muscle);
         return ({
 	          display: "inline-block",
-	          padding: "3px 9px",
+	          padding: "2px 7px",
 	          borderRadius: 6,
-	          fontSize: 10.5,
+	          fontSize: 9.5,
 	          fontWeight: 800,
           boxSizing: "border-box",
           background: dark ? `${accent}30` : `${accent}22`,
@@ -3898,8 +3898,8 @@ import "./styles.css";
                         style={{
                           ...S.tag(m.group, m.name),
                           opacity: 1,
-                          fontSize: m.primary ? 11 : 10,
-                          padding: m.primary ? "3px 8px" : "2px 7px",
+	                          fontSize: m.primary ? 9.5 : 8.5,
+	                          padding: m.primary ? "2px 7px" : "2px 5px",
                         }}
                       >
                         {m.name.toUpperCase()}
@@ -5947,7 +5947,7 @@ import "./styles.css";
                   {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
                     const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                     return (
-	                      <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:9.5, padding:"2px 6px" }}>
+	                      <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8.5, padding:"2px 5px" }}>
                         {m.toUpperCase()}
                       </span>
                     );
@@ -6453,7 +6453,7 @@ import "./styles.css";
 	              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
 	                {selectedMuscle ? (
 	                  <>
-	                    <span style={{ ...S.tag(selectedShape?.group || "Chest", selectedMuscle), fontSize:11 }}>
+	                    <span style={{ ...S.tag(selectedShape?.group || "Chest", selectedMuscle), fontSize:9.5 }}>
 	                      {t(selectedMuscle).toUpperCase()}
 	                    </span>
 	                    <span style={{ color:th.dim, fontSize:12, fontWeight:700, letterSpacing:"1px" }}>
@@ -6509,13 +6509,13 @@ import "./styles.css";
 	                      <DiffBadge id={e.id} />
 	                    </div>
 	                    <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5, flexWrap:"wrap" }}>
-	                      <span style={{ ...S.tag(e.group, e.muscle), fontSize:9.5, padding:"2px 6px" }}>
+	                      <span style={{ ...S.tag(e.group, e.muscle), fontSize:8.5, padding:"2px 5px" }}>
 	                        {e.muscle.toUpperCase()}
 	                      </span>
 	                      {(SECONDARY[e.id] || "").split(" · ").filter(Boolean).map((m) => {
 	                        const grp = (DB.find((d) => d && d.muscle === m) || {}).group || e.group;
 	                        return (
-	                          <span key={m} style={{ ...S.tag(grp, m), opacity:0.9, fontSize:8.5, padding:"2px 5px" }}>
+	                          <span key={m} style={{ ...S.tag(grp, m), opacity:0.9, fontSize:8, padding:"1px 5px" }}>
 	                            {m.toUpperCase()}
 	                          </span>
 	                        );
@@ -6832,13 +6832,13 @@ import "./styles.css";
                       <DiffBadge id={e.id} />
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-	                  <span style={{ ...S.tag(e.group, e.muscle), fontSize: 9.5, padding: "2px 6px" }}>
+	                  <span style={{ ...S.tag(e.group, e.muscle), fontSize: 8.5, padding: "2px 5px" }}>
                         {e.muscle.toUpperCase()}
                         </span>
                         {SECONDARY[e.id] && SECONDARY[e.id].split(" · ").map(m => {
                           const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                           return (
-	                      <span key={m} style={{ ...S.tag(grp, m), opacity: 0.92, fontSize: 8.5, padding: "2px 5px" }}>
+	                      <span key={m} style={{ ...S.tag(grp, m), opacity: 0.92, fontSize: 8, padding: "1px 5px" }}>
                             {m.toUpperCase()}
                             </span>
                             );
@@ -11462,13 +11462,13 @@ import "./styles.css";
                         </div>
                         <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:5 }}>
                           {dbEx && (
-	                            <span style={{ ...S.tag(dbEx.group, dbEx.muscle), fontSize:10.5, padding:"2px 7px" }}>
+	                            <span style={{ ...S.tag(dbEx.group, dbEx.muscle), fontSize:9.5, padding:"2px 6px" }}>
                               {dbEx.muscle.toUpperCase()}
                             </span>
                           )}
                           {SECONDARY[ex.id] && SECONDARY[ex.id].split(" · ").map(m => {
                             const grp = DB.find(d=>d&&d.muscle===m)?.group||"Back";
-	                            return <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8.5, padding:"2px 5px" }}>{m.toUpperCase()}</span>;
+	                            return <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8, padding:"1px 5px" }}>{m.toUpperCase()}</span>;
                           })}
                         </div>
                         <div style={{ fontSize:12, color:th.dim }}>
@@ -14038,7 +14038,7 @@ import "./styles.css";
                         {SECONDARY[ex.exId] && SECONDARY[ex.exId].split(" · ").map(m => {
                           const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                           return (
-	                            <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:9.5, padding:"2px 6px" }}>
+	                            <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8.5, padding:"2px 5px" }}>
                               {m.toUpperCase()}
                             </span>
                           );
@@ -14805,7 +14805,7 @@ import "./styles.css";
                     {(SECONDARY[ex.exId] || SECONDARY[ex.id]) && (SECONDARY[ex.exId] || SECONDARY[ex.id]).split(" · ").map(m => {
                       const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
                       return (
-	                        <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:9.5, padding:"2px 6px" }}>
+	                        <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8.5, padding:"2px 5px" }}>
                           {m.toUpperCase()}
                         </span>
                       );
