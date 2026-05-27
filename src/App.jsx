@@ -6250,7 +6250,7 @@ import "./styles.css";
 	      height:size,
 	      borderRadius:"50%",
 	      border:`2px solid ${disabled ? th.dim : th.accentBg}`,
-	      background:active ? th.accentBg : `color-mix(in srgb, ${th.accentBg} 10%, transparent)`,
+	      background:active ? th.accentBg : "transparent",
 	      color:active ? th.accentT : disabled ? th.dim : th.accentBg,
 	      display:"flex",
 	      alignItems:"center",
@@ -6260,7 +6260,7 @@ import "./styles.css";
 	      fontWeight:900,
 	      lineHeight:1,
 	      fontFamily:"'Outfit',sans-serif",
-	      boxShadow:disabled ? "none" : `0 6px 16px color-mix(in srgb, ${th.accentBg} ${active ? 22 : 12}%, transparent), inset 0 0 0 1px color-mix(in srgb, ${th.accentBg} 15%, transparent)`,
+	      boxShadow:!active || disabled ? "none" : `0 6px 16px color-mix(in srgb, ${th.accentBg} 22%, transparent), inset 0 0 0 1px color-mix(in srgb, ${th.accentBg} 15%, transparent)`,
 	      transition:"background .15s, border-color .15s, color .15s, transform .15s, box-shadow .15s",
 	    };
 	  }
@@ -6268,43 +6268,57 @@ import "./styles.css";
 	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
 	    const th = useTheme();
 	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
-	    const atlasFilter = dark ? "invert(1) brightness(0.96) contrast(1.18)" : "none";
+	    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
 	    const selectedGroup = (ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
 	    const cropY = 70;
-	    const cropH = 1450;
+	    const cropH = 1380;
+	    const imageShift = `${-(cropY / 1536) * 100}%`;
 	    return (
 	      <div style={{
 	        position:"relative",
 	        width:"100%",
 	        maxWidth:320,
 	        margin:"0 auto",
-        borderRadius:18,
-        overflow:"hidden",
-        background:dark ? "#20211f" : "#fbfbfa",
-        padding:"4px 4px 20px",
-      }}>
+	        borderRadius:18,
+	        overflow:"hidden",
+	        background:dark ? "#20211f" : "#fbfbfa",
+	        padding:"3px 4px 15px",
+	      }}>
+	        <div style={{
+	          position:"relative",
+	          width:"100%",
+	          aspectRatio:`1024 / ${cropH}`,
+	          overflow:"hidden",
+	          borderRadius:14,
+	        }}>
+	          <img
+	            src={bodyMuscleAtlasUrl}
+	            alt=""
+	            aria-hidden="true"
+	            draggable={false}
+	            style={{
+	              position:"absolute",
+	              left:0,
+	              top:0,
+	              width:"100%",
+	              height:"auto",
+	              transform:`translateY(${imageShift})`,
+	              transformOrigin:"top center",
+	              opacity:dark ? 0.98 : 0.74,
+	              filter:atlasFilter,
+	              WebkitFilter:atlasFilter,
+	              pointerEvents:"none",
+	              userSelect:"none",
+	              WebkitUserSelect:"none",
+	            }}
+	          />
 	          <svg
 	            viewBox={`0 ${cropY} 1024 ${cropH}`}
 	            xmlns="http://www.w3.org/2000/svg"
 	            preserveAspectRatio="xMidYMid meet"
-	            style={{ display:"block", width:"100%", height:"auto" }}
+	            style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
 	          >
-	            <image
-	              href={bodyMuscleAtlasUrl}
-	              x="0"
-	              y="0"
-	              width="1024"
-	              height="1536"
-	              preserveAspectRatio="xMidYMid meet"
-	              opacity={dark ? 0.9 : 0.74}
-	              style={{
-	                filter:atlasFilter,
-	                pointerEvents:"none",
-	                userSelect:"none",
-	                WebkitUserSelect:"none",
-	              }}
-	            />
 	            {ATLAS_PICKER_SHAPES.map((shape, i) => {
 	              const active = selectedMuscle === shape.label;
 	              const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
@@ -6338,11 +6352,12 @@ import "./styles.css";
 	              );
 	            })}
 	          </svg>
+	        </div>
 	        <div style={{
 	          position:"absolute",
-          left:4,
-          right:4,
-          bottom:5,
+	          left:4,
+	          right:4,
+	          bottom:2,
 	          display:"grid",
 	          gridTemplateColumns:"1fr 1fr",
 		          color:dark ? "#d2d4ce" : "#747570",
@@ -6458,7 +6473,7 @@ import "./styles.css";
 	              )}
 	            </div>
 	          </div>
-	          <div style={{ flex:1, overflowY:"auto", padding:"0 16px 110px" }}>
+		          <div style={{ flex:1, overflowY:"auto", padding:"0 16px 92px" }}>
 	            <div style={{
 	              position:"sticky",
 	              top:0,
@@ -6546,8 +6561,8 @@ import "./styles.css";
 		                  <div style={{
 		                    ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded }),
 		                  }}>
-		                    {(isPending || isAdded) ? "✔" : "+"}
-		                  </div>
+			                    {(isPending || isAdded) ? "✔" : ""}
+			                  </div>
 	                </div>
 	              );
 	            })}
@@ -6556,7 +6571,7 @@ import "./styles.css";
 	            <div style={{
 	              position:"fixed",
 	              left:"50%",
-	              bottom:"calc(16px + env(safe-area-inset-bottom, 0px))",
+		              bottom:"calc(4px + env(safe-area-inset-bottom, 0px))",
 	              width:"min(448px, calc(100% - 32px))",
 	              transform:"translateX(-50%)",
 	              zIndex:3,
@@ -6860,7 +6875,7 @@ import "./styles.css";
 	                      ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded }),
 	                    }}
 	                  >
-	                    {(isPending || isAdded) ? "✔" : "+"}
+		                    {(isPending || isAdded) ? "✔" : ""}
 	                  </div>
                 </div>
               );
