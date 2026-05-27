@@ -8422,7 +8422,7 @@ import "./styles.css";
                   <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign:"left" }}>{t(d.label)}</span>
                   <button
                     onClick={() => removeItem(d.id)}
-                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:7, color:th.delText, cursor:"pointer", fontSize:14, padding:"2px 7px", lineHeight:1, flexShrink:0 }}
+                    style={{ background:"rgba(220,50,50,0.12)", border:"1px solid rgba(220,50,50,0.3)", borderRadius:8, color:th.delText, cursor:"pointer", fontSize:15, padding:"4px 9px", lineHeight:1, flexShrink:0, minWidth:30, minHeight:28 }}
                   >✕</button>
                 </div>
               </div>
@@ -8448,14 +8448,16 @@ import "./styles.css";
 	                  style={{
 	                    background:"rgba(91,156,246,0.14)",
 	                    border:"1px solid rgba(91,156,246,0.34)",
-	                    borderRadius:7,
+	                    borderRadius:8,
 	                    color:"#5B9CF6",
 	                    cursor:"pointer",
-	                    fontSize:14,
-	                    padding:"2px 7px",
+	                    fontSize:15,
+	                    padding:"4px 9px",
 	                    lineHeight:1,
 	                    flexShrink:0,
 	                    fontWeight:700,
+	                    minWidth:30,
+	                    minHeight:28,
 	                  }}
 	                >+</button>
               </div>
@@ -15880,6 +15882,7 @@ import "./styles.css";
     const [caloriesDraft, setCaloriesDraft] = useState(session?.calories != null ? String(session.calories) : "");
     const [distanceDraft, setDistanceDraft] = useState(distanceDraftValue(session));
     const [intensityDraft, setIntensityDraft] = useState(session?.intensity != null ? String(session.intensity) : "");
+    const [dateDraft, setDateDraft] = useState(dateInputValue(new Date(session?.startTime || Date.now())));
     useEffect(() => {
       setEditing(false);
       setSaving(false);
@@ -15887,6 +15890,7 @@ import "./styles.css";
       setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
       setDistanceDraft(distanceDraftValue(session));
       setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
+      setDateDraft(dateInputValue(new Date(session?.startTime || Date.now())));
     }, [session?.id]);
     const fmtDateFullLocal = (ts) => new Date(ts).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
@@ -15903,9 +15907,20 @@ import "./styles.css";
       const cleanCalories = caloriesDraft.trim();
       const cleanDistance = distanceDraft.trim();
       const cleanIntensity = intensityDraft.trim();
+      const originalStart = session?.startTime || Date.now();
+      const originalEnd = session?.endTime || originalStart;
+      const originalDurationMs = Math.max(0, originalEnd - originalStart);
+      const nextStartTime = dateDraft
+        ? localDateAtNoon(dateDraft).getTime()
+        : originalStart;
+      const nextDuration = cleanDuration === "" ? null : Math.max(0, parseInt(cleanDuration, 10) || 0);
       let next = {
         ...session,
-        duration: cleanDuration === "" ? null : Math.max(0, parseInt(cleanDuration, 10) || 0),
+        startTime: nextStartTime,
+        endTime: nextDuration != null
+          ? nextStartTime + nextDuration * 60000
+          : (session?.endTime ? nextStartTime + originalDurationMs : session?.endTime),
+        duration: nextDuration,
         calories: cleanCalories === "" ? null : Math.max(0, parseInt(cleanCalories, 10) || 0),
         intensity: cleanIntensity === ""
           ? null
@@ -16007,6 +16022,7 @@ import "./styles.css";
 	                          setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
 	                          setDistanceDraft(distanceDraftValue(session));
 	                          setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
+	                          setDateDraft(dateInputValue(new Date(session?.startTime || Date.now())));
 	                          setEditing(false);
 	                        }}
 	                        disabled={saving}
@@ -16120,6 +16136,18 @@ import "./styles.css";
               paddingTop: 12,
               borderTop: `1px solid ${th.border}`,
             }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
+                  {t("DATE")}
+                </div>
+                <input
+                  type="date"
+                  value={dateDraft}
+                  max={dateInputValue()}
+                  onChange={(e) => setDateDraft(e.target.value)}
+                  style={S.input}
+                />
+              </div>
               <div>
                 <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
                   {t("DURATION (min)")}
