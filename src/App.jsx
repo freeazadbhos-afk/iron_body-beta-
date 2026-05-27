@@ -6244,6 +6244,27 @@ import "./styles.css";
 	    );
 	  }
 
+	  function addCircleButtonStyle(th, { active = false, disabled = false, size = 34 } = {}) {
+	    return {
+	      width:size,
+	      height:size,
+	      borderRadius:"50%",
+	      border:`2px solid ${disabled ? th.dim : th.accentBg}`,
+	      background:active ? th.accentBg : `color-mix(in srgb, ${th.accentBg} 10%, transparent)`,
+	      color:active ? th.accentT : disabled ? th.dim : th.accentBg,
+	      display:"flex",
+	      alignItems:"center",
+	      justifyContent:"center",
+	      flexShrink:0,
+	      fontSize:active || disabled ? 17 : 24,
+	      fontWeight:900,
+	      lineHeight:1,
+	      fontFamily:"'Outfit',sans-serif",
+	      boxShadow:disabled ? "none" : `0 6px 16px color-mix(in srgb, ${th.accentBg} ${active ? 22 : 12}%, transparent), inset 0 0 0 1px color-mix(in srgb, ${th.accentBg} 15%, transparent)`,
+	      transition:"background .15s, border-color .15s, color .15s, transform .15s, box-shadow .15s",
+	    };
+	  }
+
 	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
 	    const th = useTheme();
 	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
@@ -6345,10 +6366,9 @@ import "./styles.css";
 	    const t = useT();
 	    const [closing, setClosing] = useState(false);
 	    const [selectedMuscle, setSelectedMuscle] = useState("");
-	    const [q, setQ] = useState("");
 	    const selectedShape = ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle);
-	    const filtered = selectedMuscle || q.trim()
-	      ? DB.filter((e) => (!selectedMuscle || exerciseTargetsPickedMuscle(e, selectedMuscle)) && exerciseMatchesSearch(e, q))
+	    const filtered = selectedMuscle
+	      ? DB.filter((e) => exerciseTargetsPickedMuscle(e, selectedMuscle))
 	      : [];
 	    const close = () => {
 	      setClosing(true);
@@ -6458,7 +6478,7 @@ import "./styles.css";
 	              }}>
 	                <InteractiveExerciseAtlas selectedMuscle={selectedMuscle} onSelect={setSelectedMuscle} />
 	              </div>
-              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, flexWrap:"wrap" }}>
+	              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:0, flexWrap:"wrap" }}>
 	                {selectedMuscle ? (
 	                  <>
 	                    <span style={{ ...S.tag(selectedShape?.group || "Chest", selectedMuscle), fontSize:9.5 }}>
@@ -6474,19 +6494,12 @@ import "./styles.css";
 	                  </span>
 	                )}
 	              </div>
-	              <input
-	                type="text"
-	                value={q}
-	                onChange={(e) => setQ(e.target.value)}
-	                placeholder={t("Search within selected muscle...")}
-	                style={{ ...S.input, marginBottom:0 }}
-	              />
-	            </div>
-	            {filtered.length === 0 && (
-	              <div style={{ textAlign:"center", padding:"28px 10px", color:th.dim, fontSize:13 }}>
-	                {selectedMuscle || q.trim() ? t("No exercises match this muscle.") : t("Tap a muscle region to browse matching exercises.")}
-	              </div>
-	            )}
+		            </div>
+		            {filtered.length === 0 && (
+		              <div style={{ textAlign:"center", padding:"28px 10px", color:th.dim, fontSize:13 }}>
+		                {selectedMuscle ? t("No exercises match this muscle.") : t("Tap a muscle region to browse matching exercises.")}
+		              </div>
+		            )}
 	            {filtered.map((e) => {
 	              const isAdded = added.includes(e.id);
 	              const isPending = pending.includes(e.id);
@@ -6530,22 +6543,11 @@ import "./styles.css";
 	                      })}
 	                    </div>
 	                  </div>
-	                  <div style={{
-	                    width:30,
-	                    height:30,
-	                    borderRadius:"50%",
-	                    border:`2px solid ${isPending ? th.accentBg : isAdded ? th.dim : th.inputB}`,
-	                    background:isPending ? th.accentBg : "transparent",
-	                    color:isPending ? th.accentT : th.dim,
-	                    display:"flex",
-	                    alignItems:"center",
-	                    justifyContent:"center",
-	                    flexShrink:0,
-	                    fontSize:14,
-	                    fontWeight:800,
-	                  }}>
-	                    {(isPending || isAdded) ? "✔" : "+"}
-	                  </div>
+		                  <div style={{
+		                    ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded, size:34 }),
+		                  }}>
+		                    {(isPending || isAdded) ? "✔" : "+"}
+		                  </div>
 	                </div>
 	              );
 	            })}
@@ -6853,33 +6855,13 @@ import "./styles.css";
                             })}
                             </div>
                   </div>
-                  <div
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: "50%",
-                      border: `2px solid ${
-                        isPending ? th.accentBg : isAdded ? th.dim : th.inputB
-                      }`,
-                      background: isPending ? th.accentBg : "transparent",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(isPending || isAdded) && (
-                      <span
-                        style={{
-                          color: isPending ? th.accentT : th.dim,
-                          fontSize: 14,
-                          fontWeight: 800,
-                        }}
-                      >
-                        ✔
-                      </span>
-                    )}
-                  </div>
+	                  <div
+	                    style={{
+	                      ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded, size:34 }),
+	                    }}
+	                  >
+	                    {(isPending || isAdded) ? "✔" : "+"}
+	                  </div>
                 </div>
               );
             })}
@@ -8506,16 +8488,14 @@ import "./styles.css";
                 borderBottom: i < availableItems.length - 1 ? `1px solid ${th.border}` : "none",
               }}>
                 <span style={{ flex:1, fontSize:14, fontWeight:600, color:th.text, textAlign:"left" }}>{t(d.label)}</span>
-                <button
-                  onClick={() => addItem(d.id)}
-                  style={{
-                    background:`color-mix(in srgb, ${th.accentBg} 85%, transparent)`,
-                    backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)",
-                    border:"none", borderRadius:8, color:th.accentT,
-                    padding:"0px 9px", cursor:"pointer", fontSize:20,
-                    fontFamily:"'Outfit',sans-serif", fontWeight:600, flexShrink:0,
-                  }}
-                >+</button>
+	                <button
+	                  onClick={() => addItem(d.id)}
+	                  style={{
+	                    ...addCircleButtonStyle(th, { size:34 }),
+	                    padding:0,
+	                    cursor:"pointer",
+	                  }}
+	                >+</button>
               </div>
             ))
           )}
@@ -20234,14 +20214,16 @@ import "./styles.css";
 	                border-color 0.15s ease,
 	                box-shadow 0.15s ease !important;
 	            }
-	            .ib-pressable-card.ib-card-pressed {
-	              transform: translateY(2px) scale(0.968);
-	              filter: brightness(0.9) saturate(0.96);
-	              box-shadow:
-	                inset 0 2px 9px rgba(0,0,0,0.24),
-	                0 1px 3px rgba(0,0,0,0.14) !important;
-	              transition-duration: 0.055s !important;
-	            }
+		            .ib-pressable-card.ib-card-pressed {
+		              transform: translateY(2px) scale(0.968);
+		              filter: brightness(1.02) saturate(1.05);
+		              border-color: color-mix(in srgb, ${th.accentBg} 58%, ${th.border}) !important;
+		              box-shadow:
+		                inset 0 0 0 1px color-mix(in srgb, ${th.accentBg} 45%, transparent),
+		                inset 0 0 20px color-mix(in srgb, ${th.accentBg} 18%, transparent),
+		                0 7px 18px color-mix(in srgb, ${th.accentBg} 18%, transparent) !important;
+		              transition-duration: 0.055s !important;
+		            }
 	            @media (hover: hover) and (pointer: fine) {
 	              .ib-pressable-card:hover {
 	                transform: translateY(-1px);
