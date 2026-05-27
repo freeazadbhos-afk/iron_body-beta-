@@ -3650,8 +3650,8 @@ import "./styles.css";
     const th = useTheme();
     const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const bg = dark ? "#20211f" : "#fbfbfa";
-    const label = dark ? "#a6a8a3" : "#747570";
-    const atlasFilter = dark ? "invert(1) brightness(0.62) contrast(1.08)" : "none";
+    const label = dark ? "#d2d4ce" : "#747570";
+    const atlasFilter = dark ? "invert(1) brightness(0.96) contrast(1.18)" : "none";
     const activeRegions = highlights || {};
     const cropY = 70;
     const cropH = 1450;
@@ -3731,7 +3731,7 @@ import "./styles.css";
             width="1024"
             height="1536"
             preserveAspectRatio="xMidYMid meet"
-            opacity={dark ? 0.42 : 0.28}
+            opacity={dark ? 0.58 : 0.28}
             style={{
               filter: atlasFilter,
               pointerEvents:"none",
@@ -3774,7 +3774,7 @@ import "./styles.css";
             width="1024"
             height="1536"
             preserveAspectRatio="xMidYMid meet"
-            opacity={dark ? 0.76 : 0.72}
+            opacity={dark ? 0.84 : 0.72}
             style={{
               filter: atlasFilter,
               pointerEvents:"none",
@@ -6268,7 +6268,7 @@ import "./styles.css";
 	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
 	    const th = useTheme();
 	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
-	    const atlasFilter = dark ? "invert(1) brightness(0.62) contrast(1.08)" : "none";
+	    const atlasFilter = dark ? "invert(1) brightness(0.96) contrast(1.18)" : "none";
 	    const selectedGroup = (ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
 	    const cropY = 70;
@@ -6297,7 +6297,7 @@ import "./styles.css";
 	              width="1024"
 	              height="1536"
 	              preserveAspectRatio="xMidYMid meet"
-	              opacity={dark ? 0.78 : 0.74}
+	              opacity={dark ? 0.9 : 0.74}
 	              style={{
 	                filter:atlasFilter,
 	                pointerEvents:"none",
@@ -6345,7 +6345,7 @@ import "./styles.css";
           bottom:5,
 	          display:"grid",
 	          gridTemplateColumns:"1fr 1fr",
-	          color:dark ? "#a6a8a3" : "#747570",
+		          color:dark ? "#d2d4ce" : "#747570",
 	          fontFamily:"Outfit, sans-serif",
           fontSize:9.5,
 	          fontWeight:800,
