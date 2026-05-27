@@ -1327,8 +1327,10 @@ import "./styles.css";
         }[g] || gc(g)));
     return {
       input: {
+        display: "block",
         width: "100%",
         maxWidth: "100%",
+        minWidth: 0,
         boxSizing: "border-box",
         background: th.input,
         border: `1px solid ${th.inputB}`,
@@ -16137,7 +16139,7 @@ import "./styles.css";
               paddingTop: 12,
               borderTop: `1px solid ${th.border}`,
             }}>
-              <div style={{ gridColumn: "1 / -1" }}>
+              <div style={{ gridColumn: "1 / -1", minWidth: 0, width: "100%", overflow: "hidden" }}>
                 <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
                   {t("DATE")}
                 </div>
@@ -16146,7 +16148,12 @@ import "./styles.css";
                   value={dateDraft}
                   max={dateInputValue()}
                   onChange={(e) => setDateDraft(e.target.value)}
-                  style={S.input}
+                  style={{
+                    ...S.input,
+                    width: "calc(100% - 2px)",
+                    maxWidth: "calc(100% - 2px)",
+                    minWidth: 0,
+                  }}
                 />
               </div>
               <div>
