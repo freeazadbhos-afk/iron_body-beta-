@@ -198,9 +198,10 @@ import "./styles.css";
     "Cancel": "İptal",
     "Close": "Kapat",
     "Delete": "Sil",
-    "Edit": "Düzenle",
-    "Add": "Ekle",
-    "Clear": "Temizle",
+	    "Edit": "Düzenle",
+	    "Add": "Ekle",
+	    "ADD": "EKLE",
+	    "Clear": "Temizle",
     "Done": "Tamam",
     "Next": "İleri",
     "Skip": "Atla",
@@ -293,9 +294,15 @@ import "./styles.css";
     "Add exercises": "Egzersiz ekle",
     "Add set": "Set ekle",
     "Add lap / segment": "Tur / bölüm ekle",
-    "Search exercises or muscles...": "Egzersiz veya kas grubu ara...",
-    "Search exercises...": "Egzersiz ara...",
-    "No exercises found.": "Egzersiz bulunamadı.",
+	    "Search exercises or muscles...": "Egzersiz veya kas grubu ara...",
+	    "Search exercises...": "Egzersiz ara...",
+	    "MUSCLE MAP": "KAS HARİTASI",
+	    "Tap a muscle region": "Bir kas bölgesine dokun",
+	    "Tap a muscle region to browse matching exercises.": "Eşleşen egzersizleri görmek için kas bölgesine dokun.",
+	    "Search within selected muscle...": "Seçili kasta ara...",
+	    "No exercises match this muscle.": "Bu kasla eşleşen egzersiz yok.",
+	    "SELECTED": "SEÇİLİ",
+	    "No exercises found.": "Egzersiz bulunamadı.",
     "Remove this exercise?": "Bu egzersizi kaldırmak istiyor musun?",
     "Remove set": "Seti kaldır",
     "rep": "tekrar",
@@ -3940,7 +3947,7 @@ import "./styles.css";
   ];
 
   /* ─── All muscles for "Muscles Trained" display ───────────────────────────────── */
-  const ALL_MUSCLES = [
+	  const ALL_MUSCLES = [
     "Chest",
     "Upper Chest",
     "Lower Chest",
@@ -3963,8 +3970,48 @@ import "./styles.css";
     "Glutes",
     "Calves",
     "Inner Thigh",
-    "Outer Thigh",
-  ];
+	    "Outer Thigh",
+	  ];
+
+	  const ATLAS_PICKER_SHAPES = [
+	    { label: "Traps", group: "Back", d: "M198 263 C220 246 251 248 274 266 C297 248 328 246 352 263 C333 286 304 300 274 300 C244 300 216 286 198 263 Z" },
+	    { label: "Upper Back", group: "Back", d: "M675 287 C700 260 729 253 754 273 C779 253 808 260 834 287 C817 321 786 341 754 341 C722 341 692 321 675 287 Z" },
+	    { label: "Shoulders", group: "Shoulders", d: "M99 337 C118 311 153 300 189 315 C168 346 147 392 111 414 C93 394 90 361 99 337 Z" },
+	    { label: "Shoulders", group: "Shoulders", d: "M459 337 C440 311 405 300 369 315 C390 346 411 392 447 414 C465 394 468 361 459 337 Z" },
+	    { label: "Shoulders", group: "Shoulders", d: "M577 338 C602 311 641 304 677 322 C652 354 628 390 586 411 C569 393 566 361 577 338 Z" },
+	    { label: "Shoulders", group: "Shoulders", d: "M933 338 C908 311 869 304 833 322 C858 354 882 390 924 411 C941 393 944 361 933 338 Z" },
+	    { label: "Chest", group: "Chest", d: "M157 328 C201 318 255 327 271 365 C276 396 271 440 261 466 C216 488 160 465 138 422 C135 383 139 349 157 328 Z" },
+	    { label: "Chest", group: "Chest", d: "M401 328 C357 318 303 327 287 365 C282 396 287 440 297 466 C342 488 398 465 420 422 C423 383 419 349 401 328 Z" },
+	    { label: "Upper Chest", group: "Chest", d: "M159 326 C202 316 255 325 271 363 C228 367 184 360 146 346 C149 338 153 332 159 326 Z" },
+	    { label: "Upper Chest", group: "Chest", d: "M399 326 C356 316 303 325 287 363 C330 367 374 360 412 346 C409 338 405 332 399 326 Z" },
+	    { label: "Lower Chest", group: "Chest", d: "M143 394 C177 421 222 442 263 446 C260 456 255 465 248 471 C207 487 158 465 138 424 C138 412 140 402 143 394 Z" },
+	    { label: "Lower Chest", group: "Chest", d: "M415 394 C381 421 336 442 295 446 C298 456 303 465 310 471 C351 487 400 465 420 424 C420 412 418 402 415 394 Z" },
+	    { label: "Abs", group: "Core", d: "M229 478 C246 467 264 470 275 486 C286 470 304 467 321 478 C331 531 326 641 276 704 C226 641 219 531 229 478 Z" },
+	    { label: "Obliques", group: "Core", d: "M190 468 C210 503 217 597 207 665 C181 644 163 587 164 530 C165 501 174 480 190 468 Z" },
+	    { label: "Obliques", group: "Core", d: "M368 468 C348 503 341 597 351 665 C377 644 395 587 394 530 C393 501 384 480 368 468 Z" },
+	    { label: "Biceps", group: "Arms", d: "M92 425 C122 398 150 422 153 469 C150 527 128 591 91 621 C73 576 70 462 92 425 Z" },
+	    { label: "Biceps", group: "Arms", d: "M466 425 C436 398 408 422 405 469 C408 527 430 591 467 621 C485 576 488 462 466 425 Z" },
+	    { label: "Triceps", group: "Arms", d: "M573 424 C602 398 630 422 632 470 C628 535 608 597 572 625 C552 577 550 462 573 424 Z" },
+	    { label: "Triceps", group: "Arms", d: "M937 424 C908 398 880 422 878 470 C882 535 902 597 938 625 C958 577 960 462 937 424 Z" },
+	    { label: "Forearms", group: "Arms", d: "M55 566 C84 562 106 592 100 651 C90 720 64 812 35 843 C25 772 28 642 55 566 Z" },
+	    { label: "Forearms", group: "Arms", d: "M503 566 C474 562 452 592 458 651 C468 720 494 812 523 843 C533 772 530 642 503 566 Z" },
+	    { label: "Forearms", group: "Arms", d: "M530 566 C559 562 581 592 575 651 C565 720 539 812 510 843 C500 772 503 642 530 566 Z" },
+	    { label: "Forearms", group: "Arms", d: "M980 566 C951 562 929 592 935 651 C945 720 971 812 1000 843 C1010 772 1007 642 980 566 Z" },
+	    { label: "Lats", group: "Back", d: "M642 392 C669 415 690 477 697 548 C703 617 692 690 672 739 C649 701 632 619 627 529 C624 459 629 411 642 392 Z" },
+	    { label: "Lats", group: "Back", d: "M868 392 C841 415 820 477 813 548 C807 617 818 690 838 739 C861 701 878 619 883 529 C886 459 881 411 868 392 Z" },
+	    { label: "Mid Back", group: "Back", d: "M712 315 C737 299 773 299 798 315 C804 434 794 581 754 679 C714 581 706 434 712 315 Z" },
+	    { label: "Lower Back", group: "Back", d: "M700 667 C723 645 784 645 810 667 C807 721 784 768 754 793 C724 768 702 721 700 667 Z" },
+	    { label: "Glutes", group: "Legs", d: "M652 620 C706 586 756 625 758 706 C754 775 707 804 655 777 C620 737 617 660 652 620 Z" },
+	    { label: "Glutes", group: "Legs", d: "M858 620 C804 586 754 625 752 706 C756 775 803 804 855 777 C890 737 893 660 858 620 Z" },
+	    { label: "Quads", group: "Legs", d: "M158 670 C199 697 223 803 221 918 C219 990 198 1040 164 1057 C126 1001 119 795 142 715 C146 696 152 680 158 670 Z" },
+	    { label: "Quads", group: "Legs", d: "M400 670 C359 697 335 803 337 918 C339 990 360 1040 394 1057 C432 1001 439 795 416 715 C412 696 406 680 400 670 Z" },
+	    { label: "Hamstrings", group: "Legs", d: "M649 779 C682 795 702 867 700 950 C699 1009 681 1052 651 1067 C619 1014 615 856 649 779 Z" },
+	    { label: "Hamstrings", group: "Legs", d: "M861 779 C828 795 808 867 810 950 C811 1009 829 1052 859 1067 C891 1014 895 856 861 779 Z" },
+	    { label: "Calves", group: "Legs", d: "M141 1118 C179 1144 206 1215 201 1331 C197 1434 174 1510 140 1517 C108 1450 106 1202 141 1118 Z" },
+	    { label: "Calves", group: "Legs", d: "M417 1118 C379 1144 352 1215 357 1331 C361 1434 384 1510 418 1517 C450 1450 452 1202 417 1118 Z" },
+	    { label: "Calves", group: "Legs", d: "M639 1160 C680 1183 704 1260 696 1375 C689 1465 665 1515 637 1518 C601 1450 605 1236 639 1160 Z" },
+	    { label: "Calves", group: "Legs", d: "M871 1160 C830 1183 806 1260 814 1375 C821 1465 845 1515 873 1518 C909 1450 905 1236 871 1160 Z" },
+	  ];
 
   /* ─── Suggested program templates ──────────────────────────────────────────── */
   const SUGGESTED = [
@@ -6154,15 +6201,390 @@ import "./styles.css";
     );
   }
 
-  /* ─── ExercisePicker — multi-select, stays open until Done ──────────────────── */
+	  function exerciseTargetsPickedMuscle(e, muscle) {
+	    if (!muscle) return true;
+	    const secondary = (SECONDARY[e.id] || "").split(" · ").filter(Boolean);
+	    if (e.muscle === muscle || secondary.includes(muscle)) return true;
+	    const secondaryGroups = secondary.map((m) => (DB.find((d) => d && d.muscle === m) || {}).group).filter(Boolean);
+	    if (muscle === "Chest") return e.group === "Chest" || secondaryGroups.includes("Chest");
+	    if (muscle === "Shoulders") return e.group === "Shoulders" || secondaryGroups.includes("Shoulders");
+	    if (muscle === "Abs") return e.muscle === "Abs" || e.group === "Core" || secondary.includes("Core");
+	    if (muscle === "Obliques") return e.muscle === "Obliques" || secondary.includes("Obliques");
+	    if (muscle === "Mid Back") return e.muscle === "Mid Back" || e.muscle === "Full Back" || secondary.includes("Mid Back");
+	    if (muscle === "Calves") return e.muscle === "Calves" || e.muscle === "Soleus" || secondary.includes("Soleus");
+	    return false;
+	  }
+
+	  function exerciseMatchesSearch(e, query) {
+	    const q = (query || "").trim().toLowerCase();
+	    if (!q) return true;
+	    return [e.name, e.muscle, e.group, SECONDARY[e.id] || ""].join(" ").toLowerCase().includes(q);
+	  }
+
+	  function ExerciseMapIcon() {
+	    return (
+	      <svg width="31" height="24" viewBox="0 0 42 32" aria-hidden="true" style={{ display:"block" }}>
+	        <g fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+	          <path d="M12 3.5c-2.4 0-4 1.7-4 4.3 0 2.8 1.7 5 4 5s4-2.2 4-5c0-2.6-1.6-4.3-4-4.3Z" />
+	          <path d="M12 13v4.2M7.7 15.2 4.9 18.8 3.6 25.6M16.3 15.2l2.8 3.6 1.3 6.8M8.7 17.2l-1.2 7.2M15.3 17.2l1.2 7.2M9.2 24.3 8.1 30M14.8 24.3l1.1 5.7M10.1 30h-2M13.9 30h2" />
+	          <path d="M30 3.5c-2.4 0-4 1.7-4 4.3 0 2.8 1.7 5 4 5s4-2.2 4-5c0-2.6-1.6-4.3-4-4.3Z" />
+	          <path d="M30 13v4.2M25.7 15.2l-2.8 3.6-1.3 6.8M34.3 15.2l2.8 3.6 1.3 6.8M26.7 17.2l-1.2 7.2M33.3 17.2l1.2 7.2M27.2 24.3 26.1 30M32.8 24.3l1.1 5.7M28.1 30h-2M31.9 30h2" />
+	        </g>
+	        <g fill="#ffb02e" opacity=".95">
+	          <path d="M8.7 15.8c1.2-.8 2.2-.9 3.3-.2v4.8c-1.8.2-3.1-1.3-3.3-4.6Z" />
+	          <path d="M12.2 15.6c1.1-.7 2.2-.6 3.1.2-.2 3.3-1.5 4.8-3.3 4.6Z" />
+	          <path d="M27 15.5c1.7-1 4.3-1 6 0-.5 3.5-1.6 6.1-3 7.4-1.4-1.3-2.5-3.9-3-7.4Z" />
+	          <path d="M26.4 23.3c1.3-.6 2.3-.4 3.2.6-.3 3.2-1 5.2-2 5.7-.9-1.3-1.3-3.5-1.2-6.3Z" />
+	          <path d="M30.4 23.9c.9-1 1.9-1.2 3.2-.6.1 2.8-.3 5-1.2 6.3-1-.5-1.7-2.5-2-5.7Z" />
+	        </g>
+	      </svg>
+	    );
+	  }
+
+	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
+	    const th = useTheme();
+	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
+	    const atlasFilter = dark ? "invert(1) brightness(0.62) contrast(1.08)" : "none";
+	    const selectedGroup = (ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle) || {}).group;
+	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
+	    const cropY = 70;
+	    const cropH = 1450;
+	    return (
+	      <div style={{
+	        position:"relative",
+	        width:"100%",
+	        maxWidth:320,
+	        margin:"0 auto",
+	        borderRadius:18,
+	        overflow:"hidden",
+	        background:dark ? "#20211f" : "#fbfbfa",
+	        padding:"6px 6px 28px",
+	      }}>
+	          <svg
+	            viewBox={`0 ${cropY} 1024 ${cropH}`}
+	            xmlns="http://www.w3.org/2000/svg"
+	            preserveAspectRatio="xMidYMid meet"
+	            style={{ display:"block", width:"100%", height:"auto" }}
+	          >
+	            <image
+	              href={bodyMuscleAtlasUrl}
+	              x="0"
+	              y="0"
+	              width="1024"
+	              height="1536"
+	              preserveAspectRatio="xMidYMid meet"
+	              opacity={dark ? 0.78 : 0.74}
+	              style={{
+	                filter:atlasFilter,
+	                pointerEvents:"none",
+	                userSelect:"none",
+	                WebkitUserSelect:"none",
+	              }}
+	            />
+	            {ATLAS_PICKER_SHAPES.map((shape, i) => {
+	              const active = selectedMuscle === shape.label;
+	              const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
+	              return (
+	                <path
+	                  key={`${shape.label}-${i}`}
+	                  d={shape.d}
+	                  role="button"
+	                  tabIndex={0}
+	                  aria-label={shape.label}
+	                  onClick={() => onSelect(shape.label)}
+	                  onKeyDown={(e) => {
+	                    if (e.key === "Enter" || e.key === " ") {
+	                      e.preventDefault();
+	                      onSelect(shape.label);
+	                    }
+	                  }}
+	                  fill={active ? accent : "rgba(255,255,255,0.001)"}
+	                  opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
+	                  stroke={active ? accent : "transparent"}
+	                  strokeWidth={active ? 10 : 0}
+	                  strokeLinejoin="round"
+	                  strokeLinecap="round"
+	                  style={{
+	                    cursor:"pointer",
+	                    outline:"none",
+	                    pointerEvents:"all",
+	                    transition:"opacity .16s, fill .16s, stroke .16s",
+	                  }}
+	                />
+	              );
+	            })}
+	          </svg>
+	        <div style={{
+	          position:"absolute",
+	          left:6,
+	          right:6,
+	          bottom:8,
+	          display:"grid",
+	          gridTemplateColumns:"1fr 1fr",
+	          color:dark ? "#a6a8a3" : "#747570",
+	          fontFamily:"Outfit, sans-serif",
+	          fontSize:10,
+	          fontWeight:800,
+	          letterSpacing:1.2,
+	          textAlign:"center",
+	          pointerEvents:"none",
+	        }}>
+	          <span>FRONT</span>
+	          <span>BACK</span>
+	        </div>
+	      </div>
+	    );
+	  }
+
+	  function ExerciseMuscleMapBrowser({ added, pending, setPending, onBack, onConfirm }) {
+	    const th = useTheme();
+	    const S = useS();
+	    const t = useT();
+	    const [closing, setClosing] = useState(false);
+	    const [selectedMuscle, setSelectedMuscle] = useState("");
+	    const [q, setQ] = useState("");
+	    const selectedShape = ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle);
+	    const filtered = selectedMuscle || q.trim()
+	      ? DB.filter((e) => (!selectedMuscle || exerciseTargetsPickedMuscle(e, selectedMuscle)) && exerciseMatchesSearch(e, q))
+	      : [];
+	    const close = () => {
+	      setClosing(true);
+	      setTimeout(onBack, 280);
+	    };
+	    const toggle = (id) => {
+	      if (added.includes(id)) return;
+	      setPending((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+	    };
+	    return (
+	      <>
+	        <style>{`
+	          @keyframes atlasBrowseIn { from{transform:translateX(100%);opacity:.8} to{transform:translateX(0);opacity:1} }
+	          @keyframes atlasBrowseOut{ from{transform:translateX(0);opacity:1} to{transform:translateX(100%);opacity:.75} }
+	        `}</style>
+	        <div style={{
+	          position:"fixed",
+	          inset:0,
+	          zIndex:92,
+	          maxWidth:480,
+	          margin:"0 auto",
+	          background:th.bg,
+	          color:th.text,
+	          display:"flex",
+	          flexDirection:"column",
+	          animation:closing ? "atlasBrowseOut 0.28s ease-in forwards" : "atlasBrowseIn 0.34s cubic-bezier(0.32,0.72,0,1) forwards",
+	        }}>
+	          <div style={{
+	            padding:"calc(14px + env(safe-area-inset-top, 0px)) 16px 12px",
+	            borderBottom:`1px solid ${th.border}`,
+	            background:`color-mix(in srgb, ${th.bg} 72%, transparent)`,
+	            backdropFilter:"blur(18px)",
+	            WebkitBackdropFilter:"blur(18px)",
+	            zIndex:2,
+	          }}>
+	            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+	              <button
+	                onClick={close}
+	                aria-label={t("Back")}
+	                style={{
+	                  ...buttonTexture(th, "neutral"),
+	                  width:38,
+	                  height:38,
+	                  borderRadius:"50%",
+	                  display:"flex",
+	                  alignItems:"center",
+	                  justifyContent:"center",
+	                  cursor:"pointer",
+	                  color:th.text,
+	                  flexShrink:0,
+	                  fontSize:24,
+	                  lineHeight:1,
+	                }}
+	              >
+	                ‹
+	              </button>
+	              <div style={{ flex:1, minWidth:0, textAlign:"left" }}>
+	                <div className="bebas" style={{ fontSize:26, letterSpacing:1.6, color:th.text, lineHeight:1 }}>
+	                  {t("MUSCLE MAP")}
+	                </div>
+	                <div style={{ color:th.muted, fontSize:12, marginTop:2 }}>
+	                  {selectedMuscle ? t(selectedMuscle) : t("Tap a muscle region")}
+	                </div>
+	              </div>
+	              {pending.length > 0 && (
+	                <button
+	                  onClick={onConfirm}
+	                  style={{
+	                    ...buttonTexture(th, "accent"),
+	                    borderRadius:12,
+	                    padding:"9px 12px",
+	                    cursor:"pointer",
+	                    fontFamily:"'Outfit',sans-serif",
+	                    fontSize:12,
+	                    fontWeight:800,
+	                    color:th.accentT,
+	                    flexShrink:0,
+	                  }}
+	                >
+	                  {t("ADD")} {pending.length}
+	                </button>
+	              )}
+	            </div>
+	          </div>
+	          <div style={{ flex:1, overflowY:"auto", padding:"0 16px 110px" }}>
+	            <div style={{
+	              position:"sticky",
+	              top:0,
+	              zIndex:2,
+	              margin:"0 -16px 12px",
+	              padding:"14px 16px 12px",
+	              background:`linear-gradient(180deg, ${th.bg} 0%, color-mix(in srgb, ${th.bg} 92%, transparent) 78%, transparent 100%)`,
+	              backdropFilter:"blur(16px)",
+	              WebkitBackdropFilter:"blur(16px)",
+	              boxShadow:`0 14px 24px color-mix(in srgb, ${th.bg} 82%, transparent)`,
+	            }}>
+	              <div style={{
+	                ...S.card,
+	                padding:"10px",
+	                marginBottom:10,
+	                borderColor:selectedShape ? `${muscleAccent(selectedMuscle, selectedShape.group, th.bg === "#080809")}77` : th.border,
+	              }}>
+	                <InteractiveExerciseAtlas selectedMuscle={selectedMuscle} onSelect={setSelectedMuscle} />
+	              </div>
+	              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
+	                {selectedMuscle ? (
+	                  <>
+	                    <span style={{ ...S.tag(selectedShape?.group || "Chest", selectedMuscle), fontSize:11 }}>
+	                      {t(selectedMuscle).toUpperCase()}
+	                    </span>
+	                    <span style={{ color:th.dim, fontSize:12, fontWeight:700, letterSpacing:"1px" }}>
+	                      {filtered.length} {t(filtered.length === 1 ? "exercise" : "exercises")}
+	                    </span>
+	                  </>
+	                ) : (
+	                  <span style={{ color:th.muted, fontSize:13 }}>
+	                    {t("Tap a muscle region to browse matching exercises.")}
+	                  </span>
+	                )}
+	              </div>
+	              <input
+	                type="text"
+	                value={q}
+	                onChange={(e) => setQ(e.target.value)}
+	                placeholder={t("Search within selected muscle...")}
+	                style={{ ...S.input, marginBottom:0 }}
+	              />
+	            </div>
+	            {filtered.length === 0 && (
+	              <div style={{ textAlign:"center", padding:"28px 10px", color:th.dim, fontSize:13 }}>
+	                {selectedMuscle || q.trim() ? t("No exercises match this muscle.") : t("Tap a muscle region to browse matching exercises.")}
+	              </div>
+	            )}
+	            {filtered.map((e) => {
+	              const isAdded = added.includes(e.id);
+	              const isPending = pending.includes(e.id);
+	              return (
+	                <div
+	                  key={e.id}
+	                  onClick={() => toggle(e.id)}
+	                  className={isAdded ? "" : "ib-pressable-card"}
+	                  {...pressableCardProps(isAdded)}
+	                  style={{
+	                    ...S.card,
+	                    marginBottom:8,
+	                    padding:"12px 12px",
+	                    cursor:isAdded ? "default" : "pointer",
+	                    display:"flex",
+	                    alignItems:"center",
+	                    justifyContent:"space-between",
+	                    gap:12,
+	                    borderColor:isPending ? th.accentBg : th.border,
+	                    background:isPending
+	                      ? `color-mix(in srgb, ${th.accentBg} 14%, ${th.card})`
+	                      : S.card.background,
+	                  }}
+	                >
+	                  <div style={{ minWidth:0, flex:1, textAlign:"left" }}>
+	                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", color:isAdded ? th.dim : th.text, fontWeight:700, fontSize:14 }}>
+	                      {e.name}
+	                      <DiffBadge id={e.id} />
+	                    </div>
+	                    <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5, flexWrap:"wrap" }}>
+	                      <span style={{ ...S.tag(e.group, e.muscle), fontSize:9.5, padding:"2px 6px" }}>
+	                        {e.muscle.toUpperCase()}
+	                      </span>
+	                      {(SECONDARY[e.id] || "").split(" · ").filter(Boolean).map((m) => {
+	                        const grp = (DB.find((d) => d && d.muscle === m) || {}).group || e.group;
+	                        return (
+	                          <span key={m} style={{ ...S.tag(grp, m), opacity:0.9, fontSize:8.5, padding:"2px 5px" }}>
+	                            {m.toUpperCase()}
+	                          </span>
+	                        );
+	                      })}
+	                    </div>
+	                  </div>
+	                  <div style={{
+	                    width:30,
+	                    height:30,
+	                    borderRadius:"50%",
+	                    border:`2px solid ${isPending ? th.accentBg : isAdded ? th.dim : th.inputB}`,
+	                    background:isPending ? th.accentBg : "transparent",
+	                    color:isPending ? th.accentT : th.dim,
+	                    display:"flex",
+	                    alignItems:"center",
+	                    justifyContent:"center",
+	                    flexShrink:0,
+	                    fontSize:14,
+	                    fontWeight:800,
+	                  }}>
+	                    {(isPending || isAdded) ? "✔" : "+"}
+	                  </div>
+	                </div>
+	              );
+	            })}
+	          </div>
+	          {pending.length > 0 && (
+	            <div style={{
+	              position:"fixed",
+	              left:"50%",
+	              bottom:"calc(16px + env(safe-area-inset-bottom, 0px))",
+	              width:"min(448px, calc(100% - 32px))",
+	              transform:"translateX(-50%)",
+	              zIndex:3,
+	            }}>
+	              <button
+	                onClick={onConfirm}
+	                style={{
+	                  width:"100%",
+	                  ...buttonTexture(th, "accent"),
+	                  borderRadius:14,
+	                  padding:"14px",
+	                  cursor:"pointer",
+	                  fontFamily:"'Outfit',sans-serif",
+	                  fontSize:14,
+	                  fontWeight:800,
+	                  letterSpacing:0.5,
+	                  color:th.accentT,
+	                }}
+	              >
+	                {t("ADD")} {pending.length} →
+	              </button>
+	            </div>
+	          )}
+	        </div>
+	      </>
+	    );
+	  }
+
+	  /* ─── ExercisePicker — multi-select, stays open until Done ──────────────────── */
   function ExercisePicker({ onAdd, onClose, added = [] }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
-    const [q, setQ] = useState("");
-    const [flt, setFlt] = useState("All");
-    const [pending, setPending] = useState([]); // ids selected this session
-    const [epClosing, setEpClosing] = useState(false);
+	    const [q, setQ] = useState("");
+	    const [flt, setFlt] = useState("All");
+	    const [pending, setPending] = useState([]); // ids selected this session
+	    const [mapOpen, setMapOpen] = useState(false);
+	    const [epClosing, setEpClosing] = useState(false);
     const closeMe = (cb) => {
       setEpClosing(true);
       setTimeout(() => { setEpClosing(false); (cb || onClose)(); }, 300);
@@ -6202,14 +6624,27 @@ import "./styles.css";
 
     return (
       <>
-        <style>{`
-          @keyframes epFadeIn  { from { opacity: 0; } to { opacity: 1; } }
-          @keyframes epFadeOut { from { opacity: 1; } to { opacity: 0; } }
-          @keyframes epSlideUp   { from { transform: translateY(100%); opacity:0.6; } to { transform: translateY(0); opacity:1; } }
-          @keyframes epSlideDown { from { transform: translateY(0); opacity:1; } to { transform: translateY(100%); opacity:0; } }
-        `}</style>
+	        <style>{`
+	          @keyframes epFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+	          @keyframes epFadeOut { from { opacity: 1; } to { opacity: 0; } }
+	          @keyframes epSlideUp   { from { transform: translateY(100%); opacity:0.6; } to { transform: translateY(0); opacity:1; } }
+	          @keyframes epSlideDown { from { transform: translateY(0); opacity:1; } to { transform: translateY(100%); opacity:0; } }
+	        `}</style>
+	        {mapOpen && createPortal(
+	          <ExerciseMuscleMapBrowser
+	            added={added}
+	            pending={pending}
+	            setPending={setPending}
+	            onBack={() => setMapOpen(false)}
+	            onConfirm={() => {
+	              setMapOpen(false);
+	              confirmAdd();
+	            }}
+	          />,
+	          document.body
+	        )}
 
-        {/* Backdrop */}
+	        {/* Backdrop */}
         <div onClick={() => closeMe()} style={{
           position:"fixed", inset:0, zIndex:70,
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
@@ -6284,13 +6719,37 @@ import "./styles.css";
                 </button>
               </div>
             </div>
-            <input
-              type="text"
-              placeholder={t("Search exercises or muscles...")}
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              style={{ ...S.input, marginBottom: 10 }}
-            />
+	            <div style={{ display:"flex", gap:8, alignItems:"stretch", marginBottom:10 }}>
+	              <input
+	                type="text"
+	                placeholder={t("Search exercises or muscles...")}
+	                value={q}
+	                onChange={(e) => setQ(e.target.value)}
+	                style={{ ...S.input, marginBottom: 0, flex:1, minWidth:0 }}
+	              />
+	              <button
+	                type="button"
+	                onClick={() => setMapOpen(true)}
+	                aria-label={t("MUSCLE MAP")}
+	                title={t("MUSCLE MAP")}
+	                style={{
+	                  ...buttonTexture(th, "blue"),
+	                  width:52,
+	                  minWidth:52,
+	                  borderRadius:14,
+	                  display:"flex",
+	                  alignItems:"center",
+	                  justifyContent:"center",
+	                  cursor:"pointer",
+	                  color:"#fff",
+	                  padding:0,
+	                  position:"relative",
+	                  overflow:"hidden",
+	                }}
+	              >
+	                <ExerciseMapIcon />
+	              </button>
+	            </div>
             <div
               style={{
                 display: "flex",
