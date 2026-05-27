@@ -4278,6 +4278,14 @@ import "./styles.css";
       0
     );
   }
+  function sessionCardioDistance(s) {
+    return s?.distance ?? (s?.exercises || []).reduce(
+      (a, ex) => a + (ex.type === "cardio"
+        ? (ex.sets || []).filter((st) => st.done !== false).reduce((b, st) => b + (Number(st.distance) || 0), 0)
+        : 0),
+      0
+    );
+  }
   /* ─── Drag-to-reorder (Todoist-style: card sticks to pointer) ───────────────── */
   function useDragSort(items, setItems) {
     const [dragIdx,    setDragIdx]    = useState(null);
@@ -15219,12 +15227,7 @@ import "./styles.css";
           sessions.map((s) => {
             const ic = intColor(s.intensity || 0, th);
             const isPendingDelete = confirmDelete === s.id;
-            const cardioDistance = s.distance || (s.exercises || []).reduce(
-              (a, ex) => a + (ex.type === "cardio"
-                ? (ex.sets || []).filter(st => st.done !== false).reduce((b, st) => b + (st.distance || 0), 0)
-                : 0),
-              0
-            );
+            const cardioDistance = sessionCardioDistance(s);
             return (
               <div
                 key={s.id}
@@ -15432,16 +15435,22 @@ import "./styles.css";
     const S = useS();
     const t = useT();
     const lang = useLang();
+    const distanceDraftValue = (s) => {
+      const distance = sessionCardioDistance(s);
+      return distance ? String(distance) : "";
+    };
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [durationDraft, setDurationDraft] = useState(session?.duration != null ? String(session.duration) : "");
     const [caloriesDraft, setCaloriesDraft] = useState(session?.calories != null ? String(session.calories) : "");
+    const [distanceDraft, setDistanceDraft] = useState(distanceDraftValue(session));
     const [intensityDraft, setIntensityDraft] = useState(session?.intensity != null ? String(session.intensity) : "");
     useEffect(() => {
       setEditing(false);
       setSaving(false);
       setDurationDraft(session?.duration != null ? String(session.duration) : "");
       setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
+      setDistanceDraft(distanceDraftValue(session));
       setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
     }, [session?.id]);
     const fmtDateFullLocal = (ts) => new Date(ts).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB", {
@@ -15451,19 +15460,15 @@ import "./styles.css";
     const ic = intColor(session.intensity || 0, th);
     const exercises = session.exercises || [];
     const isCardioSession = exercises.length > 0 && exercises.every((e) => e.type === "cardio");
-    const cardioDistance = session.distance || exercises.reduce(
-      (a, ex) => a + (ex.type === "cardio"
-        ? (ex.sets || []).filter(st => st.done !== false).reduce((b, st) => b + (st.distance || 0), 0)
-        : 0),
-      0
-    );
+    const cardioDistance = sessionCardioDistance(session);
     const canEdit = typeof onSave === "function";
     const saveEdits = async () => {
       if (!canEdit || saving) return;
       const cleanDuration = durationDraft.trim();
       const cleanCalories = caloriesDraft.trim();
+      const cleanDistance = distanceDraft.trim();
       const cleanIntensity = intensityDraft.trim();
-      const next = {
+      let next = {
         ...session,
         duration: cleanDuration === "" ? null : Math.max(0, parseInt(cleanDuration, 10) || 0),
         calories: cleanCalories === "" ? null : Math.max(0, parseInt(cleanCalories, 10) || 0),
@@ -15471,6 +15476,45 @@ import "./styles.css";
           ? null
           : Math.min(10, Math.max(1, parseFloat(cleanIntensity) || 1)),
       };
+      if (isCardioSession) {
+        const distanceVal = cleanDistance === ""
+          ? null
+          : Math.max(0, Math.round((parseFloat(cleanDistance) || 0) * 100) / 100);
+        const cardioSets = exercises.flatMap((ex) =>
+          ex.type === "cardio" ? (ex.sets || []).filter((st) => st.done !== false) : []
+        );
+        const currentTotal = cardioSets.reduce((sum, st) => sum + (Number(st.distance) || 0), 0);
+        const targetDistance = distanceVal ?? 0;
+        let seen = 0;
+        let assigned = 0;
+        next = {
+          ...next,
+          distance: distanceVal,
+          exercises: exercises.map((ex) => {
+            if (ex.type !== "cardio") return ex;
+            return {
+              ...ex,
+              sets: (ex.sets || []).map((st) => {
+                if (st.done === false) return st;
+                seen += 1;
+                let setDistance = targetDistance;
+                if (cardioSets.length > 1) {
+                  if (seen === cardioSets.length) {
+                    setDistance = Math.max(0, Math.round((targetDistance - assigned) * 100) / 100);
+                  } else {
+                    const share = currentTotal > 0
+                      ? (Number(st.distance) || 0) / currentTotal
+                      : 1 / cardioSets.length;
+                    setDistance = Math.max(0, Math.round(targetDistance * share * 100) / 100);
+                    assigned += setDistance;
+                  }
+                }
+                return { ...st, distance: setDistance };
+              }),
+            };
+          }),
+        };
+      }
       setSaving(true);
       await onSave(next);
       setSaving(false);
@@ -15506,9 +15550,9 @@ import "./styles.css";
                 <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                   {editing ? (
                     <>
-                      <button
-                        onClick={saveEdits}
-                        disabled={saving}
+	                      <button
+	                        onClick={saveEdits}
+	                        disabled={saving}
                         style={{
                           ...buttonTexture(th, "accent", saving),
                           borderRadius: 9,
@@ -15519,19 +15563,20 @@ import "./styles.css";
                           fontSize: 11,
                           letterSpacing: "0.4px",
                         }}
-                      >
-                        {saving ? t("Saving...") : t("SAVE")}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDurationDraft(session?.duration != null ? String(session.duration) : "");
-                          setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
-                          setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
-                          setEditing(false);
-                        }}
-                        disabled={saving}
-                        style={{
-                          ...buttonTexture(th, "neutral", saving),
+	                      >
+	                        {saving ? t("Saving...") : t("SAVE")}
+	                      </button>
+	                      <button
+	                        onClick={() => {
+	                          setDurationDraft(session?.duration != null ? String(session.duration) : "");
+	                          setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
+	                          setDistanceDraft(distanceDraftValue(session));
+	                          setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
+	                          setEditing(false);
+	                        }}
+	                        disabled={saving}
+	                        style={{
+	                          ...buttonTexture(th, "neutral", saving),
                           borderRadius: 9,
                           padding: "6px 12px",
                           cursor: saving ? "default" : "pointer",
@@ -15644,19 +15689,35 @@ import "./styles.css";
                 <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
                   {t("DURATION (min)")}
                 </div>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={durationDraft}
-                  placeholder="0"
-                  onChange={(e) => setDurationDraft(e.target.value)}
-                  style={S.input}
-                />
-              </div>
-              <div>
-                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
-                  {t("CALORIES (kcal)")}
+	                <input
+	                  type="number"
+	                  min="0"
+	                  step="1"
+	                  value={durationDraft}
+	                  placeholder="0"
+	                  onChange={(e) => setDurationDraft(e.target.value)}
+	                  style={S.input}
+	                />
+	              </div>
+	              {isCardioSession && (
+	                <div>
+	                  <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
+	                    {t("DISTANCE (km)")}
+	                  </div>
+	                  <input
+	                    type="number"
+	                    min="0"
+	                    step="0.1"
+	                    value={distanceDraft}
+	                    placeholder="0.0"
+	                    onChange={(e) => setDistanceDraft(e.target.value)}
+	                    style={S.input}
+	                  />
+	                </div>
+	              )}
+	              <div>
+	                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
+	                  {t("CALORIES (kcal)")}
                 </div>
                 <input
                   type="number"
