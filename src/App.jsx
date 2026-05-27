@@ -200,6 +200,7 @@ import "./styles.css";
     "Delete": "Sil",
     "Edit": "Düzenle",
     "Add": "Ekle",
+    "Clear": "Temizle",
     "Done": "Tamam",
     "Next": "İleri",
     "Skip": "Atla",
@@ -4562,6 +4563,20 @@ import "./styles.css";
       return true;
     } catch (e) {
       console.error("fsAddSession FAILED:", e.code, e.message);
+      return false;
+    }
+  }
+  async function fsUpdateSession(uid, session) {
+    try {
+      const clean = strip(session);
+      await setDoc(
+        doc(fbDb, "users", uid, "sessions", String(session.id)),
+        clean,
+        { merge: true }
+      );
+      return true;
+    } catch (e) {
+      console.error("fsUpdateSession FAILED:", e.code, e.message);
       return false;
     }
   }
@@ -15131,17 +15146,48 @@ import "./styles.css";
       </div>
     );
   }
-  function SessionDetailView({ session }) {
+  function SessionDetailView({ session, onSave }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
     const lang = useLang();
+    const [editing, setEditing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [durationDraft, setDurationDraft] = useState(session?.duration != null ? String(session.duration) : "");
+    const [caloriesDraft, setCaloriesDraft] = useState(session?.calories != null ? String(session.calories) : "");
+    const [intensityDraft, setIntensityDraft] = useState(session?.intensity != null ? String(session.intensity) : "");
+    useEffect(() => {
+      setEditing(false);
+      setSaving(false);
+      setDurationDraft(session?.duration != null ? String(session.duration) : "");
+      setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
+      setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
+    }, [session?.id]);
     const fmtDateFullLocal = (ts) => new Date(ts).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-GB", {
       weekday: "long", day: "numeric", month: "long", year: "numeric",
     });
     const vol = sessionVol(session);
     const ic = intColor(session.intensity || 0, th);
     const exercises = session.exercises || [];
+    const canEdit = typeof onSave === "function";
+    const saveEdits = async () => {
+      if (!canEdit || saving) return;
+      const cleanDuration = durationDraft.trim();
+      const cleanCalories = caloriesDraft.trim();
+      const cleanIntensity = intensityDraft.trim();
+      const next = {
+        ...session,
+        duration: cleanDuration === "" ? null : Math.max(0, parseInt(cleanDuration, 10) || 0),
+        calories: cleanCalories === "" ? null : Math.max(0, parseInt(cleanCalories, 10) || 0),
+        intensity: cleanIntensity === ""
+          ? null
+          : Math.min(10, Math.max(1, parseFloat(cleanIntensity) || 1)),
+      };
+      setSaving(true);
+      await onSave(next);
+      setSaving(false);
+      setEditing(false);
+    };
     return (
       <div className="slide-up" style={{ paddingBottom: 60, paddingTop: 4 }}>
         <div style={{ ...S.card, padding: 16, marginBottom: 12 }}>
@@ -15153,7 +15199,7 @@ import "./styles.css";
               marginBottom: 14,
             }}
           >
-            <div>
+            <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
               <div
                 style={{
                   fontWeight: 700,
@@ -15168,6 +15214,66 @@ import "./styles.css";
               <div style={{ fontSize: 13, color: th.sub }}>
                 {fmtDateFullLocal(session.startTime)}
               </div>
+              {canEdit && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  {editing ? (
+                    <>
+                      <button
+                        onClick={saveEdits}
+                        disabled={saving}
+                        style={{
+                          ...buttonTexture(th, "accent", saving),
+                          borderRadius: 9,
+                          padding: "6px 12px",
+                          cursor: saving ? "default" : "pointer",
+                          fontFamily: "'Outfit',sans-serif",
+                          fontWeight: 800,
+                          fontSize: 11,
+                          letterSpacing: "0.4px",
+                        }}
+                      >
+                        {saving ? t("Saving...") : t("SAVE")}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDurationDraft(session?.duration != null ? String(session.duration) : "");
+                          setCaloriesDraft(session?.calories != null ? String(session.calories) : "");
+                          setIntensityDraft(session?.intensity != null ? String(session.intensity) : "");
+                          setEditing(false);
+                        }}
+                        disabled={saving}
+                        style={{
+                          ...buttonTexture(th, "neutral", saving),
+                          borderRadius: 9,
+                          padding: "6px 12px",
+                          cursor: saving ? "default" : "pointer",
+                          fontFamily: "'Outfit',sans-serif",
+                          fontWeight: 700,
+                          fontSize: 11,
+                        }}
+                      >
+                        {t("Cancel")}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setEditing(true)}
+                      style={{
+                        ...buttonTexture(th, "neutral"),
+                        borderRadius: 9,
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        fontFamily: "'Outfit',sans-serif",
+                        fontWeight: 800,
+                        fontSize: 11,
+                        letterSpacing: "0.4px",
+                      }}
+                    >
+                      {t("EDIT")}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             {session.intensity != null && (
               <div
@@ -15235,6 +15341,92 @@ import "./styles.css";
               </div>
             ))}
           </div>
+          {editing && (
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              marginTop: 12,
+              paddingTop: 12,
+              borderTop: `1px solid ${th.border}`,
+            }}>
+              <div>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
+                  {t("DURATION (min)")}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={durationDraft}
+                  placeholder="0"
+                  onChange={(e) => setDurationDraft(e.target.value)}
+                  style={S.input}
+                />
+              </div>
+              <div>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>
+                  {t("CALORIES (kcal)")}
+                </div>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={caloriesDraft}
+                  placeholder="0"
+                  onChange={(e) => setCaloriesDraft(e.target.value)}
+                  style={S.input}
+                />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{ ...S.label, fontSize: 10, marginBottom: 8 }}>
+                  {t("INTENSITY")}
+                </div>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+                    const active = intensityDraft !== "" && Math.round(parseFloat(intensityDraft)) === n;
+                    const col = intColor(n, th);
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setIntensityDraft(String(n))}
+                        style={{
+                          flex: 1,
+                          border: `1px solid ${active ? col : th.inputB}`,
+                          borderRadius: 7,
+                          padding: "10px 0",
+                          cursor: "pointer",
+                          fontFamily: "'Bebas Neue',sans-serif",
+                          fontSize: 15,
+                          background: active ? col : th.row,
+                          color: active ? "#080809" : th.dim,
+                        }}
+                      >
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIntensityDraft("")}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: th.dim,
+                    cursor: "pointer",
+                    fontFamily: "'Outfit',sans-serif",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "8px 0 0",
+                  }}
+                >
+                  {t("Clear")}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
         <div style={{ ...S.label, marginBottom: 12, textAlign: "left" }}>
           {t("EXERCISES")} ({exercises.length})
@@ -18341,6 +18533,18 @@ import "./styles.css";
       saveSessions(next);
       await fsDeleteSession(user.id, sessionId);
     };
+    const handleUpdateSession = async (updatedSession) => {
+      const normalized = {
+        ...updatedSession,
+        exercises: (updatedSession?.exercises || []).map(normalizeWorkoutExercise),
+      };
+      const next = sessions
+        .map((s) => (String(s.id) === String(normalized.id) ? normalized : s))
+        .sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+      saveSessions(next);
+      setSelSession(normalized);
+      await fsUpdateSession(user.id, normalized);
+    };
 
     const handleSaveSession = async ({ intensity, calories, duration }) => {
       const normalizedFinished = {
@@ -19200,6 +19404,7 @@ import "./styles.css";
             {view === "sessionDetail" && selSession && (
               <SessionDetailView
                 session={selSession}
+                onSave={handleUpdateSession}
                 onOrigin={selSessionOrigin}
               />
             )}
