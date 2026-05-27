@@ -5888,7 +5888,7 @@ import "./styles.css";
                 style={{
                   background: "none",
                   border: "none",
-                  color: th.bg === "#080809" ? "rgba(176, 82, 90, 0.82)" : "rgba(118, 34, 44, 0.82)",
+                  color: th.delText,
                   cursor: "pointer",
                   fontSize: 22,
                   width: 34,
@@ -13548,7 +13548,7 @@ import "./styles.css";
                         style={{
                           background: "none",
                           border: "none",
-                          color: th.bg === "#080809" ? "rgba(176, 82, 90, 0.82)" : "rgba(118, 34, 44, 0.82)",
+                          color: th.delText,
                           cursor: "pointer",
                           fontSize: 22,
                           width: 34,
@@ -15069,7 +15069,7 @@ import "./styles.css";
                       style={{
                         background: "none",
                         border: "none",
-                        color: th.bg === "#080809" ? "rgba(176, 82, 90, 0.82)" : "rgba(118, 34, 44, 0.82)",
+                        color: th.delText,
                         cursor: "pointer",
                         width: 34,
                         height: 34,
