@@ -3653,6 +3653,8 @@ import "./styles.css";
     const label = dark ? "#a6a8a3" : "#747570";
     const atlasFilter = dark ? "invert(1) brightness(0.62) contrast(1.08)" : "none";
     const activeRegions = highlights || {};
+    const cropY = 70;
+    const cropH = 1450;
     const regionOpacity = (active) => active.opacity >= 1
       ? (dark ? 0.86 : 0.78)
       : (dark ? 0.52 : 0.4);
@@ -3708,23 +3710,29 @@ import "./styles.css";
       <div style={{
         position:"relative",
         width:"100%",
-        maxWidth:460,
+        maxWidth:360,
         margin:"0 auto",
         borderRadius:18,
         overflow:"hidden",
         background:bg,
-        padding:"8px 8px 32px",
+        padding:"4px 4px 20px",
       }}>
-        <div style={{ position:"relative", width:"100%" }}>
-          <img
-            src={bodyMuscleAtlasUrl}
-            alt="Front and back muscle atlas"
-            draggable={false}
+        <svg
+          viewBox={`0 ${cropY} 1024 ${cropH}`}
+          xmlns="http://www.w3.org/2000/svg"
+          preserveAspectRatio="xMidYMid meet"
+          aria-label="Front and back muscle atlas"
+          style={{ display:"block", width:"100%", height:"auto" }}
+        >
+          <image
+            href={bodyMuscleAtlasUrl}
+            x="0"
+            y="0"
+            width="1024"
+            height="1536"
+            preserveAspectRatio="xMidYMid meet"
+            opacity={dark ? 0.42 : 0.28}
             style={{
-              display:"block",
-              width:"100%",
-              height:"auto",
-              opacity: dark ? 0.42 : 0.28,
               filter: atlasFilter,
               pointerEvents:"none",
               userSelect:"none",
@@ -3734,12 +3742,11 @@ import "./styles.css";
           <svg
             viewBox="0 0 1024 1536"
             xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="xMidYMid meet"
+            x="0"
+            y="0"
+            width="1024"
+            height="1536"
             style={{
-              position:"absolute",
-              inset:0,
-              width:"100%",
-              height:"100%",
               pointerEvents:"none",
               mixBlendMode:"normal",
             }}
@@ -3760,36 +3767,32 @@ import "./styles.css";
               );
             })}
           </svg>
-          <img
-            src={bodyMuscleAtlasUrl}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
+          <image
+            href={bodyMuscleAtlasUrl}
+            x="0"
+            y="0"
+            width="1024"
+            height="1536"
+            preserveAspectRatio="xMidYMid meet"
+            opacity={dark ? 0.76 : 0.72}
             style={{
-              position:"absolute",
-              inset:0,
-              display:"block",
-              width:"100%",
-              height:"100%",
-              objectFit:"contain",
-              opacity: dark ? 0.76 : 0.72,
               filter: atlasFilter,
               pointerEvents:"none",
               userSelect:"none",
               WebkitUserSelect:"none",
             }}
           />
-        </div>
+        </svg>
         <div style={{
           position:"absolute",
-          left:8,
-          right:8,
-          bottom:9,
+          left:4,
+          right:4,
+          bottom:5,
           display:"grid",
           gridTemplateColumns:"1fr 1fr",
           color:label,
           fontFamily:"Outfit, sans-serif",
-          fontSize:10,
+          fontSize:9.5,
           fontWeight:800,
           letterSpacing:1.2,
           textAlign:"center",
@@ -3851,13 +3854,13 @@ import "./styles.css";
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
             marginTop:"auto",
             display:"flex", flexDirection:"column", overflow:"hidden",
-            height:"72vh", minHeight:"72vh",
+            height:"86vh", minHeight:"86vh",
             pointerEvents:"auto",
             animation: closing ? "eiSlideDown 0.34s cubic-bezier(0.4,0,1,1) forwards" : "eiSlideUp 0.42s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
             {/* Header */}
-            <div style={{ padding:"18px 18px 12px", borderBottom:`1px solid ${th.border}` }}>
-              <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}>
+            <div style={{ padding:"12px 16px 9px", borderBottom:`1px solid ${th.border}` }}>
+              <div style={{ display:"flex", justifyContent:"center", marginBottom:6 }}>
                 <div style={{ width:36, height:4, borderRadius:2, background:th.inputB }} />
               </div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:10 }}>
@@ -3872,16 +3875,16 @@ import "./styles.css";
               </div>
             </div>
             {/* Body */}
-            <div style={{ flex:1, overflowY:"auto", padding:"18px" }}>
-              <div style={{ ...S.label, marginBottom:10, textAlign:"left" }}>{t("MUSCLES TARGETED")}</div>
+            <div style={{ flex:1, overflowY:"auto", padding:"12px 14px 18px" }}>
+              <div style={{ ...S.label, marginBottom:8, textAlign:"left" }}>{t("MUSCLES TARGETED")}</div>
               <div style={{
                 background:`color-mix(in srgb, ${th.sect} 60%, transparent)`,
                 borderRadius:14, border:`1px solid ${th.border}`,
-                padding:"14px 8px 18px",
+                padding:"10px 6px 12px",
                 display:"flex",
                 flexDirection:"column",
                 alignItems:"stretch",
-                gap:12,
+                gap:8,
               }}>
                 {targetMuscles.length > 0 && (
                   <div style={{
@@ -6255,11 +6258,11 @@ import "./styles.css";
 	        width:"100%",
 	        maxWidth:320,
 	        margin:"0 auto",
-	        borderRadius:18,
-	        overflow:"hidden",
-	        background:dark ? "#20211f" : "#fbfbfa",
-	        padding:"6px 6px 28px",
-	      }}>
+        borderRadius:18,
+        overflow:"hidden",
+        background:dark ? "#20211f" : "#fbfbfa",
+        padding:"4px 4px 20px",
+      }}>
 	          <svg
 	            viewBox={`0 ${cropY} 1024 ${cropH}`}
 	            xmlns="http://www.w3.org/2000/svg"
@@ -6316,14 +6319,14 @@ import "./styles.css";
 	          </svg>
 	        <div style={{
 	          position:"absolute",
-	          left:6,
-	          right:6,
-	          bottom:8,
+          left:4,
+          right:4,
+          bottom:5,
 	          display:"grid",
 	          gridTemplateColumns:"1fr 1fr",
 	          color:dark ? "#a6a8a3" : "#747570",
 	          fontFamily:"Outfit, sans-serif",
-	          fontSize:10,
+          fontSize:9.5,
 	          fontWeight:800,
 	          letterSpacing:1.2,
 	          textAlign:"center",
@@ -6373,43 +6376,48 @@ import "./styles.css";
 	          flexDirection:"column",
 	          animation:closing ? "atlasBrowseOut 0.28s ease-in forwards" : "atlasBrowseIn 0.34s cubic-bezier(0.32,0.72,0,1) forwards",
 	        }}>
-	          <div style={{
-	            padding:"calc(14px + env(safe-area-inset-top, 0px)) 16px 12px",
-	            borderBottom:`1px solid ${th.border}`,
-	            background:`color-mix(in srgb, ${th.bg} 72%, transparent)`,
-	            backdropFilter:"blur(18px)",
-	            WebkitBackdropFilter:"blur(18px)",
-	            zIndex:2,
-	          }}>
-	            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-	              <button
-	                onClick={close}
-	                aria-label={t("Back")}
-	                style={{
-	                  ...buttonTexture(th, "neutral"),
-	                  width:38,
-	                  height:38,
-	                  borderRadius:"50%",
-	                  display:"flex",
-	                  alignItems:"center",
-	                  justifyContent:"center",
-	                  cursor:"pointer",
-	                  color:th.text,
-	                  flexShrink:0,
-	                  fontSize:24,
-	                  lineHeight:1,
-	                }}
-	              >
-	                ‹
-	              </button>
-	              <div style={{ flex:1, minWidth:0, textAlign:"left" }}>
-	                <div className="bebas" style={{ fontSize:26, letterSpacing:1.6, color:th.text, lineHeight:1 }}>
-	                  {t("MUSCLE MAP")}
-	                </div>
-	                <div style={{ color:th.muted, fontSize:12, marginTop:2 }}>
-	                  {selectedMuscle ? t(selectedMuscle) : t("Tap a muscle region")}
-	                </div>
-	              </div>
+          <div style={{
+            paddingTop:"calc(14px + env(safe-area-inset-top, 0px))",
+            paddingRight:"16px",
+            paddingBottom:"1px",
+            paddingLeft:"16px",
+            borderBottom:`1px solid ${th.border}`,
+            background:`color-mix(in srgb, ${th.bg} 25%, transparent)`,
+            backdropFilter:"blur(12px)",
+            WebkitBackdropFilter:"blur(12px)",
+            zIndex:2,
+          }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, minHeight:32 }}>
+              <button
+                onClick={close}
+                aria-label={t("Back")}
+                style={{
+                  background:"none",
+                  border:"none",
+                  color:th.sub,
+                  fontSize:22,
+                  cursor:"pointer",
+                  padding:"0 8px 0 0",
+                  lineHeight:1,
+                  flexShrink:0,
+                }}
+              >
+                ←
+              </button>
+              <div className="bebas" style={{
+                fontSize:40,
+                letterSpacing:2,
+                color:th.text,
+                lineHeight:1,
+                flex:1,
+                minWidth:0,
+                textAlign:"left",
+                overflow:"hidden",
+                textOverflow:"ellipsis",
+                whiteSpace:"nowrap",
+              }}>
+                {t("MUSCLE MAP")}
+              </div>
 	              {pending.length > 0 && (
 	                <button
 	                  onClick={onConfirm}
@@ -6436,7 +6444,7 @@ import "./styles.css";
 	              top:0,
 	              zIndex:2,
 	              margin:"0 -16px 12px",
-	              padding:"14px 16px 12px",
+              padding:"10px 16px 10px",
 	              background:`linear-gradient(180deg, ${th.bg} 0%, color-mix(in srgb, ${th.bg} 92%, transparent) 78%, transparent 100%)`,
 	              backdropFilter:"blur(16px)",
 	              WebkitBackdropFilter:"blur(16px)",
@@ -6444,13 +6452,13 @@ import "./styles.css";
 	            }}>
 	              <div style={{
 	                ...S.card,
-	                padding:"10px",
-	                marginBottom:10,
+                padding:"6px",
+                marginBottom:8,
 	                borderColor:selectedShape ? `${muscleAccent(selectedMuscle, selectedShape.group, th.bg === "#080809")}77` : th.border,
 	              }}>
 	                <InteractiveExerciseAtlas selectedMuscle={selectedMuscle} onSelect={setSelectedMuscle} />
 	              </div>
-	              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:8, flexWrap:"wrap" }}>
 	                {selectedMuscle ? (
 	                  <>
 	                    <span style={{ ...S.tag(selectedShape?.group || "Chest", selectedMuscle), fontSize:9.5 }}>
