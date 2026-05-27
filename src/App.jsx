@@ -1328,6 +1328,8 @@ import "./styles.css";
     return {
       input: {
         width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
         background: th.input,
         border: `1px solid ${th.inputB}`,
         borderRadius: 12,
@@ -3654,7 +3656,7 @@ import "./styles.css";
     const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
     const activeRegions = highlights || {};
     const cropY = 70;
-    const cropH = 1450;
+    const cropH = 1430;
     const imageShift = `${-(cropY / 1536) * 100}%`;
     const atlasImageStyle = (opacity) => ({
       position:"absolute",
@@ -3731,7 +3733,7 @@ import "./styles.css";
         borderRadius:18,
         overflow:"hidden",
         background:bg,
-        padding:"4px 4px 20px",
+        padding:"4px 4px 17px",
         isolation:"isolate",
       }}
         role="img"
@@ -3795,7 +3797,7 @@ import "./styles.css";
           position:"absolute",
           left:4,
           right:4,
-          bottom:5,
+          bottom:3,
           display:"grid",
           gridTemplateColumns:"1fr 1fr",
           color:label,
