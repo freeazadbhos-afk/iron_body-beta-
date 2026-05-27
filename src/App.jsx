@@ -6669,33 +6669,13 @@ import "./styles.css";
               <span
                 className="bebas"
                 style={{ fontSize: 24, letterSpacing: 2, color: th.text }}
-              >
-                {t("ADD EXERCISES")}
-              </span>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                {pending.length > 0 && (
-                  <button
-                    onClick={confirmAdd}
-                    style={{
-                      background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                      backdropFilter: "blur(10px)",
-                      WebkitBackdropFilter: "blur(10px)",
-                      border: "none",
-                      borderRadius: 9,
-                      color: th.accentT,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      padding: "7px 16px",
-                      cursor: "pointer",
-                      fontFamily: "'Outfit',sans-serif",
-                    }}
-                  >
-                    {t("ADD")} {pending.length} →
-                  </button>
-                )}
-                <button
-                  onClick={() => closeMe()}
-                  style={{
+	              >
+	                {t("ADD EXERCISES")}
+	              </span>
+	              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+	                <button
+	                  onClick={() => closeMe()}
+	                  style={{
                     background: "none",
                     border: "none",
                     color: th.muted,
@@ -6791,49 +6771,45 @@ import "./styles.css";
               const isAdded = added.includes(e.id);
               const isPending = pending.includes(e.id);
               return (
-                <div
-                  key={e.id}
-                  onClick={() => toggle(e.id)}
-                  style={{
-                    padding: "12px 0",
-                    borderBottom: `1px solid ${th.border}`,
-                    cursor: isAdded ? "default" : "pointer",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    background: isPending ? `${th.accentBg}18` : "transparent",
-                    borderRadius: isPending ? 8 : 0,
-                    padding: isPending ? "12px 10px" : "12px 0",
-                  }}
-                >
-                  <div>
-                    <div
-                      style={{
-                        display: "flex",      // Added for alignment
-                        alignItems: "center", // Added for alignment
-                        gap: 8,               // Added for spacing (adjust as needed)
-                        fontWeight: 500,
-                        fontSize: 14,
-                        color: isAdded ? th.dim : th.text,
-                      }}
-                    >
-                      {e.name}
-                      <DiffBadge id={e.id} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-	                  <span style={{ ...S.tag(e.group, e.muscle), fontSize: 8.5, padding: "2px 5px" }}>
-                        {e.muscle.toUpperCase()}
-                        </span>
-                        {SECONDARY[e.id] && SECONDARY[e.id].split(" · ").map(m => {
-                          const grp = DB.find(d => d && d.muscle === m)?.group || "Back";
-                          return (
-	                      <span key={m} style={{ ...S.tag(grp, m), opacity: 0.92, fontSize: 8, padding: "1px 5px" }}>
-                            {m.toUpperCase()}
-                            </span>
-                            );
-                            })}
-                            </div>
-                  </div>
+	                <div
+	                  key={e.id}
+	                  onClick={() => toggle(e.id)}
+	                  className={isAdded ? "" : "ib-pressable-card"}
+	                  {...pressableCardProps(isAdded)}
+	                  style={{
+	                    ...S.card,
+	                    marginBottom:8,
+	                    padding:"12px 12px",
+	                    cursor:isAdded ? "default" : "pointer",
+	                    display:"flex",
+	                    alignItems:"center",
+	                    justifyContent:"space-between",
+	                    gap:12,
+	                    borderColor:isPending ? th.accentBg : th.border,
+	                    background:isPending
+	                      ? `color-mix(in srgb, ${th.accentBg} 14%, ${th.card})`
+	                      : S.card.background,
+	                  }}
+	                >
+	                  <div style={{ minWidth:0, flex:1, textAlign:"left" }}>
+	                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", color:isAdded ? th.dim : th.text, fontWeight:700, fontSize:14 }}>
+	                      {e.name}
+	                      <DiffBadge id={e.id} />
+	                    </div>
+	                    <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:5, flexWrap:"wrap" }}>
+	                      <span style={{ ...S.tag(e.group, e.muscle), fontSize:8.5, padding:"2px 5px" }}>
+	                        {e.muscle.toUpperCase()}
+	                      </span>
+	                      {(SECONDARY[e.id] || "").split(" · ").filter(Boolean).map((m) => {
+	                        const grp = (DB.find((d) => d && d.muscle === m) || {}).group || e.group;
+	                        return (
+	                          <span key={m} style={{ ...S.tag(grp, m), opacity:0.9, fontSize:8, padding:"1px 5px" }}>
+	                            {m.toUpperCase()}
+	                          </span>
+	                        );
+	                      })}
+	                    </div>
+	                  </div>
 	                  <div
 	                    style={{
 	                      ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded }),
