@@ -372,6 +372,17 @@ import "./styles.css";
     "APPLE WATCH DATA (optional)": "APPLE WATCH VERİSİ (isteğe bağlı)",
     "DURATION (min)": "SÜRE (dk)",
     "CALORIES (kcal)": "KALORİ (kcal)",
+    "DISTANCE (km)": "MESAFE (km)",
+    "WORKOUT DATE": "ANTRENMAN TARİHİ",
+    "LOG CARDIO": "KARDİYO KAYDET",
+    "LOG MISSED CARDIO": "KAÇIRILAN KARDİYOYU KAYDET",
+    "SELECT CARDIO WORKOUT": "KARDİYO ANTRENMANI SEÇ",
+    "NO CARDIO WORKOUTS": "KARDİYO ANTRENMANI YOK",
+    "Add a cardio exercise to a workout program first.": "Önce bir antrenman programına kardiyo egzersizi ekle.",
+    "Cardio workout": "Kardiyo antrenmanı",
+    "Log missed cardio": "Kaçırılan kardiyoyu kaydet",
+    "Enter the numbers from your wearable or cardio machine.": "Giyilebilir cihazından veya kardiyo makinesinden değerleri gir.",
+    "SAVE CARDIO →": "KARDİYOYU KAYDET →",
     "e.g. 450": "ör. 450",
     // Tier messages — celebration banner
     "Absolutely elite. That session will be remembered.": "Mutlak elit. Bu antrenman hatırlanacak.",
@@ -4229,6 +4240,15 @@ import "./styles.css";
       month: "long",
       year: "numeric",
     });
+  }
+  function dateInputValue(date = new Date()) {
+    const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 10);
+  }
+  function localDateAtNoon(value) {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date();
+    const [y, m, d] = value.split("-").map(Number);
+    return new Date(y, m - 1, d, 12, 0, 0, 0);
   }
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -14916,6 +14936,260 @@ import "./styles.css";
     );
   }
 
+  function MissedCardioPickerSheet({ choices, onSelect, onClose }) {
+    const th = useTheme();
+    const S = useS();
+    const t = useT();
+    const [closing, setClosing] = useState(false);
+    const close = (cb) => {
+      setClosing(true);
+      setTimeout(() => {
+        setClosing(false);
+        (cb || onClose)();
+      }, 300);
+    };
+    return createPortal(
+      <>
+        <style>{`
+          @keyframes mcBdIn  { from{opacity:0} to{opacity:1} }
+          @keyframes mcBdOut { from{opacity:1} to{opacity:0} }
+          @keyframes mcSheetIn  { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes mcSheetOut { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+        `}</style>
+        <div
+          onClick={() => close()}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 80,
+            background: "rgba(0,0,0,0.55)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            animation: closing ? "mcBdOut .34s ease forwards" : "mcBdIn .26s ease forwards",
+          }}
+        />
+        <div style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 81,
+          display: "flex",
+          flexDirection: "column",
+          maxWidth: 480,
+          margin: "0 auto",
+          pointerEvents: "none",
+        }}>
+          <div onClick={(e) => e.stopPropagation()} style={{
+            background: `color-mix(in srgb, ${th.card} 92%, transparent)`,
+            backdropFilter: "blur(28px) saturate(1.5)",
+            WebkitBackdropFilter: "blur(28px) saturate(1.5)",
+            borderRadius: "24px 24px 0 0",
+            borderTop: `1px solid ${th.border}`,
+            marginTop: "auto",
+            maxHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            pointerEvents: "auto",
+            animation: closing ? "mcSheetOut .34s cubic-bezier(0.4,0,1,1) forwards" : "mcSheetIn .42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            <div style={{ padding: "12px 18px 0" }}>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}>
+                <div style={{ width: 36, height: 4, borderRadius: 2, background: th.inputB }} />
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+                <div className="bebas" style={{ fontSize: 22, letterSpacing: 2, color: th.text }}>
+                  {t("SELECT CARDIO WORKOUT")}
+                </div>
+                <button onClick={() => close()} style={{ background: "none", border: "none", color: th.muted, cursor: "pointer", fontSize: 22, lineHeight: 1, padding: "4px 6px" }}>
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div style={{ overflowY: "auto", padding: "0 18px 18px", flex: 1 }}>
+              {choices.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "34px 8px 42px" }}>
+                  <div className="bebas" style={{ fontSize: 34, color: th.dim, letterSpacing: 1.5 }}>
+                    {t("NO CARDIO WORKOUTS")}
+                  </div>
+                  <div style={{ fontSize: 13, color: th.muted, marginTop: 8, lineHeight: 1.5 }}>
+                    {t("Add a cardio exercise to a workout program first.")}
+                  </div>
+                </div>
+              ) : choices.map((choice) => (
+                <button
+                  key={choice.key}
+                  onClick={() => close(() => onSelect(choice))}
+                  style={{
+                    width: "100%",
+                    background: "none",
+                    border: "none",
+                    borderBottom: `1px solid ${th.border}`,
+                    padding: "12px 0",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "'Outfit',sans-serif",
+                  }}
+                >
+                  <ProgramIcon name={choice.program?.name || choice.db.name} size={44} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 800, fontSize: 15, color: th.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {choice.program?.name || t("Cardio workout")}
+                    </div>
+                    <div style={{ fontSize: 12, color: th.muted, marginTop: 2 }}>
+                      {choice.db.name}
+                    </div>
+                  </div>
+                  <span style={{ ...S.tag("Cardio"), flexShrink: 0 }}>CARDIO</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </>,
+      document.body
+    );
+  }
+
+  function MissedCardioResultView({ draft, onSave, onCancel }) {
+    const th = useTheme();
+    const S = useS();
+    const t = useT();
+    const [duration, setDuration] = useState("");
+    const [distance, setDistance] = useState("");
+    const [calories, setCalories] = useState("");
+    const [workoutDate, setWorkoutDate] = useState(dateInputValue());
+    const [intensity, setIntensity] = useState(7);
+    const [saving, setSaving] = useState(false);
+    if (!draft) return null;
+    const durationNum = parseFloat(duration) || 0;
+    const canSave = durationNum > 0 && !saving;
+    const save = async () => {
+      if (!canSave) return;
+      setSaving(true);
+      await onSave({
+        duration: durationNum,
+        distance: parseFloat(distance) || 0,
+        calories: parseInt(calories, 10) || 0,
+        workoutDate,
+        intensity,
+      });
+      setSaving(false);
+    };
+    return (
+      <div className="slide-up" style={{ paddingBottom: 60, paddingTop: 4 }}>
+        <div style={{ textAlign: "center", marginBottom: 18, paddingTop: 4 }}>
+          <div className="bebas" style={{ fontSize: 48, color: th.accentFg, lineHeight: 1, letterSpacing: 2.5 }}>
+            {t("LOG MISSED CARDIO")}
+          </div>
+          <div style={{ fontSize: 13, color: th.muted, marginTop: 8 }}>
+            {t("Enter the numbers from your wearable or cardio machine.")}
+          </div>
+        </div>
+
+        <div style={{ ...S.card, padding: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+          <ProgramIcon name={draft.program?.name || draft.db.name} size={48} />
+          <div style={{ flex: 1, minWidth: 0, textAlign: "left" }}>
+            <div style={{ fontWeight: 800, fontSize: 16, color: th.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {draft.program?.name || t("Cardio workout")}
+            </div>
+            <div style={{ fontSize: 12, color: th.muted, marginTop: 3 }}>{draft.db.name}</div>
+          </div>
+          <span style={S.tag("Cardio")}>CARDIO</span>
+        </div>
+
+        <div style={{ ...S.card, padding: 15, marginBottom: 18 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ gridColumn: "1 / -1" }}>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{t("WORKOUT DATE")}</div>
+              <input
+                type="date"
+                value={workoutDate}
+                max={dateInputValue()}
+                onChange={(e) => setWorkoutDate(e.target.value)}
+                style={S.input}
+              />
+            </div>
+            <div>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{t("DURATION (min)")}</div>
+              <input type="number" min="0" step="1" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="0" style={S.input} />
+            </div>
+            <div>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{t("DISTANCE (km)")}</div>
+              <input type="number" min="0" step="0.1" value={distance} onChange={(e) => setDistance(e.target.value)} placeholder="0.0" style={S.input} />
+            </div>
+            <div>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{t("CALORIES (kcal)")}</div>
+              <input type="number" min="0" step="1" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="0" style={S.input} />
+            </div>
+            <div>
+              <div style={{ ...S.label, fontSize: 10, marginBottom: 6 }}>{t("INTENSITY")}</div>
+              <div className="bebas" style={{ height: 50, borderRadius: 12, background: th.row, border: `1px solid ${th.inputB}`, display: "flex", alignItems: "center", justifyContent: "center", color: intColor(intensity, th), fontSize: 26 }}>
+                {intensity}/10
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 4, marginTop: 14 }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => {
+              const col = intColor(n, th);
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setIntensity(n)}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    borderRadius: 7,
+                    padding: "11px 0",
+                    cursor: "pointer",
+                    fontFamily: "'Bebas Neue',sans-serif",
+                    fontSize: 15,
+                    background: intensity >= n ? col : th.row,
+                    color: intensity >= n ? "#080809" : th.dim,
+                  }}
+                >
+                  {n}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <Btn
+          disabled={!canSave}
+          onClick={save}
+          style={{
+            width: "100%",
+            marginBottom: 10,
+            fontFamily: "'Outfit',sans-serif",
+            fontSize: 14,
+            letterSpacing: 0.5,
+          }}
+        >
+          {saving ? t("Saving...") : t("SAVE CARDIO →")}
+        </Btn>
+        <button
+          onClick={onCancel}
+          disabled={saving}
+          style={{
+            width: "100%",
+            background: "none",
+            border: "none",
+            color: th.muted,
+            cursor: saving ? "default" : "pointer",
+            padding: "10px 0",
+            fontFamily: "'Outfit',sans-serif",
+            fontWeight: 700,
+          }}
+        >
+          {t("Cancel")}
+        </button>
+      </div>
+    );
+  }
+
   /* ─── History & Session Detail ───────────────────────────────────────────────── */
   function HistoryView({
     sessions,
@@ -14945,6 +15219,12 @@ import "./styles.css";
           sessions.map((s) => {
             const ic = intColor(s.intensity || 0, th);
             const isPendingDelete = confirmDelete === s.id;
+            const cardioDistance = s.distance || (s.exercises || []).reduce(
+              (a, ex) => a + (ex.type === "cardio"
+                ? (ex.sets || []).filter(st => st.done !== false).reduce((b, st) => b + (st.distance || 0), 0)
+                : 0),
+              0
+            );
             return (
               <div
                 key={s.id}
@@ -15033,6 +15313,7 @@ import "./styles.css";
                     <div style={{ fontSize: 12, color: th.muted, textAlign: "left", }}>
                       {fmtDateLocal(s.startTime)} · {s.doneSets}/{s.totalSets} {t("sets")} ·{" "}
                       {s.duration || "?"}{t("min")}
+                      {cardioDistance ? ` · ${cardioDistance}km` : ""}
                       {s.calories ? ` · ${s.calories}kcal` : ""}
                     </div>
                     <div style={{ fontSize: 12, color: th.dim, marginTop: 2,textAlign: "left", }}>
@@ -15169,6 +15450,13 @@ import "./styles.css";
     const vol = sessionVol(session);
     const ic = intColor(session.intensity || 0, th);
     const exercises = session.exercises || [];
+    const isCardioSession = exercises.length > 0 && exercises.every((e) => e.type === "cardio");
+    const cardioDistance = session.distance || exercises.reduce(
+      (a, ex) => a + (ex.type === "cardio"
+        ? (ex.sets || []).filter(st => st.done !== false).reduce((b, st) => b + (st.distance || 0), 0)
+        : 0),
+      0
+    );
     const canEdit = typeof onSave === "function";
     const saveEdits = async () => {
       if (!canEdit || saving) return;
@@ -15307,7 +15595,9 @@ import "./styles.css";
           >
             {[
               { v: `${session.duration || "?"}${t("min")}`, l: t("DURATION") },
-              { v: Math.round(vol).toLocaleString() + "kg", l: t("VOLUME") },
+              isCardioSession
+                ? { v: cardioDistance ? `${cardioDistance}km` : "—", l: t("Distance") }
+                : { v: Math.round(vol).toLocaleString() + "kg", l: t("VOLUME") },
               {
                 v: session.calories ? `${session.calories}kcal` : "—",
                 l: t("CALORIES"),
@@ -15433,6 +15723,7 @@ import "./styles.css";
         </div>
         {exercises.map((ex, i) => {
           const sets = ex.sets || [];
+          const isCardioEx = ex.type === "cardio";
           const muscle = ex.muscle || ex.group || "Exercise";
           const doneS = sets.filter((s) => s.done).length;
           const exVol = sets
@@ -15480,7 +15771,7 @@ import "./styles.css";
                           color: s.done ? th.accentFg : th.dim,
                         }}
                       >
-                        {s.reps}×{s.weight}kg
+                        {isCardioEx ? `${s.duration || 0}${t("min")}` : `${s.reps}×${s.weight}kg`}
                       </div>
                       <div
                         style={{
@@ -15488,7 +15779,13 @@ import "./styles.css";
                           color: s.done ? th.doneText : th.dim,
                         }}
                       >
-                        {t("SET")} {si + 1}
+                        {isCardioEx
+                          ? [
+                              s.distance ? `${s.distance}km` : null,
+                              s.calories ? `${s.calories}kcal` : null,
+                              s.intensity ? `${s.intensity}/10` : null,
+                            ].filter(Boolean).join(" · ") || t("SET") + " " + (si + 1)
+                          : t("SET") + " " + (si + 1)}
                       </div>
                     </div>
                   ))}
@@ -17850,6 +18147,8 @@ import "./styles.css";
     const [shareProgClosing, setShareProgClosing] = useState(false);
     const [shareProgTarget, setShareProgTarget] = useState(null); // program to share
     const [sharingSending, setSharingSending] = useState({}); // {friendUid: 'idle'|'sending'|'sent'}
+    const [missedCardioPickerOpen, setMissedCardioPickerOpen] = useState(false);
+    const [missedCardioDraft, setMissedCardioDraft] = useState(null);
     const closeShareProg = () => { setShareProgClosing(true); setTimeout(() => { setShareProgOpen(false); setShareProgClosing(false); setSharingSending({}); }, 340); };
     const closeProfile = () => {
       setProfileClosing(true);
@@ -18610,6 +18909,55 @@ import "./styles.css";
       resetWorkoutTimerState();
       setView("home");
     };
+    const handleSaveMissedCardio = async ({ duration, distance, calories, workoutDate, intensity }) => {
+      if (!missedCardioDraft?.db) return;
+      const db = missedCardioDraft.db;
+      const dur = Math.max(0, Math.round(duration || 0));
+      const dist = Math.max(0, Math.round((distance || 0) * 100) / 100);
+      const cals = Math.max(0, Math.round(calories || 0));
+      const intVal = Math.min(10, Math.max(1, parseFloat(intensity) || 1));
+      const recordedAt = localDateAtNoon(workoutDate).getTime();
+      const session = {
+        id: uid(),
+        name: missedCardioDraft.program?.name || db.name,
+        progId: missedCardioDraft.program?.id || null,
+        startTime: recordedAt,
+        endTime: recordedAt + dur * 60000,
+        totalSets: 1,
+        doneSets: 1,
+        intensity: intVal,
+        calories: cals || null,
+        duration: dur || null,
+        distance: dist || null,
+        exercises: [
+          {
+            uid: uid(),
+            id: db.id,
+            exId: db.id,
+            name: db.name,
+            muscle: db.muscle,
+            group: db.group,
+            type: "cardio",
+            sets: [
+              {
+                i: 0,
+                done: true,
+                duration: dur,
+                distance: dist,
+                calories: cals,
+                intensity: intVal,
+              },
+            ],
+          },
+        ],
+      };
+      const next = [session, ...sessions].sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+      saveSessions(next);
+      const ok = await fsAddSession(user.id, session);
+      if (!ok) console.warn("Missed cardio session may not have synced to Firestore — will retry on next sync");
+      setMissedCardioDraft(null);
+      setView("history");
+    };
     const handleAbandon = () => {
       if (!window.confirm("Abandon workout? Progress will be lost.")) return;
       lsDel(uKey(user.id, "active"));
@@ -18624,14 +18972,26 @@ import "./styles.css";
       setSessions([]);
       setPrograms([]);
       setActive(null);
+      setMissedCardioPickerOpen(false);
+      setMissedCardioDraft(null);
       resetWorkoutTimerState();
     };
+
+    const cardioProgramChoices = programs.flatMap((program) =>
+      (program?.exs || []).flatMap((ex, idx) => {
+        const db = DB.find((d) => d.id === ex?.id);
+        return db?.type === "cardio"
+          ? [{ key: `${program.id || program.name || "program"}-${db.id}-${idx}`, program, db }]
+          : [];
+      })
+    );
 
     // Nav is always visible (even during workout — user can minimize)
     const hideNav = [
       "complete",
       "create",
       "editProgram",
+      "missedCardio",
       "sessionDetail",
       "shortcutDetail",
     ].includes(view);
@@ -19167,6 +19527,7 @@ import "./styles.css";
                 {[
                   "create",
                   "editProgram",
+                  "missedCardio",
                   "sessionDetail",
                   "shortcutDetail",
                 ].includes(view) && (
@@ -19176,6 +19537,10 @@ import "./styles.css";
                         setView(selSessionOrigin || "history");
                       else if (view === "editProgram") setView("programs");
                       else if (view === "create") setView("home");
+                      else if (view === "missedCardio") {
+                        setMissedCardioDraft(null);
+                        setView("history");
+                      }
                       else if (view === "shortcutDetail") setView("home");
                       else if (view === "complete") {
                         /* complete has its own save/flow */
@@ -19223,6 +19588,8 @@ import "./styles.css";
                     ? editingProg
                       ? tLang("EDIT PROGRAM")
                       : tLang("NEW PROGRAM")
+                    : view === "missedCardio"
+                    ? tLang("LOG CARDIO")
                     : view === "sessionDetail"
                     ? tLang("SESSION DETAIL")
                     : view === "complete"
@@ -19350,6 +19717,16 @@ import "./styles.css";
                 finished={finished}
                 elapsed={elapsed}
                 onSave={handleSaveSession}
+              />
+            )}
+            {view === "missedCardio" && missedCardioDraft && (
+              <MissedCardioResultView
+                draft={missedCardioDraft}
+                onSave={handleSaveMissedCardio}
+                onCancel={() => {
+                  setMissedCardioDraft(null);
+                  setView("history");
+                }}
               />
             )}
             {view === "programs" && (
@@ -19488,6 +19865,49 @@ import "./styles.css";
                 }}
                 onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
                 onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                style={{
+                  ...buttonTexture(th, "blue"),
+                  width: 52, height: 52,
+                  borderRadius: 20,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                  fontSize: 32,
+                  fontWeight: 400,
+                  lineHeight: 1,
+                  userSelect: "none",
+                  transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow .2s",
+                }}
+              >
+                +
+              </div>
+            </div>
+          )}
+
+          {/* ── History FAB — log missed cardio ── */}
+          {view === "history" && !hideNav && (
+            <div
+              style={{ position:"absolute", bottom:105, right:28, zIndex:20, width:52, height:52 }}
+            >
+              <style>{`@keyframes cardioFabRipple{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0.6}100%{transform:translate(-50%,-50%) scale(2.6);opacity:0}}`}</style>
+              <div
+                onClick={(e) => { addRipple(e, "#fff"); setMissedCardioPickerOpen(true); }}
+                onPointerDown={e => {
+                  const el = e.currentTarget;
+                  el.style.transform = "scale(0.88)";
+                  const wrap = el.parentElement;
+                  const old = wrap.querySelector(".cardio-fab-ripple");
+                  if (old) old.remove();
+                  const r = document.createElement("div");
+                  r.className = "cardio-fab-ripple";
+                  r.style.cssText = `position:absolute;top:50%;left:50%;width:52px;height:52px;border-radius:50%;border:2.5px solid ${"#5B9CF6"};pointer-events:none;animation:cardioFabRipple 0.55s ease-out forwards;`;
+                  wrap.appendChild(r);
+                  setTimeout(() => r.remove(), 560);
+                }}
+                onPointerUp={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                onPointerLeave={e => { e.currentTarget.style.transform = "scale(1)"; }}
+                title={tLang("Log missed cardio")}
                 style={{
                   ...buttonTexture(th, "blue"),
                   width: 52, height: 52,
@@ -20107,6 +20527,18 @@ import "./styles.css";
             </div>
           </div>
         </>
+      )}
+
+      {missedCardioPickerOpen && (
+        <MissedCardioPickerSheet
+          choices={cardioProgramChoices}
+          onClose={() => setMissedCardioPickerOpen(false)}
+          onSelect={(choice) => {
+            setMissedCardioPickerOpen(false);
+            setMissedCardioDraft(choice);
+            setView("missedCardio");
+          }}
+        />
       )}
 
       {/* ── Share Program Modal ── */}
