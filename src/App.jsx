@@ -1172,6 +1172,25 @@ import "./styles.css";
     }, cleanupDelay);
   }
 
+  const cardPressIgnoreSelector = "button,input,textarea,select,a,[role='button'],[data-no-card-press]";
+  function pressableCardProps(disabled = false) {
+    if (disabled) return {};
+    const clear = (el) => {
+      if (el && el.classList) el.classList.remove("ib-card-pressed");
+    };
+    return {
+      onPointerDown: (e) => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.target?.closest?.(cardPressIgnoreSelector)) return;
+        e.currentTarget.classList.add("ib-card-pressed");
+      },
+      onPointerUp: (e) => clear(e.currentTarget),
+      onPointerLeave: (e) => clear(e.currentTarget),
+      onPointerCancel: (e) => clear(e.currentTarget),
+      onBlur: (e) => clear(e.currentTarget),
+    };
+  }
+
   // Touch-swipe helper — returns onTouchStart/onTouchEnd handlers that fire
   // onLeft for a swipe-left (paginate "next") and onRight for swipe-right ("prev").
   // Threshold 40px and a small vertical-dominance check so vertical scrolls don't trigger pagination.
@@ -5833,7 +5852,7 @@ import "./styles.css";
           animation: removing ? "removeSlide 0.31s ease-in forwards" : wasDropped ? (dropDir === "down" ? "dropFromAbove 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards" : "dropFromBelow 0.45s cubic-bezier(0.34,1.3,0.64,1) forwards") : undefined }}
       >
         {isOver && <DropLine />}
-        <div style={{ ...S.card, marginBottom: 7, overflow: "hidden" }}>
+        <div className="ib-pressable-card" {...pressableCardProps()} style={{ ...S.card, marginBottom: 7, overflow: "hidden" }}>
           {/* Header: grip + name + muscle tag + chevron + REMOVE */}
           <div
             style={{
@@ -5853,13 +5872,14 @@ import "./styles.css";
                 minWidth: 0,
               }}
             >
-              <div
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  onDragStart && onDragStart(e, exI, listRef);
-                }}
-                style={{ marginRight: 8, flexShrink: 0 }}
-              >
+	              <div
+	                onPointerDown={(e) => {
+	                  e.stopPropagation();
+	                  onDragStart && onDragStart(e, exI, listRef);
+	                }}
+	                data-no-card-press=""
+	                style={{ marginRight: 8, flexShrink: 0 }}
+	              >
                 <GripIcon />
               </div>
               <div style={{ minWidth: 0 }}>
@@ -12815,6 +12835,8 @@ import "./styles.css";
               const programExs = Array.isArray(p.exs) ? p.exs : [];
               return (
               <div key={p.id} id={"prog-card-" + p.id}
+                className={editing ? "" : "ib-pressable-card"}
+                {...pressableCardProps(editing)}
                 style={{ ...S.card, marginBottom:9, overflow:"visible", position:"relative",
                   // no wobble in edit mode
                 }}>
@@ -13530,7 +13552,7 @@ import "./styles.css";
               const isOpen = expandedEx === ex.uid;
               const isCardio = ex.type === "cardio";
               return (
-                <div key={ex.uid} style={{ ...S.card, marginBottom: 8 }}>
+                <div key={ex.uid} className="ib-pressable-card" {...pressableCardProps()} style={{ ...S.card, marginBottom: 8 }}>
                   <div
                     style={{
                       padding: "13px 15px",
@@ -14206,10 +14228,12 @@ import "./styles.css";
           const someDone = ex.sets.some((s) => s.done);
           const showMilestone = milestoneMsg && milestoneExIdx === eIdx;
           return (
-            <div
-              key={ex.uid}
-              style={{
-                ...S.card,
+	            <div
+	              key={ex.uid}
+	              className="ib-pressable-card"
+	              {...pressableCardProps()}
+	              style={{
+	                ...S.card,
                 marginBottom: 9,
                 position: "relative",
                 overflow: "hidden",
@@ -15229,10 +15253,12 @@ import "./styles.css";
             const isPendingDelete = confirmDelete === s.id;
             const cardioDistance = sessionCardioDistance(s);
             return (
-              <div
-                key={s.id}
-                style={{
-                  ...S.card,
+	              <div
+	                key={s.id}
+	                className={isPendingDelete ? "" : "ib-pressable-card"}
+	                {...pressableCardProps(isPendingDelete)}
+	                style={{
+	                  ...S.card,
                   marginBottom: 8,
                   overflow: "hidden",
                   borderColor: isPendingDelete ? th.delB : th.border,
@@ -19726,13 +19752,49 @@ import "./styles.css";
               from { opacity: 0; transform: translateY(48px); }
               to   { opacity: 1; transform: translateY(0); }
             }
-            @keyframes pipExit {
-              from { opacity: 1; transform: translateY(0)   scale(1); }
-              to   { opacity: 0; transform: translateY(10px) scale(0.97); }
-            }
-            /* ── Global button press feedback ── */
-            button:not(:disabled):active {
-              transform: scale(0.95);
+	            @keyframes pipExit {
+	              from { opacity: 1; transform: translateY(0)   scale(1); }
+	              to   { opacity: 0; transform: translateY(10px) scale(0.97); }
+	            }
+	            .ib-pressable-card {
+	              transform-origin: center;
+	              will-change: transform, filter, box-shadow;
+	              -webkit-tap-highlight-color: transparent;
+	              cursor: pointer;
+	              transition:
+	                transform 0.15s cubic-bezier(0.25,0.46,0.45,0.94),
+	                filter 0.15s ease,
+	                border-color 0.15s ease,
+	                box-shadow 0.15s ease !important;
+	            }
+	            .ib-pressable-card.ib-card-pressed {
+	              transform: translateY(2px) scale(0.968);
+	              filter: brightness(0.9) saturate(0.96);
+	              box-shadow:
+	                inset 0 2px 9px rgba(0,0,0,0.24),
+	                0 1px 3px rgba(0,0,0,0.14) !important;
+	              transition-duration: 0.055s !important;
+	            }
+	            @media (hover: hover) and (pointer: fine) {
+	              .ib-pressable-card:hover {
+	                transform: translateY(-1px);
+	              }
+	              .ib-pressable-card:hover.ib-card-pressed {
+	                transform: translateY(1px) scale(0.968);
+	              }
+	            }
+	            @media (prefers-reduced-motion: reduce) {
+	              .ib-pressable-card,
+	              .ib-pressable-card:hover,
+	              .ib-pressable-card.ib-card-pressed,
+	              .ib-pressable-card:hover.ib-card-pressed {
+	                transform: none;
+	                transition: filter 0.08s ease, border-color 0.08s ease !important;
+	              }
+	            }
+	            /* ── Global button press feedback ── */
+	            button:not(:disabled):active {
+	              transform: scale(0.95);
               opacity: 0.82;
               transition: transform 0.08s ease, opacity 0.08s ease !important;
             }
