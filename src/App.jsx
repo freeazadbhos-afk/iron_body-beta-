@@ -3651,10 +3651,26 @@ import "./styles.css";
     const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const bg = dark ? "#20211f" : "#fbfbfa";
     const label = dark ? "#d2d4ce" : "#747570";
-    const atlasFilter = dark ? "invert(1) brightness(0.96) contrast(1.18)" : "none";
+    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
     const activeRegions = highlights || {};
     const cropY = 70;
     const cropH = 1450;
+    const imageShift = `${-(cropY / 1536) * 100}%`;
+    const atlasImageStyle = (opacity) => ({
+      position:"absolute",
+      left:0,
+      top:0,
+      width:"100%",
+      height:"auto",
+      transform:`translateY(${imageShift})`,
+      transformOrigin:"top center",
+      opacity,
+      filter:atlasFilter,
+      WebkitFilter:atlasFilter,
+      pointerEvents:"none",
+      userSelect:"none",
+      WebkitUserSelect:"none",
+    });
     const regionOpacity = (active) => active.opacity >= 1
       ? (dark ? 0.86 : 0.78)
       : (dark ? 0.52 : 0.4);
@@ -3716,37 +3732,37 @@ import "./styles.css";
         overflow:"hidden",
         background:bg,
         padding:"4px 4px 20px",
-      }}>
-        <svg
-          viewBox={`0 ${cropY} 1024 ${cropH}`}
-          xmlns="http://www.w3.org/2000/svg"
-          preserveAspectRatio="xMidYMid meet"
-          aria-label="Front and back muscle atlas"
-          style={{ display:"block", width:"100%", height:"auto" }}
+        isolation:"isolate",
+      }}
+        role="img"
+        aria-label="Front and back muscle atlas"
+      >
+        <div
+          style={{
+            position:"relative",
+            width:"100%",
+            aspectRatio:`1024 / ${cropH}`,
+            overflow:"hidden",
+            borderRadius:14,
+          }}
         >
-          <image
-            href={bodyMuscleAtlasUrl}
-            x="0"
-            y="0"
-            width="1024"
-            height="1536"
-            preserveAspectRatio="xMidYMid meet"
-            opacity={dark ? 0.58 : 0.28}
-            style={{
-              filter: atlasFilter,
-              pointerEvents:"none",
-              userSelect:"none",
-              WebkitUserSelect:"none",
-            }}
+          <img
+            src={bodyMuscleAtlasUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            style={atlasImageStyle(dark ? 0.8 : 0.28)}
           />
           <svg
-            viewBox="0 0 1024 1536"
+            viewBox={`0 ${cropY} 1024 ${cropH}`}
             xmlns="http://www.w3.org/2000/svg"
-            x="0"
-            y="0"
-            width="1024"
-            height="1536"
+            preserveAspectRatio="xMidYMid meet"
             style={{
+              position:"absolute",
+              inset:0,
+              display:"block",
+              width:"100%",
+              height:"100%",
               pointerEvents:"none",
               mixBlendMode:"normal",
             }}
@@ -3767,22 +3783,14 @@ import "./styles.css";
               );
             })}
           </svg>
-          <image
-            href={bodyMuscleAtlasUrl}
-            x="0"
-            y="0"
-            width="1024"
-            height="1536"
-            preserveAspectRatio="xMidYMid meet"
-            opacity={dark ? 0.84 : 0.72}
-            style={{
-              filter: atlasFilter,
-              pointerEvents:"none",
-              userSelect:"none",
-              WebkitUserSelect:"none",
-            }}
+          <img
+            src={bodyMuscleAtlasUrl}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            style={atlasImageStyle(dark ? 0.98 : 0.72)}
           />
-        </svg>
+        </div>
         <div style={{
           position:"absolute",
           left:4,
