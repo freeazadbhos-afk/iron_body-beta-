@@ -6244,7 +6244,7 @@ import "./styles.css";
 	    );
 	  }
 
-	  function addCircleButtonStyle(th, { active = false, disabled = false, size = 34 } = {}) {
+	  function addCircleButtonStyle(th, { active = false, disabled = false, size = 30 } = {}) {
 	    return {
 	      width:size,
 	      height:size,
@@ -6256,7 +6256,7 @@ import "./styles.css";
 	      alignItems:"center",
 	      justifyContent:"center",
 	      flexShrink:0,
-	      fontSize:active || disabled ? 17 : 24,
+	      fontSize:active || disabled ? 15 : 21,
 	      fontWeight:900,
 	      lineHeight:1,
 	      fontFamily:"'Outfit',sans-serif",
@@ -6544,7 +6544,7 @@ import "./styles.css";
 	                    </div>
 	                  </div>
 		                  <div style={{
-		                    ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded, size:34 }),
+		                    ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded }),
 		                  }}>
 		                    {(isPending || isAdded) ? "✔" : "+"}
 		                  </div>
@@ -6857,7 +6857,7 @@ import "./styles.css";
                   </div>
 	                  <div
 	                    style={{
-	                      ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded, size:34 }),
+	                      ...addCircleButtonStyle(th, { active:isPending, disabled:isAdded }),
 	                    }}
 	                  >
 	                    {(isPending || isAdded) ? "✔" : "+"}
@@ -8491,7 +8491,7 @@ import "./styles.css";
 	                <button
 	                  onClick={() => addItem(d.id)}
 	                  style={{
-	                    ...addCircleButtonStyle(th, { size:34 }),
+		                    ...addCircleButtonStyle(th),
 	                    padding:0,
 	                    cursor:"pointer",
 	                  }}
