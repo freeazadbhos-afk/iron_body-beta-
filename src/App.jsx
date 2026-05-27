@@ -6272,7 +6272,7 @@ import "./styles.css";
 	    const selectedGroup = (ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
 	    const cropY = 70;
-	    const cropH = 1380;
+	    const cropH = 1340;
 	    const imageShift = `${-(cropY / 1536) * 100}%`;
 	    return (
 	      <div style={{
@@ -6283,7 +6283,7 @@ import "./styles.css";
 	        borderRadius:18,
 	        overflow:"hidden",
 	        background:dark ? "#20211f" : "#fbfbfa",
-	        padding:"3px 4px 15px",
+	        padding:"3px 4px",
 	      }}>
 	        <div style={{
 	          position:"relative",
@@ -6352,24 +6352,6 @@ import "./styles.css";
 	              );
 	            })}
 	          </svg>
-	        </div>
-	        <div style={{
-	          position:"absolute",
-	          left:4,
-	          right:4,
-	          bottom:2,
-	          display:"grid",
-	          gridTemplateColumns:"1fr 1fr",
-		          color:dark ? "#d2d4ce" : "#747570",
-	          fontFamily:"Outfit, sans-serif",
-          fontSize:9.5,
-	          fontWeight:800,
-	          letterSpacing:1.2,
-	          textAlign:"center",
-	          pointerEvents:"none",
-	        }}>
-	          <span>FRONT</span>
-	          <span>BACK</span>
 	        </div>
 	      </div>
 	    );
@@ -6453,33 +6435,15 @@ import "./styles.css";
               }}>
                 {t("MUSCLE MAP")}
               </div>
-	              {pending.length > 0 && (
-	                <button
-	                  onClick={onConfirm}
-	                  style={{
-	                    ...buttonTexture(th, "accent"),
-	                    borderRadius:12,
-	                    padding:"9px 12px",
-	                    cursor:"pointer",
-	                    fontFamily:"'Outfit',sans-serif",
-	                    fontSize:12,
-	                    fontWeight:800,
-	                    color:th.accentT,
-	                    flexShrink:0,
-	                  }}
-	                >
-	                  {t("ADD")} {pending.length}
-	                </button>
-	              )}
-	            </div>
-	          </div>
-		          <div style={{ flex:1, overflowY:"auto", padding:"0 16px 92px" }}>
+            </div>
+          </div>
+          <div style={{ flex:1, overflowY:"auto", padding:"0 16px 76px" }}>
 	            <div style={{
 	              position:"sticky",
 	              top:0,
 	              zIndex:2,
 	              margin:"0 -16px 12px",
-              padding:"10px 16px 10px",
+              padding:"7px 16px 8px",
 	              background:`linear-gradient(180deg, ${th.bg} 0%, color-mix(in srgb, ${th.bg} 92%, transparent) 78%, transparent 100%)`,
 	              backdropFilter:"blur(16px)",
 	              WebkitBackdropFilter:"blur(16px)",
@@ -6487,8 +6451,8 @@ import "./styles.css";
 	            }}>
 	              <div style={{
 	                ...S.card,
-                padding:"6px",
-                marginBottom:8,
+                padding:"4px",
+                marginBottom:6,
 	                borderColor:selectedShape ? `${muscleAccent(selectedMuscle, selectedShape.group, th.bg === "#080809")}77` : th.border,
 	              }}>
 	                <InteractiveExerciseAtlas selectedMuscle={selectedMuscle} onSelect={setSelectedMuscle} />
@@ -6571,7 +6535,7 @@ import "./styles.css";
 	            <div style={{
 	              position:"fixed",
 	              left:"50%",
-		              bottom:"calc(4px + env(safe-area-inset-bottom, 0px))",
+              bottom:"max(-6px, calc(env(safe-area-inset-bottom, 0px) - 14px))",
 	              width:"min(448px, calc(100% - 32px))",
 	              transform:"translateX(-50%)",
 	              zIndex:3,
