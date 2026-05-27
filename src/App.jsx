@@ -8446,9 +8446,16 @@ import "./styles.css";
 	                <button
 	                  onClick={() => addItem(d.id)}
 	                  style={{
-		                    ...addCircleButtonStyle(th),
-	                    padding:0,
+	                    background:"rgba(91,156,246,0.14)",
+	                    border:"1px solid rgba(91,156,246,0.34)",
+	                    borderRadius:7,
+	                    color:"#5B9CF6",
 	                    cursor:"pointer",
+	                    fontSize:14,
+	                    padding:"2px 7px",
+	                    lineHeight:1,
+	                    flexShrink:0,
+	                    fontWeight:700,
 	                  }}
 	                >+</button>
               </div>
@@ -13660,7 +13667,7 @@ import "./styles.css";
               style={{
                 fontSize: 12,
                 color: th.dim,
-                fontWeight: 400,
+	                  fontWeight: 300,
                 letterSpacing: 0,
               }}
             >
@@ -13738,7 +13745,7 @@ import "./styles.css";
           {/* SHARE button — shown only when editing an existing program and has friends */}
           {editing && friends?.length > 0 && (
             <button
-              onClick={(e) => { addRipple(e, th.accentFg); onShare && onShare({ id: program?.id || uid(), name: name.trim(), exs }); }}
+              onClick={(e) => { addRipple(e, "#fff"); onShare && onShare({ id: program?.id || uid(), name: name.trim(), exs }); }}
               disabled={!name.trim() || exs.length === 0}
               style={{
                 width: 50, height: 50, minWidth: 50, maxWidth: 50, minHeight: 50, maxHeight: 50,
@@ -13746,7 +13753,7 @@ import "./styles.css";
                 flex: "0 0 50px",
                 flexShrink: 0,
                 boxSizing: "border-box",
-                ...buttonTexture(th, "accentSoft", !name.trim() || exs.length === 0),
+                ...buttonTexture(th, "blue", !name.trim() || exs.length === 0),
                 borderRadius: 14,
                 cursor: (!name.trim() || exs.length === 0) ? "default" : "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -13766,9 +13773,9 @@ import "./styles.css";
                 style={{ width: 26, height: 26, minWidth: 26, minHeight: 26, maxWidth: 26, maxHeight: 26, display: "block", flex: "0 0 26px", overflow: "visible" }}
               >
                 {/* Share tray — open-top box with centred up-arrow, universally recognised */}
-                <path d="M8.5 8.5H6C5.44772 8.5 5 8.94772 5 9.5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V9.5C19 8.94772 18.5523 8.5 18 8.5H15.5" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M12 14V3" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
-                <path d="M9 6L12 3L15 6" stroke={(!name.trim() || exs.length === 0) ? th.dim : th.accentFg} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
+                <path d="M8.5 8.5H6C5.44772 8.5 5 8.94772 5 9.5V19C5 19.5523 5.44772 20 6 20H18C18.5523 20 19 19.5523 19 19V9.5C19 8.94772 18.5523 8.5 18 8.5H15.5" stroke={(!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.35)" : "#fff"} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+                <path d="M12 14V3" stroke={(!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.35)" : "#fff"} strokeWidth="2" strokeLinecap="round" vectorEffect="non-scaling-stroke"/>
+                <path d="M9 6L12 3L15 6" stroke={(!name.trim() || exs.length === 0) ? "rgba(91,156,246,0.35)" : "#fff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>
               </svg>
             </button>
           )}
@@ -18369,7 +18376,7 @@ import "./styles.css";
               style={{
                 fontSize: 12,
                 color: th.dim,
-                fontWeight: 400,
+	                  fontWeight: 300,
                 letterSpacing: 0,
               }}
             >
@@ -20401,7 +20408,7 @@ import "./styles.css";
                   justifyContent: "center",
                   cursor: "pointer",
                   fontSize: 32,
-                  fontWeight: 400,
+	                  fontWeight: 300,
                   lineHeight: 1,
                   userSelect: "none",
                   transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow .2s",
@@ -20444,7 +20451,7 @@ import "./styles.css";
                   justifyContent: "center",
                   cursor: "pointer",
                   fontSize: 32,
-                  fontWeight: 400,
+	                  fontWeight: 300,
                   lineHeight: 1,
                   userSelect: "none",
                   transition: "transform .18s cubic-bezier(0.25,0.46,0.45,0.94), box-shadow .2s",
