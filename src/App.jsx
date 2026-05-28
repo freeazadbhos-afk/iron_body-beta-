@@ -5730,18 +5730,17 @@ import "./styles.css";
         <div
           onClick={() => { if (open) closeWp(); else setOpen(true); }}
           style={{
-            background: th.row,
-            border: `1px solid ${open ? th.accentBg : th.inputB}`,
+            ...buttonTexture(th, open ? "accentSoft" : "neutral"),
             borderRadius: 9,
             padding: "7px 11px",
             cursor: "pointer",
             minWidth: 64,
             textAlign: "center",
-            color: th.text,
+            color: open ? th.accentFg : th.text,
             fontWeight: 700,
             fontSize: 14,
             userSelect: "none",
-            transition: "border-color .15s",
+            transition: "border-color .15s, background .15s, box-shadow .15s, transform .15s",
           }}
         >
           {value}kg
@@ -5844,12 +5843,8 @@ import "./styles.css";
                 <button
                   onClick={() => closeWp()}
                   style={{
-                    background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
-                    border: "none",
+                    ...buttonTexture(th, "accent"),
                     borderRadius: 8,
-                    color: th.accentT,
                     fontWeight: 700,
                     fontSize: 12,
                     padding: "6px 14px",
@@ -5992,12 +5987,9 @@ import "./styles.css";
                       );
                     }}
                     style={{
+                      ...(value === w ? buttonTexture(th, "accent") : buttonTexture(th, "neutral")),
                       padding: "6px 10px",
                       borderRadius: 8,
-                      border: `1px solid ${
-                        value === w ? th.accentBg : th.inputB
-                      }`,
-                      background: value === w ? th.accentBg : th.input,
                       color: value === w ? th.accentT : th.sub,
                       fontSize: 12,
                       fontWeight: 700,
@@ -12111,8 +12103,8 @@ import "./styles.css";
           @keyframes dmBdOut { from{opacity:1} to{opacity:0} }
           @keyframes dmIn    { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
           @keyframes dmOut   { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
-          @keyframes dmBubbleMenuIn  { from{opacity:0;transform:translateY(-5px) scale(.96);filter:blur(6px)} to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} }
-          @keyframes dmBubbleMenuOut { from{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} to{opacity:0;transform:translateY(-5px) scale(.96);filter:blur(6px)} }
+          @keyframes dmBubbleMenuIn  { from{opacity:0;transform:translateY(-4px) scale(.985);filter:blur(8px)} to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} }
+          @keyframes dmBubbleMenuOut { from{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} to{opacity:0;transform:translateY(-4px) scale(.985);filter:blur(8px)} }
         `}</style>
         <div onClick={close} style={{ position:"fixed", inset:0, zIndex:86, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", animation:closing ? "dmBdOut .3s ease forwards" : "dmBdIn .25s ease forwards" }} />
         <div style={{ position:"fixed", inset:0, zIndex:87, display:"flex", flexDirection:"column", justifyContent:"flex-end", maxWidth:480, margin:"0 auto", pointerEvents:"none" }}>
@@ -12186,13 +12178,13 @@ import "./styles.css";
                             gap:6,
                             padding:"6px",
                             borderRadius:16,
-                            background:`color-mix(in srgb, ${th.card} 94%, transparent)`,
-                            border:`1px solid ${th.border}`,
-                            boxShadow:"0 10px 28px rgba(0,0,0,0.24)",
-                            backdropFilter:"blur(18px)",
-                            WebkitBackdropFilter:"blur(18px)",
+                            background:`linear-gradient(135deg, color-mix(in srgb, ${th.card} 66%, transparent) 0%, color-mix(in srgb, ${th.row} 38%, transparent) 100%)`,
+                            border:`1px solid color-mix(in srgb, ${th.border} 74%, rgba(255,255,255,0.22))`,
+                            boxShadow:"0 14px 34px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.08)",
+                            backdropFilter:"blur(26px) saturate(1.75)",
+                            WebkitBackdropFilter:"blur(26px) saturate(1.75)",
                             pointerEvents:menuClosing ? "none" : "auto",
-                            animation:menuClosing ? "dmBubbleMenuOut .16s ease forwards" : "dmBubbleMenuIn .18s cubic-bezier(0.18,0.9,0.2,1) forwards",
+                            animation:menuClosing ? "dmBubbleMenuOut .18s ease forwards" : "dmBubbleMenuIn .2s cubic-bezier(0.18,0.9,0.2,1) forwards",
                             transformOrigin:mine ? "top right" : "top left",
                           }}
                         >
@@ -15411,11 +15403,12 @@ import "./styles.css";
     // Collapsed exercise cards — tracked by ex.uid so the open/closed state survives
     // reordering. Tapping the header toggles whether the sets list is shown, just
     // like the ExerciseEditCard behaviour in the Workouts tab.
-    const [collapsedSet, setCollapsedSet] = useState(() => new Set());
+    const [collapsedSet, setCollapsedSet] = useState(() => new Set(Array.isArray(session.uiCollapsedExUids) ? session.uiCollapsedExUids : []));
     const toggleCollapse = (uid) => {
       setCollapsedSet(prev => {
         const next = new Set(prev);
         if (next.has(uid)) next.delete(uid); else next.add(uid);
+        onSaveActive({ ...session, exercises, uiCollapsedExUids: [...next] });
         return next;
       });
     };
@@ -15472,7 +15465,7 @@ import "./styles.css";
     const upd = (newExs) => {
       const safeExs = (newExs || []).map(normalizeWorkoutExercise);
       setExercises(safeExs);
-      onSaveActive({ ...session, exercises: safeExs });
+      onSaveActive({ ...session, exercises: safeExs, uiCollapsedExUids: [...collapsedSet] });
     };
     const toggleSet = (eIdx, sIdx) => {
       lastToggledExIdxRef.current = eIdx;
@@ -15546,7 +15539,7 @@ import "./styles.css";
           const next = prev.map((ex, i) =>
             i !== eIdx ? ex : { ...ex, sets: ex.sets.filter((_, j) => j !== sIdx) }
           ).map(normalizeWorkoutExercise);
-          onSaveActive({ ...session, exercises: next });
+          onSaveActive({ ...session, exercises: next, uiCollapsedExUids: [...collapsedSet] });
           return next;
         });
         setRemovingSetKey(null);
@@ -15562,7 +15555,11 @@ import "./styles.css";
         // animation are preserved rather than overwritten with stale state.
         setExercises((prev) => {
           const next = prev.filter((_, i) => i !== eIdx).map(normalizeWorkoutExercise);
-          onSaveActive({ ...session, exercises: next });
+          const removedUid = prev[eIdx]?.uid;
+          const nextCollapsed = new Set(collapsedSet);
+          if (removedUid) nextCollapsed.delete(removedUid);
+          setCollapsedSet(nextCollapsed);
+          onSaveActive({ ...session, exercises: next, uiCollapsedExUids: [...nextCollapsed] });
           return next;
         });
         setRemovingExIdx(null);
@@ -15589,7 +15586,7 @@ import "./styles.css";
       setExercises((prev) => {
         if (prev.some((ex) => ex.exId === dbId)) return prev;
         const next = [...prev, newEx].map(normalizeWorkoutExercise);
-        onSaveActive({ ...session, exercises: next });
+        onSaveActive({ ...session, exercises: next, uiCollapsedExUids: [...collapsedSet] });
         return next;
       });
     };
@@ -20358,6 +20355,7 @@ import "./styles.css";
       );
       const activeSession = { ...(active || {}) };
       delete activeSession.timer;
+      delete activeSession.uiCollapsedExUids;
       setFinished({ ...activeSession, exercises: safeExercises, totalSets: total, doneSets: done });
       stopTimer();
       setView("complete");
