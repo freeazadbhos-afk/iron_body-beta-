@@ -10559,12 +10559,71 @@ import "./styles.css";
 
         {/* Session detail overlay when in history tab */}
         {selHistSession && (
-          <div style={{ position:"fixed", inset:0, zIndex:73, background:`color-mix(in srgb, ${th.card} 96%, transparent)`, backdropFilter:"blur(24px)", WebkitBackdropFilter:"blur(24px)", display:"flex", flexDirection:"column", maxWidth:480, margin:"0 auto", overflowY:"auto" }}>
-            <div style={{ padding:"16px 16px 8px", borderBottom:`1px solid ${th.border}`, display:"flex", alignItems:"center", gap:12 }}>
-              <button onClick={() => setSelHistSession(null)} style={{ background:"none", border:"none", color:th.accentFg, fontFamily:"'Outfit',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", padding:"4px 0" }}>← BACK</button>
-              <div className="bebas" style={{ fontSize:20, letterSpacing:1, color:th.text }}>{selHistSession.name}</div>
+          <div style={{
+            position:"fixed",
+            inset:0,
+            zIndex:73,
+            background:`color-mix(in srgb, ${th.card} 96%, transparent)`,
+            backdropFilter:"blur(24px)",
+            WebkitBackdropFilter:"blur(24px)",
+            display:"flex",
+            flexDirection:"column",
+            maxWidth:480,
+            margin:"0 auto",
+            overflow:"hidden",
+          }}>
+            <div style={{
+              flexShrink:0,
+              background:`color-mix(in srgb, ${th.bg} 25%, transparent)`,
+              backdropFilter:"blur(12px)",
+              WebkitBackdropFilter:"blur(12px)",
+              borderBottom:`1px solid ${th.border}`,
+              paddingTop:"calc(14px + env(safe-area-inset-top, 0px))",
+              paddingRight:16,
+              paddingBottom:1,
+              paddingLeft:16,
+            }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, minHeight:32 }}>
+                <button
+                  onClick={() => setSelHistSession(null)}
+                  style={{
+                    background:"none",
+                    border:"none",
+                    color:th.sub,
+                    fontSize:22,
+                    cursor:"pointer",
+                    padding:"0 8px 0 0",
+                    lineHeight:1,
+                    flexShrink:0,
+                  }}
+                  aria-label={t("Back")}
+                  title={t("Back")}
+                >
+                  ←
+                </button>
+                <div className="bebas" style={{
+                  fontSize:40,
+                  letterSpacing:2,
+                  color:th.text,
+                  lineHeight:1,
+                  flex:1,
+                  textAlign:"left",
+                  overflow:"hidden",
+                  textOverflow:"ellipsis",
+                  whiteSpace:"nowrap",
+                }}>
+                  {t("SESSION DETAIL")}
+                </div>
+              </div>
             </div>
-            <div style={{ padding:"16px 16px calc(48px + env(safe-area-inset-bottom,0px))", flex:1 }}>
+            <div style={{
+              padding:"16px 16px calc(48px + env(safe-area-inset-bottom,0px))",
+              flex:1,
+              minHeight:0,
+              overflowY:"auto",
+              overflowX:"hidden",
+              WebkitOverflowScrolling:"touch",
+            }}>
               <SessionDetailView session={selHistSession} onOrigin="coachHistory" />
             </div>
           </div>
