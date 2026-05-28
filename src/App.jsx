@@ -12791,6 +12791,56 @@ import "./styles.css";
       setActioning(a => ({ ...a, [id]: false }));
     };
 
+    const feedOpenCardProps = (activate) => {
+      const clear = (el) => el?.classList?.remove("ib-feed-open-pressed");
+      return {
+        onClick: (e) => {
+          addRipple(e, th.accentFg, { wave:true, opacity:0.18 });
+          activate && activate();
+        },
+        onPointerDown: (e) => {
+          if (e.button != null && e.button !== 0) return;
+          if (e.target?.closest?.("button,a,input,textarea,select,[data-no-feed-open]")) return;
+          e.currentTarget.classList.add("ib-feed-open-pressed");
+        },
+        onPointerUp: (e) => clear(e.currentTarget),
+        onPointerLeave: (e) => clear(e.currentTarget),
+        onPointerCancel: (e) => clear(e.currentTarget),
+        onBlur: (e) => clear(e.currentTarget),
+        onKeyDown: (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            addRipple(e, th.accentFg, { wave:true, opacity:0.18 });
+            activate && activate();
+          }
+        },
+      };
+    };
+
+    const FeedOpenBadge = () => (
+      <span style={{
+        flexShrink:0,
+        display:"inline-flex",
+        alignItems:"center",
+        gap:5,
+        padding:"6px 9px",
+        borderRadius:999,
+        background:`color-mix(in srgb, ${th.accentBg} 16%, transparent)`,
+        border:`1.5px solid color-mix(in srgb, ${th.accentBg} 58%, transparent)`,
+        color:th.accentFg,
+        fontSize:10,
+        fontWeight:800,
+        letterSpacing:"0.6px",
+        lineHeight:1,
+        boxShadow:`0 0 14px color-mix(in srgb, ${th.accentBg} 10%, transparent)`,
+      }}>
+        {t("View").toUpperCase()}
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block" }}>
+          <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </span>
+    );
+
     const fmtTimeAgo = (ts) => {
       if (!ts) return "";
       const diff = Date.now() - ts;
@@ -12822,6 +12872,25 @@ import "./styles.css";
             100% { transform: scale(1) rotate(0deg); opacity: 1; }
           }
           @keyframes notifPop { from{opacity:0;transform:translateY(-8px) scale(0.96)} to{opacity:1;transform:translateY(0) scale(1)} }
+          .ib-feed-open-card {
+            transform-origin:center;
+            will-change:transform, filter, box-shadow, border-color;
+            transition:
+              transform .15s cubic-bezier(0.25,0.46,0.45,0.94),
+              filter .15s ease,
+              border-color .15s ease,
+              box-shadow .15s ease;
+          }
+          .ib-feed-open-card.ib-feed-open-pressed {
+            transform:translateY(2px) scale(.978);
+            filter:brightness(1.03) saturate(1.08);
+            border-color:color-mix(in srgb, ${th.accentBg} 62%, transparent) !important;
+            box-shadow:
+              inset 0 0 0 1px color-mix(in srgb, ${th.accentBg} 42%, transparent),
+              inset 0 0 22px color-mix(in srgb, ${th.accentBg} 16%, transparent),
+              0 8px 18px color-mix(in srgb, ${th.accentBg} 16%, transparent) !important;
+            transition-duration:.055s;
+          }
         `}</style>
 
         {/* ── Sharing onboarding guide ── */}
@@ -13569,22 +13638,40 @@ import "./styles.css";
                       <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(sp.ts)}</div>
                     </div>
                     {/* Program card — tappable to open */}
-                    <button onClick={() => setOpenSharedProg(sp)}
-                      style={{ width:"100%", background:"none", border:"none", padding:0, cursor:"pointer", textAlign:"left" }}>
-                      <div style={{ background:th.sect, borderRadius:12, padding:"12px 14px", display:"flex", alignItems:"center", gap:12 }}>
-                        <ProgramIcon name={sp.program?.name || ""} size={40} />
-                        <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:3 }}>{sp.program?.name || t("Program")}</div>
-                          <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
-                            {[...new Set((sp.program?.exs||[]).map(e => DB.find(d=>d.id===e?.id)?.group).filter(Boolean))].slice(0,3).map(g => (
-                              <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
-                            ))}
-                          </div>
-                          <div style={{ fontSize:12, color:th.dim }}>{(sp.program?.exs||[]).length} {t("exercises")} · {t("tap to view")}</div>
+                    <div
+                      className="ib-feed-open-card"
+                      role="button"
+                      tabIndex={0}
+                      {...feedOpenCardProps(() => setOpenSharedProg(sp))}
+                      style={{
+                        background:th.sect,
+                        borderRadius:12,
+                        padding:"12px 14px",
+                        display:"flex",
+                        alignItems:"center",
+                        gap:12,
+                        cursor:"pointer",
+                        textAlign:"left",
+                        WebkitTapHighlightColor:"transparent",
+                        border:"1.5px solid transparent",
+                        position:"relative",
+                        overflow:"hidden",
+                      }}
+                    >
+                      <ProgramIcon name={sp.program?.name || ""} size={40} />
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:3 }}>
+                          <div style={{ fontWeight:700, fontSize:15, color:th.text, minWidth:0, overflow:"hidden", textOverflow:"ellipsis" }}>{sp.program?.name || t("Program")}</div>
+                          <FeedOpenBadge />
                         </div>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18l6-6-6-6" stroke={th.muted} strokeWidth="2" strokeLinecap="round"/></svg>
+                        <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
+                          {[...new Set((sp.program?.exs||[]).map(e => DB.find(d=>d.id===e?.id)?.group).filter(Boolean))].slice(0,3).map(g => (
+                            <span key={g} style={S.tag(g)}>{g.toUpperCase()}</span>
+                          ))}
+                        </div>
+                        <div style={{ fontSize:12, color:th.dim }}>{(sp.program?.exs||[]).length} {t("exercises")} · {t("tap to view")}</div>
                       </div>
-                    </button>
+                    </div>
                     {/* Interaction row — outside tappable button */}
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
                       <button
@@ -13697,19 +13784,26 @@ import "./styles.css";
                   </div>
                   {/* Session card */}
                   <div
+                    className="ib-feed-open-card"
                     role="button"
                     tabIndex={0}
-                    onClick={() => setOpenSharedSession(item)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setOpenSharedSession(item);
-                      }
+                    {...feedOpenCardProps(() => setOpenSharedSession(item))}
+                    style={{
+                      background:th.sect,
+                      borderRadius:10,
+                      padding:"12px 14px",
+                      cursor:"pointer",
+                      WebkitTapHighlightColor:"transparent",
+                      border:"1.5px solid transparent",
+                      position:"relative",
+                      overflow:"hidden",
                     }}
-                    style={{ background:th.sect, borderRadius:10, padding:"12px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
                   >
                     {/* Session name */}
-                    <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:10 }}>{s.name || t("Workout")}</div>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:10, marginBottom:10 }}>
+                      <div style={{ fontWeight:700, fontSize:15, color:th.text, minWidth:0, overflow:"hidden", textOverflow:"ellipsis" }}>{s.name || t("Workout")}</div>
+                      <FeedOpenBadge />
+                    </div>
                     {/* Stats grid */}
                     {stats.length > 0 && (
                       <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginBottom: muscles.length > 0 ? 10 : 0 }}>
