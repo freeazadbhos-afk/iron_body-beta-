@@ -42,6 +42,7 @@ import "./styles.css";
     where,
     updateDoc,
     serverTimestamp,
+    deleteField,
   } from "firebase/firestore";
 
   const firebaseConfig = {
@@ -5038,6 +5039,65 @@ import "./styles.css";
       return { ok:true, id:ref.id };
     } catch (e) {
       console.warn("fsSendDirectMessage:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
+  async function fsToggleDirectMessageStar(uid, friendUid, messageId) {
+    if (!uid || !friendUid || !messageId) return { ok:false };
+    const threadId = directThreadId(uid, friendUid);
+    const ref = doc(fbDb, "directThreads", threadId, "messages", String(messageId));
+    try {
+      const snap = await getDoc(ref);
+      const reactions = snap.exists() ? (snap.data().reactions || {}) : {};
+      const field = `reactions.${uid}`;
+      if (reactions?.[uid] === "star") {
+        await updateDoc(ref, { [field]: deleteField() });
+        return { ok:true, starred:false };
+      }
+      await updateDoc(ref, { [field]: "star" });
+      return { ok:true, starred:true };
+    } catch (e) {
+      console.warn("fsToggleDirectMessageStar:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
+  async function fsEditDirectMessage(user, friend, messageId, text) {
+    const clean = (text || "").trim();
+    if (!user?.id || !friend?.uid || !messageId || !clean) return { ok:false };
+    const threadId = directThreadId(user.id, friend.uid);
+    const now = Date.now();
+    try {
+      await updateDoc(doc(fbDb, "directThreads", threadId, "messages", String(messageId)), {
+        text: clean,
+        editedAt: now,
+      });
+      await setDoc(doc(fbDb, "directThreads", threadId), {
+        updatedAt: now,
+        lastText: clean,
+        lastSenderUid: user.id,
+      }, { merge:true });
+      return { ok:true };
+    } catch (e) {
+      console.warn("fsEditDirectMessage:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
+  async function fsDeleteDirectMessage(uid, friendUid, messageId) {
+    if (!uid || !friendUid || !messageId) return { ok:false };
+    const threadId = directThreadId(uid, friendUid);
+    try {
+      await deleteDoc(doc(fbDb, "directThreads", threadId, "messages", String(messageId)));
+      await setDoc(doc(fbDb, "directThreads", threadId), {
+        updatedAt: Date.now(),
+        lastText: "Message deleted",
+        lastSenderUid: uid,
+      }, { merge:true });
+      return { ok:true };
+    } catch (e) {
+      console.warn("fsDeleteDirectMessage:", e.code, e.message);
       return { ok:false, error:e };
     }
   }
@@ -10695,6 +10755,7 @@ import "./styles.css";
             user={user}
             friend={friend}
             onClose={() => setMessageOpen(false)}
+            onOpenProfile={() => setMessageOpen(false)}
           />,
           document.body
         )}
@@ -11855,7 +11916,7 @@ import "./styles.css";
     );
   }
 
-  function DirectMessageSheet({ user, friend, onClose }) {
+  function DirectMessageSheet({ user, friend, onClose, onOpenProfile }) {
     const th = useTheme();
     const t = useT();
     const [messages, setMessages] = useState([]);
@@ -11863,11 +11924,64 @@ import "./styles.css";
     const [sending, setSending] = useState(false);
     const [closing, setClosing] = useState(false);
     const [permError, setPermError] = useState(false);
+    const [menuMessageId, setMenuMessageId] = useState(null);
+    const [closingMenuId, setClosingMenuId] = useState(null);
+    const [editingMessage, setEditingMessage] = useState(null);
+    const [lastSeenAt, setLastSeenAt] = useState(friend.lastSeenAt || friend.lastActiveAt || friend.updatedAt || friend.since || Date.now());
     const listRef = useRef(null);
     const mountedRef = useRef(true);
-    useEffect(() => () => { mountedRef.current = false; }, []);
-    const close = () => { setClosing(true); setTimeout(onClose, 300); };
+    const menuCloseTimerRef = useRef(null);
+    useEffect(() => () => {
+      mountedRef.current = false;
+      if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+    }, []);
+    const closeMenu = () => {
+      if (!menuMessageId) return;
+      const id = menuMessageId;
+      if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+      setClosingMenuId(id);
+      setMenuMessageId(null);
+      menuCloseTimerRef.current = setTimeout(() => {
+        setClosingMenuId(cur => cur === id ? null : cur);
+        menuCloseTimerRef.current = null;
+      }, 170);
+    };
+    const close = () => { closeMenu(); setClosing(true); setTimeout(onClose, 300); };
+    const openFriendProfile = () => {
+      closeMenu();
+      setClosing(true);
+      setTimeout(() => {
+        if (onOpenProfile) onOpenProfile();
+        else onClose();
+      }, 260);
+    };
     const friendInitials = (friend.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    const formatLastSeen = (ts) => {
+      const when = Number(ts) || Date.now();
+      const d = new Date(when);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const day = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const time = d.toLocaleTimeString([], { hour:"numeric", minute:"2-digit" });
+      if (day === today) return `${t("last seen today at")} ${time}`;
+      if (day === today - 86400000) return `${t("last seen yesterday at")} ${time}`;
+      return `${t("last seen")} ${d.toLocaleDateString(undefined, { day:"numeric", month:"short" })} ${t("at")} ${time}`;
+    };
+    const friendStatus = formatLastSeen(lastSeenAt);
+
+    useEffect(() => {
+      let cancelled = false;
+      setLastSeenAt(friend.lastSeenAt || friend.lastActiveAt || friend.updatedAt || friend.since || Date.now());
+      if (!friend.uid) return () => { cancelled = true; };
+      getDoc(doc(fbDb, "publicProfiles", friend.uid))
+        .then(snap => {
+          if (cancelled) return;
+          const data = snap.exists() ? snap.data() : null;
+          setLastSeenAt(data?.lastSeenAt || data?.lastActiveAt || data?.updatedAt || friend.lastSeenAt || friend.lastActiveAt || friend.updatedAt || friend.since || Date.now());
+        })
+        .catch(() => {});
+      return () => { cancelled = true; };
+    }, [friend.uid, friend.lastSeenAt, friend.lastActiveAt, friend.updatedAt, friend.since]);
 
     useEffect(() => {
       let unsub = () => {};
@@ -11890,8 +12004,32 @@ import "./styles.css";
       if (!clean || sending) return;
       setSending(true);
       setText("");
-      await fsSendDirectMessage(user, friend, clean);
+      if (editingMessage) {
+        await fsEditDirectMessage(user, friend, editingMessage.id, clean);
+        setEditingMessage(null);
+      } else {
+        await fsSendDirectMessage(user, friend, clean);
+      }
       if (mountedRef.current) setSending(false);
+    };
+    const startEdit = (msg) => {
+      setEditingMessage(msg);
+      setText(msg.text || "");
+      closeMenu();
+    };
+    const cancelEdit = () => {
+      setEditingMessage(null);
+      setText("");
+    };
+    const deleteMessage = async (msg) => {
+      if (!msg || msg.senderUid !== user.id) return;
+      closeMenu();
+      if (editingMessage?.id === msg.id) cancelEdit();
+      await fsDeleteDirectMessage(user.id, friend.uid, msg.id);
+    };
+    const toggleStar = async (msg) => {
+      closeMenu();
+      await fsToggleDirectMessageStar(user.id, friend.uid, msg.id);
     };
     const canSend = text.trim().length > 0 && !sending;
     const sendIconColor = canSend ? th.accentT : th.muted;
@@ -11903,6 +12041,8 @@ import "./styles.css";
           @keyframes dmBdOut { from{opacity:1} to{opacity:0} }
           @keyframes dmIn    { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
           @keyframes dmOut   { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+          @keyframes dmBubbleMenuIn  { from{opacity:0;transform:translateY(-5px) scale(.96);filter:blur(6px)} to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} }
+          @keyframes dmBubbleMenuOut { from{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} to{opacity:0;transform:translateY(-5px) scale(.96);filter:blur(6px)} }
         `}</style>
         <div onClick={close} style={{ position:"fixed", inset:0, zIndex:86, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", animation:closing ? "dmBdOut .3s ease forwards" : "dmBdIn .25s ease forwards" }} />
         <div style={{ position:"fixed", inset:0, zIndex:87, display:"flex", flexDirection:"column", justifyContent:"flex-end", maxWidth:480, margin:"0 auto", pointerEvents:"none" }}>
@@ -11916,22 +12056,33 @@ import "./styles.css";
           }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"14px 18px 12px", borderBottom:`1px solid ${th.border}`, flexShrink:0 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
-                {friend.photoURL ? (
-                  <img src={friend.photoURL} alt={friend.name} style={{ width:38, height:38, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
-                ) : (
-                  <div style={{ width:38, height:38, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
-                    {friendInitials}
-                  </div>
-                )}
+                <button
+                  onClick={openFriendProfile}
+                  title={t("View profile")}
+                  aria-label={t("View profile")}
+                  style={{ border:"none", background:"transparent", padding:0, margin:0, width:38, height:38, borderRadius:"50%", flexShrink:0, cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
+                >
+                  {friend.photoURL ? (
+                    <img src={friend.photoURL} alt={friend.name} style={{ width:38, height:38, borderRadius:"50%", objectFit:"cover", display:"block" }} />
+                  ) : (
+                    <div style={{ width:38, height:38, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg }}>
+                      {friendInitials}
+                    </div>
+                  )}
+                </button>
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontWeight:800, fontSize:16, color:th.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{friend.name}</div>
-                  <div style={{ fontSize:11, color:th.dim }}>{t("Messages")}</div>
+                  <div style={{ fontSize:11, color:th.dim, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{friendStatus}</div>
                 </div>
               </div>
               <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1 }}>✕</button>
             </div>
 
-            <div ref={listRef} style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"14px 16px" }}>
+            <div
+              ref={listRef}
+              onClick={closeMenu}
+              style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"14px 16px" }}
+            >
               {permError ? (
                 <div style={{ textAlign:"center", padding:"24px 0" }}>
                   <div style={{ fontSize:24, marginBottom:8 }}>🔒</div>
@@ -11944,21 +12095,173 @@ import "./styles.css";
                 <div style={{ textAlign:"center", padding:"34px 12px", color:th.dim, fontSize:14 }}>{t("No messages yet.")}</div>
               ) : messages.map(msg => {
                 const mine = msg.senderUid === user.id;
+                const starred = msg.reactions && Object.values(msg.reactions).some(v => v === "star");
+                const starredByMe = msg.reactions?.[user.id] === "star";
+                const menuOpen = menuMessageId === msg.id;
+                const menuClosing = closingMenuId === msg.id && !menuOpen;
+                const menuVisible = menuOpen || menuClosing;
                 return (
-                  <div key={msg.id} style={{ display:"flex", justifyContent:mine ? "flex-end" : "flex-start", marginBottom:9 }}>
-                    <div style={{
-                      maxWidth:"78%",
-                      background:mine ? th.accentBg : th.sect,
-                      color:mine ? th.accentT : th.text,
-                      border:mine ? `1px solid color-mix(in srgb, ${th.accentBg} 75%, transparent)` : `1px solid ${th.border}`,
-                      borderRadius:mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                      padding:"9px 12px",
-                      fontSize:14,
-                      lineHeight:1.42,
-                      wordBreak:"break-word",
-                      boxShadow:mine ? `0 4px 12px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none",
-                    }}>
-                      {msg.text}
+                  <div key={msg.id} style={{ display:"flex", justifyContent:mine ? "flex-end" : "flex-start", marginBottom:12, position:"relative", zIndex:menuVisible ? 8 : 1 }}>
+                    <div style={{ position:"relative", maxWidth:"78%" }}>
+                      {menuVisible && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            position:"absolute",
+                            right:mine ? 0 : "auto",
+                            left:mine ? "auto" : 0,
+                            top:"calc(100% + 12px)",
+                            zIndex:12,
+                            display:"flex",
+                            gap:6,
+                            padding:"6px",
+                            borderRadius:16,
+                            background:`color-mix(in srgb, ${th.card} 94%, transparent)`,
+                            border:`1px solid ${th.border}`,
+                            boxShadow:"0 10px 28px rgba(0,0,0,0.24)",
+                            backdropFilter:"blur(18px)",
+                            WebkitBackdropFilter:"blur(18px)",
+                            pointerEvents:menuClosing ? "none" : "auto",
+                            animation:menuClosing ? "dmBubbleMenuOut .16s ease forwards" : "dmBubbleMenuIn .18s cubic-bezier(0.18,0.9,0.2,1) forwards",
+                            transformOrigin:mine ? "top right" : "top left",
+                          }}
+                        >
+                          <button
+                            onClick={() => toggleStar(msg)}
+                            style={{
+                              ...buttonTexture(th, starredByMe ? "accent" : "neutral"),
+                              borderRadius:12,
+                              width:36,
+                              height:34,
+                              padding:0,
+                              cursor:"pointer",
+                              display:"flex",
+                              alignItems:"center",
+                              justifyContent:"center",
+                              color:starredByMe ? th.accentT : th.accentFg,
+                            }}
+                            title={t("Star")}
+                          >
+                            <svg
+                              width="17"
+                              height="17"
+                              viewBox="0 0 22 22"
+                              fill={starredByMe ? "currentColor" : "none"}
+                              aria-hidden="true"
+                              style={{ display:"block" }}
+                            >
+                              <polygon
+                                points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
+                          {mine && (
+                            <button
+                              onClick={() => startEdit(msg)}
+                              style={{
+                                ...buttonTexture(th, "neutral"),
+                                borderRadius:12,
+                                width:36,
+                                height:34,
+                                padding:0,
+                                cursor:"pointer",
+                                display:"flex",
+                                alignItems:"center",
+                                justifyContent:"center",
+                                color:th.sub,
+                              }}
+                              title={t("Edit")}
+                            >
+                              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block", transform:"rotate(-8deg)" }}>
+                                <path d="M4 16.7V20h3.3L18.6 8.7l-3.3-3.3L4 16.7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                                <path d="M14.4 6.3 16.2 4.5c.7-.7 1.8-.7 2.5 0l.8.8c.7.7.7 1.8 0 2.5l-1.8 1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </button>
+                          )}
+                          {mine && (
+                            <button
+                              onClick={() => deleteMessage(msg)}
+                              style={{
+                                ...buttonTexture(th, "danger"),
+                                borderRadius:12,
+                                width:36,
+                                height:34,
+                                padding:0,
+                                cursor:"pointer",
+                                display:"flex",
+                                alignItems:"center",
+                                justifyContent:"center",
+                                color:"#fff",
+                                fontSize:15,
+                              }}
+                              title={t("Delete")}
+                            >
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block" }}>
+                                <path d="M4 7h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M9 7V5.5C9 4.7 9.7 4 10.5 4h3C14.3 4 15 4.7 15 5.5V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                <path d="M7 7l.8 12.2c.1 1 1 1.8 2 1.8h4.4c1 0 1.9-.8 2-1.8L17 7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                                <path d="M10.5 11v6M13.5 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (menuOpen) closeMenu();
+                          else {
+                            if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+                            setClosingMenuId(null);
+                            setMenuMessageId(msg.id);
+                          }
+                        }}
+                        style={{
+                          background:mine ? th.accentBg : th.sect,
+                          color:mine ? th.accentT : th.text,
+                          border:mine ? `1px solid color-mix(in srgb, ${th.accentBg} 75%, transparent)` : `1px solid ${th.border}`,
+                          borderRadius:mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                          padding:"9px 12px",
+                          fontSize:14,
+                          lineHeight:1.42,
+                          wordBreak:"break-word",
+                          boxShadow:mine ? `0 4px 12px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none",
+                          cursor:"pointer",
+                          WebkitTapHighlightColor:"transparent",
+                          position:"relative",
+                        }}
+                      >
+                        {msg.text}
+                        {msg.editedAt && (
+                          <span style={{ display:"block", marginTop:3, fontSize:10, opacity:0.68, fontWeight:700 }}>
+                            {t("edited")}
+                          </span>
+                        )}
+                      </div>
+                      {starred && (
+                        <div style={{
+                          position:"absolute",
+                          right:mine ? 6 : "auto",
+                          left:mine ? "auto" : 6,
+                          bottom:-11,
+                          width:22,
+                          height:22,
+                          borderRadius:"50%",
+                          background:th.card,
+                          border:`1px solid ${th.border}`,
+                          display:"flex",
+                          alignItems:"center",
+                          justifyContent:"center",
+                          color:th.accentFg,
+                          fontSize:12,
+                          boxShadow:"0 2px 8px rgba(0,0,0,0.18)",
+                        }}>
+                          ★
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -11966,11 +12269,31 @@ import "./styles.css";
             </div>
 
             <div style={{ padding:"10px 16px calc(16px + env(safe-area-inset-bottom,0px))", borderTop:`1px solid ${th.border}`, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+              {editingMessage && (
+                <button
+                  onClick={cancelEdit}
+                  style={{
+                    background:"transparent",
+                    border:`1px solid ${th.border}`,
+                    borderRadius:"50%",
+                    width:32,
+                    height:32,
+                    color:th.muted,
+                    cursor:"pointer",
+                    flexShrink:0,
+                    fontSize:17,
+                    lineHeight:1,
+                  }}
+                  title={t("Cancel")}
+                >
+                  ✕
+                </button>
+              )}
               <input
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && send()}
-                placeholder={t("Message...")}
+                placeholder={editingMessage ? t("Edit message...") : t("Message...")}
                 style={{ flex:1, minWidth:0, background:th.sect, border:`1px solid ${th.border}`, borderRadius:20, padding:"10px 14px", fontSize:14, color:th.text, fontFamily:"'Outfit',sans-serif", outline:"none" }}
               />
               <button onClick={send} disabled={!canSend}
