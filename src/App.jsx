@@ -4998,6 +4998,50 @@ import "./styles.css";
     try { await deleteDoc(doc(fbDb, "comments", postId, "messages", messageId)); } catch {}
   }
 
+  function directThreadId(uidA, uidB) {
+    return [String(uidA || ""), String(uidB || "")].sort().join("__");
+  }
+
+  function fsListenDirectMessages(uid, friendUid, cb) {
+    const threadId = directThreadId(uid, friendUid);
+    if (!uid || !friendUid) return () => {};
+    return onSnapshot(
+      collection(fbDb, "directThreads", threadId, "messages"),
+      snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => a.ts - b.ts)),
+      err => { console.warn("fsListenDirectMessages:", err.code, err.message); cb([], err); }
+    );
+  }
+
+  async function fsSendDirectMessage(user, friend, text) {
+    const clean = (text || "").trim();
+    if (!user?.id || !friend?.uid || !clean) return { ok:false };
+    const threadId = directThreadId(user.id, friend.uid);
+    const now = Date.now();
+    try {
+      await setDoc(doc(fbDb, "directThreads", threadId), {
+        participantUids: [user.id, friend.uid],
+        participants: [
+          { uid:user.id, name:user.name || "You", photoURL:user.photoURL || null },
+          { uid:friend.uid, name:friend.name || "Friend", photoURL:friend.photoURL || null },
+        ],
+        updatedAt: now,
+        lastText: clean,
+        lastSenderUid: user.id,
+      }, { merge:true });
+      const ref = await addDoc(collection(fbDb, "directThreads", threadId, "messages"), {
+        senderUid:user.id,
+        senderName:user.name || "You",
+        senderPhotoURL:user.photoURL || null,
+        text:clean,
+        ts:now,
+      });
+      return { ok:true, id:ref.id };
+    } catch (e) {
+      console.warn("fsSendDirectMessage:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
   // Stars on shared programs
   async function fsToggleProgramStar(spId, reactorUid, reactorName, programName, ownerUid) {
     const ref = doc(fbDb, "programReactions", `${spId}_${reactorUid}`);
@@ -9802,6 +9846,7 @@ import "./styles.css";
     const [selHistSession, setSelHistSession]   = useState(null);
     const [showCoachRules, setShowCoachRules]   = useState(false);
     const [showStopCoach, setShowStopCoach]     = useState(false);
+    const [messageOpen, setMessageOpen]         = useState(false);
     const [stoppingCoach, setStoppingCoach]     = useState(false);
     const [permissionError, setPermissionError] = useState(false); // set if any cross-user read fails
     const [reloadKey, setReloadKey]             = useState(0);      // increment to force re-fetch
@@ -10531,6 +10576,29 @@ import "./styles.css";
                         : t("REQUEST COACHING")}
                   </button>
                 )}
+                <button
+                  onClick={() => setMessageOpen(true)}
+                  aria-label={t("Message")}
+                  title={t("Message")}
+                  style={{
+                    ...buttonTexture(th, "blue"),
+                    width:42,
+                    minWidth:42,
+                    borderRadius:11,
+                    padding:0,
+                    cursor:"pointer",
+                    display:"flex",
+                    alignItems:"center",
+                    justifyContent:"center",
+                    color:"#fff",
+                    flexShrink:0,
+                  }}
+                >
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block" }}>
+                    <path d="M21 12.2c0 4.3-4 7.8-9 7.8-1.1 0-2.2-.17-3.2-.5L4 21l1.5-3.8C3.9 15.9 3 14.1 3 12.2 3 7.9 7 4.4 12 4.4s9 3.5 9 7.8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                    <path d="M8.2 12h.01M12 12h.01M15.8 12h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/>
+                  </svg>
+                </button>
               </div>
 
               {/* ── Inner tabs (only when coaching is active and I am the coach) ──
@@ -10627,6 +10695,15 @@ import "./styles.css";
             </div>
           </div>
         </div>
+
+        {messageOpen && createPortal(
+          <DirectMessageSheet
+            user={user}
+            friend={friend}
+            onClose={() => setMessageOpen(false)}
+          />,
+          document.body
+        )}
 
         {/* ── Coaching Rules Popup ─────────────────────────────────────────── */}
         {showCoachRules && (
@@ -11461,6 +11538,164 @@ import "./styles.css";
     );
   }
 
+  function SharedSessionSheet({ item, user, onClose, onSave }) {
+    const th = useTheme();
+    const S = useS();
+    const t = useT();
+    const [closing, setClosing] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const session = item?.session || {};
+    const friend = item?.friend || {};
+    const isOwn = !!item?.isOwn || friend.uid === user?.id;
+    const senderName = isOwn ? t("You") : (friend.name || "Friend");
+    const initials = (friend.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+    const closeMe = () => { setClosing(true); setTimeout(onClose, 300); };
+    const exercises = (session.exercises || []).filter(Boolean);
+    const muscles = [...new Set(exercises.map(e => e.group || DB.find(d => d.id === e.id)?.group).filter(Boolean))];
+    const buildProgram = () => ({
+      id: uid(),
+      name: session.name || `${senderName} ${t("Workout")}`,
+      exs: exercises.map((ex) => {
+        const dbEx = DB.find(d => d.id === ex.id || d.name === ex.name);
+        const doneSets = (ex.sets || []).filter(st => st.done !== false);
+        const sets = (doneSets.length ? doneSets : (ex.sets || [])).map(st => ({
+          reps: Number(st.reps) || 0,
+          weight: Number(st.weight) || 0,
+          duration: Number(st.duration) || 0,
+          distance: Number(st.distance) || 0,
+        }));
+        return {
+          id: dbEx?.id || ex.id,
+          sets: sets.length ? sets : [{ reps: 10, weight: 0 }],
+        };
+      }).filter(ex => ex.id),
+    });
+
+    return (
+      <>
+        <style>{`
+          @keyframes ssFadeIn    { from{opacity:0}                           to{opacity:1} }
+          @keyframes ssFadeOut   { from{opacity:1}                           to{opacity:0} }
+          @keyframes ssSlideUp   { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes ssSlideDown { from{transform:translateY(0);opacity:1}     to{transform:translateY(100%);opacity:0} }
+        `}</style>
+        <div onClick={closeMe} style={{
+          position:"fixed", inset:0, zIndex:70,
+          background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
+          animation: closing ? "ssFadeOut .3s ease-in forwards" : "ssFadeIn .25s ease-out forwards",
+        }} />
+        <div style={{
+          position:"fixed", inset:0, zIndex:71,
+          display:"flex", flexDirection:"column", justifyContent:"flex-end",
+          maxWidth:480, margin:"0 auto", pointerEvents:"none",
+        }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 90%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"auto", maxHeight:"80vh",
+            display:"flex", flexDirection:"column", overflow:"hidden",
+            pointerEvents:"auto",
+            animation: closing ? "ssSlideDown .34s cubic-bezier(0.4,0,1,1) forwards" : "ssSlideUp .42s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            <div style={{ padding:"18px 18px 0" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
+                <div style={{ minWidth:0, flex:1 }}>
+                  <span className="bebas" style={{ fontSize:24, letterSpacing:2, color:th.text }}>
+                    {session.name || t("WORKOUT")}
+                  </span>
+                  <div style={{ display:"flex", alignItems:"center", gap:7, marginTop:4 }}>
+                    {friend.photoURL ? (
+                      <img src={friend.photoURL} alt={senderName} style={{ width:20, height:20, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                    ) : (
+                      <div style={{ width:20, height:20, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                        {initials}
+                      </div>
+                    )}
+                    <span style={{ fontSize:13, color:th.muted }}>
+                      <span style={{ fontWeight:700, color:th.text }}>{senderName}</span>
+                      <span> {t("completed a workout")}</span>
+                    </span>
+                  </div>
+                </div>
+                <button onClick={closeMe} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1, marginTop:2 }}>✕</button>
+              </div>
+              <div style={{ display:"flex", gap:5, overflowX:"auto", paddingBottom:12, scrollbarWidth:"none" }}>
+                {muscles.map(g => (
+                  <span key={g} style={{
+                    padding:"5px 13px", borderRadius:20, fontSize:12, fontWeight:700,
+                    whiteSpace:"nowrap", flexShrink:0, fontFamily:"'Outfit',sans-serif",
+                    background:`color-mix(in srgb, ${gc(g)}22, ${th.sect})`,
+                    color: gc(g),
+                  }}>{g.toUpperCase()}</span>
+                ))}
+              </div>
+            </div>
+            <div style={{
+              flex:1, overflowY:"auto", overscrollBehavior:"contain",
+              padding:"6px 18px",
+              paddingBottom: !isOwn ? "90px" : "18px",
+            }}>
+              {exercises.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"30px 0", color:th.dim, fontSize:13 }}>{t("No exercises.")}</div>
+              ) : exercises.map((ex, i) => {
+                const dbEx = DB.find(d => d.id === ex.id || d.name === ex.name);
+                const isCardio = ex.type === "cardio" || dbEx?.type === "cardio";
+                const doneSets = (ex.sets || []).filter(st => st.done !== false);
+                const sets = doneSets.length ? doneSets : (ex.sets || []);
+                const firstSet = sets[0] || {};
+                const muscle = dbEx?.muscle || ex.muscle || ex.group || t("Exercise");
+                return (
+                  <div key={`${ex.id || ex.name || i}-${i}`} style={{ ...S.card, padding:"12px 14px", marginBottom:8 }}>
+                    <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ display:"flex", alignItems:"center", gap:8, fontWeight:700, fontSize:14, color:th.text, marginBottom:5 }}>
+                          {dbEx?.name || ex.name || t("Exercise")}
+                          {dbEx && <DiffBadge id={dbEx.id} />}
+                        </div>
+                        <div style={{ display:"flex", alignItems:"center", gap:6, flexWrap:"wrap", marginBottom:5 }}>
+                          <span style={{ ...S.tag(dbEx?.group || ex.group, muscle), fontSize:9.5, padding:"2px 6px" }}>
+                            {String(muscle).toUpperCase()}
+                          </span>
+                          {SECONDARY[dbEx?.id || ex.id] && SECONDARY[dbEx?.id || ex.id].split(" · ").map(m => {
+                            const grp = DB.find(d=>d&&d.muscle===m)?.group||"Back";
+                            return <span key={m} style={{ ...S.tag(grp, m), opacity:0.92, fontSize:8, padding:"1px 5px" }}>{m.toUpperCase()}</span>;
+                          })}
+                        </div>
+                        <div style={{ fontSize:12, color:th.dim }}>
+                          {sets.length} {t(sets.length===1 ? "set" : "sets")}
+                          {isCardio
+                            ? `${firstSet.duration ? ` · ${firstSet.duration}${t("min")}` : ""}${firstSet.distance ? ` · ${firstSet.distance}km` : ""}`
+                            : `${firstSet.reps ? ` · ${firstSet.reps} ${t("reps")}` : ""}${firstSet.weight ? ` · ${firstSet.weight}kg` : ""}`}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {!isOwn && (
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 20px", zIndex: 10 }}>
+                <button
+                  onClick={() => { if (saved) return; onSave(buildProgram()); setSaved(true); }}
+                  style={{
+                    width:"100%",
+                    ...buttonTexture(th, "accent", saved),
+                    borderRadius:13, padding:"14px",
+                    cursor: saved ? "default" : "pointer",
+                    fontFamily:"'Outfit',sans-serif", fontSize:14, fontWeight:700,
+                    letterSpacing:0.5, color: saved ? th.accentFg : th.accentT,
+                    transition:"background .2s, color .2s",
+                  }}
+                >{saved ? `✓ ${t("SAVED TO MY WORKOUTS")}` : t("SAVE TO MY WORKOUTS")}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </>
+    );
+  }
+
 
   // ── CommentsSheet ─────────────────────────────────────────────────────────────
   function CommentsSheet({ postId, user, ownerUid, contextName, onClose }) {
@@ -11615,6 +11850,150 @@ import "./styles.css";
                   boxShadow: canSendComment ? `0 0 0 3px color-mix(in srgb, ${th.accentBg} 14%, transparent)` : "none",
                 }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ display:"block", color:sendIconColor, opacity:1 }}>
+                  <path d="M22 2L11 13" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round"/>
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  function DirectMessageSheet({ user, friend, onClose }) {
+    const th = useTheme();
+    const t = useT();
+    const [messages, setMessages] = useState([]);
+    const [text, setText] = useState("");
+    const [sending, setSending] = useState(false);
+    const [closing, setClosing] = useState(false);
+    const [permError, setPermError] = useState(false);
+    const listRef = useRef(null);
+    const mountedRef = useRef(true);
+    useEffect(() => () => { mountedRef.current = false; }, []);
+    const close = () => { setClosing(true); setTimeout(onClose, 300); };
+    const friendInitials = (friend.name || "?").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+    useEffect(() => {
+      let unsub = () => {};
+      try {
+        unsub = fsListenDirectMessages(user.id, friend.uid, (items, err) => {
+          if (err) { setPermError(true); return; }
+          setMessages(items);
+          setPermError(false);
+          setTimeout(() => listRef.current?.scrollTo({ top:999999, behavior:"smooth" }), 80);
+        });
+      } catch (e) {
+        console.warn("DirectMessageSheet listener error:", e);
+        setPermError(true);
+      }
+      return () => { try { unsub(); } catch {} };
+    }, [user.id, friend.uid]);
+
+    const send = async () => {
+      const clean = text.trim();
+      if (!clean || sending) return;
+      setSending(true);
+      setText("");
+      await fsSendDirectMessage(user, friend, clean);
+      if (mountedRef.current) setSending(false);
+    };
+    const canSend = text.trim().length > 0 && !sending;
+    const sendIconColor = canSend ? th.accentT : th.muted;
+
+    return (
+      <>
+        <style>{`
+          @keyframes dmBdIn  { from{opacity:0} to{opacity:1} }
+          @keyframes dmBdOut { from{opacity:1} to{opacity:0} }
+          @keyframes dmIn    { from{transform:translateY(100%);opacity:.6} to{transform:translateY(0);opacity:1} }
+          @keyframes dmOut   { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
+        `}</style>
+        <div onClick={close} style={{ position:"fixed", inset:0, zIndex:86, background:"rgba(0,0,0,0.5)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)", animation:closing ? "dmBdOut .3s ease forwards" : "dmBdIn .25s ease forwards" }} />
+        <div style={{ position:"fixed", inset:0, zIndex:87, display:"flex", flexDirection:"column", justifyContent:"flex-end", maxWidth:480, margin:"0 auto", pointerEvents:"none" }}>
+          <div onClick={e=>e.stopPropagation()} style={{
+            background:`color-mix(in srgb, ${th.card} 94%, transparent)`,
+            backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
+            borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
+            marginTop:"calc(72px + env(safe-area-inset-top, 0px))",
+            display:"flex", flexDirection:"column", flex:1, pointerEvents:"auto", overflow:"hidden",
+            animation:closing ? "dmOut .3s cubic-bezier(0.4,0,1,1) forwards" : "dmIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
+          }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, padding:"14px 18px 12px", borderBottom:`1px solid ${th.border}`, flexShrink:0 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                {friend.photoURL ? (
+                  <img src={friend.photoURL} alt={friend.name} style={{ width:38, height:38, borderRadius:"50%", objectFit:"cover", flexShrink:0 }} />
+                ) : (
+                  <div style={{ width:38, height:38, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:th.accentFg, flexShrink:0 }}>
+                    {friendInitials}
+                  </div>
+                )}
+                <div style={{ minWidth:0 }}>
+                  <div style={{ fontWeight:800, fontSize:16, color:th.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{friend.name}</div>
+                  <div style={{ fontSize:11, color:th.dim }}>{t("Messages")}</div>
+                </div>
+              </div>
+              <button onClick={close} style={{ background:"none", border:"none", color:th.muted, fontSize:22, cursor:"pointer", lineHeight:1 }}>✕</button>
+            </div>
+
+            <div ref={listRef} style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"14px 16px" }}>
+              {permError ? (
+                <div style={{ textAlign:"center", padding:"24px 0" }}>
+                  <div style={{ fontSize:24, marginBottom:8 }}>🔒</div>
+                  <div style={{ color:th.muted, fontSize:14, marginBottom:8 }}>{t("Messages need a Firebase rule.")}</div>
+                  <div style={{ color:th.dim, fontSize:11, lineHeight:1.6 }}>
+                    <code style={{ background:th.sect, padding:"2px 6px", borderRadius:4, fontSize:10 }}>match /directThreads/&#123;t&#125;/messages/&#123;m&#125; {'{'} allow read, write: if request.auth != null; {'}'}</code>
+                  </div>
+                </div>
+              ) : messages.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"34px 12px", color:th.dim, fontSize:14 }}>{t("No messages yet.")}</div>
+              ) : messages.map(msg => {
+                const mine = msg.senderUid === user.id;
+                return (
+                  <div key={msg.id} style={{ display:"flex", justifyContent:mine ? "flex-end" : "flex-start", marginBottom:9 }}>
+                    <div style={{
+                      maxWidth:"78%",
+                      background:mine ? th.accentBg : th.sect,
+                      color:mine ? th.accentT : th.text,
+                      border:mine ? `1px solid color-mix(in srgb, ${th.accentBg} 75%, transparent)` : `1px solid ${th.border}`,
+                      borderRadius:mine ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                      padding:"9px 12px",
+                      fontSize:14,
+                      lineHeight:1.42,
+                      wordBreak:"break-word",
+                      boxShadow:mine ? `0 4px 12px color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "none",
+                    }}>
+                      {msg.text}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ padding:"10px 16px calc(16px + env(safe-area-inset-bottom,0px))", borderTop:`1px solid ${th.border}`, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+              <input
+                value={text}
+                onChange={e => setText(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && send()}
+                placeholder={t("Message...")}
+                style={{ flex:1, minWidth:0, background:th.sect, border:`1px solid ${th.border}`, borderRadius:20, padding:"10px 14px", fontSize:14, color:th.text, fontFamily:"'Outfit',sans-serif", outline:"none" }}
+              />
+              <button onClick={send} disabled={!canSend}
+                style={{
+                  WebkitAppearance:"none",
+                  appearance:"none",
+                  background:canSend ? `color-mix(in srgb, ${th.accentBg} 92%, ${th.card})` : `color-mix(in srgb, ${th.inputB} 72%, ${th.card})`,
+                  border:`1px solid ${canSend ? th.accentBg : th.border}`,
+                  borderRadius:"50%", width:40, height:40,
+                  display:"flex", alignItems:"center", justifyContent:"center",
+                  cursor:canSend ? "pointer" : "default",
+                  flexShrink:0,
+                  color:sendIconColor,
+                  padding:0,
+                  boxShadow:canSend ? `0 0 0 3px color-mix(in srgb, ${th.accentBg} 14%, transparent)` : "none",
+                }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ display:"block", color:sendIconColor }}>
                   <path d="M22 2L11 13" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round"/>
                   <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke={sendIconColor} strokeWidth="2.35" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -11903,6 +12282,7 @@ import "./styles.css";
     const [sharedPrograms, setSharedPrograms] = useState([]); // programs shared with me
     const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
     const [openSharedProg, setOpenSharedProg] = useState(null);
+    const [openSharedSession, setOpenSharedSession] = useState(null);
     const [openComments, setOpenComments] = useState(null); // { postId }
     const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
 
@@ -12488,6 +12868,19 @@ import "./styles.css";
           document.body
         )}
 
+        {/* ── Completed workout detail sheet ── */}
+        {openSharedSession && createPortal(
+          <SharedSessionSheet
+            item={openSharedSession}
+            user={user}
+            onClose={() => setOpenSharedSession(null)}
+            onSave={(prog) => {
+              onSaveSharedProgram && onSaveSharedProgram(prog);
+            }}
+          />,
+          document.body
+        )}
+
         {/* ── Comments sheet ── */}
         {openComments && createPortal(
           <CommentsSheet
@@ -12986,7 +13379,18 @@ import "./styles.css";
                     <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(s.startTime)}</div>
                   </div>
                   {/* Session card */}
-                  <div style={{ background:th.sect, borderRadius:10, padding:"12px 14px" }}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setOpenSharedSession(item)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setOpenSharedSession(item);
+                      }
+                    }}
+                    style={{ background:th.sect, borderRadius:10, padding:"12px 14px", cursor:"pointer", WebkitTapHighlightColor:"transparent" }}
+                  >
                     {/* Session name */}
                     <div style={{ fontWeight:700, fontSize:15, color:th.text, marginBottom:10 }}>{s.name || t("Workout")}</div>
                     {/* Stats grid */}
@@ -13012,7 +13416,7 @@ import "./styles.css";
                     <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:10 }}>
                       {/* Comment button — same style as star button. ownerUid is the post owner (the user for own posts). */}
                       <button
-                        onClick={(e) => { addRipple(e, th.accentFg); setOpenComments({ postId: `session_${f.uid}_${sid}`, ownerUid: f.uid, contextName: s.name || "Workout" }); }}
+                        onClick={(e) => { e.stopPropagation(); addRipple(e, th.accentFg); setOpenComments({ postId: `session_${f.uid}_${sid}`, ownerUid: f.uid, contextName: s.name || "Workout" }); }}
                         style={{
                           background:"transparent",
                           border:`1.5px solid ${th.inputB}`,
@@ -13033,7 +13437,8 @@ import "./styles.css";
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                         {starInfo.count > 0 && (
                           <button
-                            onClick={async () => {
+                            onClick={async (e) => {
+                              e.stopPropagation();
                               const rxns = await fsGetReactions(f.uid, sid);
                               setOpenStarredBy(rxns);
                             }}
@@ -13042,7 +13447,7 @@ import "./styles.css";
                           </button>
                         )}
                         <button
-                          onClick={handleStar}
+                          onClick={(e) => { e.stopPropagation(); handleStar(); }}
                           style={{
                             background: starInfo.starred ? `color-mix(in srgb, ${th.accentBg} 22%, transparent)` : "transparent",
                             border: `1.5px solid ${starInfo.starred ? th.accentBg : th.inputB}`,
@@ -18329,7 +18734,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.0 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.1 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
