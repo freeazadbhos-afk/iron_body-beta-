@@ -43,6 +43,7 @@ import "./styles.css";
     updateDoc,
     serverTimestamp,
     deleteField,
+    increment,
   } from "firebase/firestore";
 
   const firebaseConfig = {
@@ -5013,6 +5014,31 @@ import "./styles.css";
     );
   }
 
+  function fsListenDirectThreads(uid, cb) {
+    if (!uid) return () => {};
+    const q = query(collection(fbDb, "directThreads"), where("participantUids", "array-contains", uid));
+    return onSnapshot(
+      q,
+      snap => cb(snap.docs.map(d => ({ id:d.id, ...d.data() }))),
+      err => { console.warn("fsListenDirectThreads:", err.code, err.message); cb([], err); }
+    );
+  }
+
+  async function fsMarkDirectThreadRead(uid, friendUid) {
+    if (!uid || !friendUid) return { ok:false };
+    const threadId = directThreadId(uid, friendUid);
+    try {
+      await setDoc(doc(fbDb, "directThreads", threadId), {
+        readBy: { [uid]: Date.now() },
+        unreadCounts: { [uid]: 0 },
+      }, { merge:true });
+      return { ok:true };
+    } catch (e) {
+      console.warn("fsMarkDirectThreadRead:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
   async function fsSendDirectMessage(user, friend, text) {
     const clean = (text || "").trim();
     if (!user?.id || !friend?.uid || !clean) return { ok:false };
@@ -5028,6 +5054,11 @@ import "./styles.css";
         updatedAt: now,
         lastText: clean,
         lastSenderUid: user.id,
+        readBy: { [user.id]: now },
+        unreadCounts: {
+          [user.id]: 0,
+          [friend.uid]: increment(1),
+        },
       }, { merge:true });
       const ref = await addDoc(collection(fbDb, "directThreads", threadId, "messages"), {
         senderUid:user.id,
@@ -5035,6 +5066,16 @@ import "./styles.css";
         senderPhotoURL:user.photoURL || null,
         text:clean,
         ts:now,
+      });
+      fsPushNotification(friend.uid, {
+        type:"direct_message",
+        fromUid:user.id,
+        name:user.name || "Friend",
+        photoURL:user.photoURL || null,
+        threadId,
+        messageId:ref.id,
+        text:`${user.name || "Friend"} sent you a message`,
+        messageText:clean,
       });
       return { ok:true, id:ref.id };
     } catch (e) {
@@ -9880,7 +9921,7 @@ import "./styles.css";
     );
   }
 
-  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching }) {
+  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching, unreadMessages = 0 }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
@@ -10646,12 +10687,39 @@ import "./styles.css";
                     justifyContent:"center",
                     color:"#fff",
                     flexShrink:0,
+                    position:"relative",
                   }}
                 >
                   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block" }}>
                     <path d="M21 12.2c0 4.3-4 7.8-9 7.8-1.1 0-2.2-.17-3.2-.5L4 21l1.5-3.8C3.9 15.9 3 14.1 3 12.2 3 7.9 7 4.4 12 4.4s9 3.5 9 7.8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
                     <path d="M8.2 12h.01M12 12h.01M15.8 12h.01" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/>
                   </svg>
+                  {unreadMessages > 0 && (
+                    <span style={{
+                      position:"absolute",
+                      top:-6,
+                      right:-6,
+                      minWidth:19,
+                      height:19,
+                      borderRadius:10,
+                      padding:"0 5px",
+                      background:th.accentBg,
+                      border:`2px solid ${th.card}`,
+                      color:th.accentT,
+                      display:"flex",
+                      alignItems:"center",
+                      justifyContent:"center",
+                      fontSize:10,
+                      fontWeight:800,
+                      fontFamily:"'Outfit',sans-serif",
+                      lineHeight:1,
+                      boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 42%, transparent)`,
+                      animation:"notifPop 0.24s cubic-bezier(0.34,1.4,0.64,1) forwards",
+                      pointerEvents:"none",
+                    }}>
+                      {unreadMessages > 9 ? "9+" : unreadMessages}
+                    </span>
+                  )}
                 </button>
               </div>
 
@@ -11986,10 +12054,12 @@ import "./styles.css";
     useEffect(() => {
       let unsub = () => {};
       try {
+        fsMarkDirectThreadRead(user.id, friend.uid).catch(() => {});
         unsub = fsListenDirectMessages(user.id, friend.uid, (items, err) => {
           if (err) { setPermError(true); return; }
           setMessages(items);
           setPermError(false);
+          fsMarkDirectThreadRead(user.id, friend.uid).catch(() => {});
           setTimeout(() => listRef.current?.scrollTo({ top:999999, behavior:"smooth" }), 80);
         });
       } catch (e) {
@@ -12600,8 +12670,10 @@ import "./styles.css";
     const [sharedByMe, setSharedByMe] = useState([]); // programs I shared
     const [openSharedProg, setOpenSharedProg] = useState(null);
     const [openSharedSession, setOpenSharedSession] = useState(null);
+    const [openDirectMessageFriend, setOpenDirectMessageFriend] = useState(null);
     const [openComments, setOpenComments] = useState(null); // { postId }
     const [openStarredBy, setOpenStarredBy] = useState(null); // array of reactors
+    const [directThreads, setDirectThreads] = useState([]);
 
     // Consume deep-link from notification tap. Three modes:
     //   • "comments" → open the post's Comments sheet (for comment notifications)
@@ -12609,9 +12681,18 @@ import "./styles.css";
     //   • "pending"  → switch to the Friends tab where pending requests live
     useEffect(() => {
       if (!deepLinkPost) return;
-      const { mode, postId, ownerUid, contextName } = deepLinkPost;
+      const { mode, postId, ownerUid, contextName, friendUid, name, photoURL } = deepLinkPost;
       if (mode === "pending") {
         setSharingTab("friends");
+      } else if (mode === "message") {
+        setSharingTab("friends");
+        const targetFriend =
+          friends.find(f => f.uid === friendUid) ||
+          { uid:friendUid, name:name || "Friend", photoURL:photoURL || null };
+        if (targetFriend?.uid) {
+          setDashFriend(null);
+          setOpenDirectMessageFriend(targetFriend);
+        }
       } else if (mode === "comments") {
         setSharingTab("feed");
         setOpenComments({ postId, ownerUid, contextName });
@@ -12631,7 +12712,7 @@ import "./styles.css";
         }, 120);
       }
       onConsumeDeepLink && onConsumeDeepLink();
-    }, [deepLinkPost?.postId, deepLinkPost?.mode]);
+    }, [deepLinkPost?.postId, deepLinkPost?.mode, deepLinkPost?.friendUid]);
 
 
     const [commentCounts, setCommentCounts] = useState({}); // postId -> count
@@ -12674,6 +12755,12 @@ import "./styles.css";
       const u1 = fsListenSharedWithMe(user.id, items => setSharedPrograms(items.sort((a,b) => b.ts - a.ts)));
       const u2 = fsListenSharedByMe(user.id, items => setSharedByMe(items.sort((a,b) => b.ts - a.ts)));
       return () => { u1(); u2(); };
+    }, [user?.id]);
+
+    useEffect(() => {
+      if (!user?.id) return;
+      const unsub = fsListenDirectThreads(user.id, setDirectThreads);
+      return () => unsub();
     }, [user?.id]);
 
     // Load suggestions from publicProfiles only (invitations collection requires broad access)
@@ -12752,6 +12839,29 @@ import "./styles.css";
     ];
     const feedItems = [...sessionFeedItems, ...ownSessionFeedItems, ...sharedProgFeedItems]
       .sort((a, b) => b.ts - a.ts);
+
+    const dmMs = (v) => {
+      if (!v) return 0;
+      if (typeof v === "number") return v;
+      if (typeof v.toMillis === "function") return v.toMillis();
+      if (v.seconds) return v.seconds * 1000;
+      return Number(v) || 0;
+    };
+    const unreadDirectByFriend = directThreads.reduce((acc, thread) => {
+      if (!thread || thread.lastSenderUid === user.id) return acc;
+      const otherUid =
+        thread.lastSenderUid ||
+        (thread.participantUids || []).find(uid => uid !== user.id) ||
+        String(thread.id || "").split("__").find(uid => uid !== user.id);
+      if (!otherUid) return acc;
+      const updatedAt = dmMs(thread.updatedAt);
+      const readAt = dmMs(thread.readBy?.[user.id]);
+      const storedUnread = Math.max(0, Number(thread.unreadCounts?.[user.id] || 0));
+      if (storedUnread > 0) acc[otherUid] = (acc[otherUid] || 0) + storedUnread;
+      else if (updatedAt > readAt) acc[otherUid] = (acc[otherUid] || 0) + 1;
+      return acc;
+    }, {});
+    const unreadDirectFriendCount = Object.keys(unreadDirectByFriend).length;
 
     // Load comment counts for all visible feed items
     useEffect(() => {
@@ -12986,12 +13096,12 @@ import "./styles.css";
                         ? t("FEED")
                         : (() => {
                             // Show a (N) counter on the FRIENDS tab when there are any
-                            // pending things to act on: friend invites, coach requests,
-                            // or compete invites received.
+                            // pending things to act on or unread direct-message threads.
                             const pendCount =
                               (pendingInvitations?.length || 0) +
                               ((pendingCoachRequests || []).length) +
-                              competitions.filter(c => c.toUid === user.id && c.status === "pending").length;
+                              competitions.filter(c => c.toUid === user.id && c.status === "pending").length +
+                              unreadDirectFriendCount;
                             return pendCount > 0 ? `${t("FRIENDS")} (${pendCount})` : t("FRIENDS");
                           })()}
                     </span>
@@ -13157,6 +13267,7 @@ import "./styles.css";
               </div>
               {friends.map(f => {
                 const initials = (f.name||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                const unreadMessages = unreadDirectByFriend[f.uid] || 0;
                 return (
                   <div key={f.uid} style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:7, flexShrink:0, position:"relative", cursor: editFriends ? "default" : "pointer",
                     animation: editFriends ? "avatarWobble 0.45s ease-in-out infinite alternate" : "none",
@@ -13173,6 +13284,32 @@ import "./styles.css";
                     ) : (
                       <div style={{ width:54, height:54, borderRadius:"50%", background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:700, color:th.accentFg, border:`2.5px solid ${th.border}` }}>
                         {initials}
+                      </div>
+                    )}
+                    {unreadMessages > 0 && !editFriends && (
+                      <div style={{
+                        position:"absolute",
+                        top:-5,
+                        right:-5,
+                        minWidth:20,
+                        height:20,
+                        borderRadius:10,
+                        padding:"0 5px",
+                        background:th.accentBg,
+                        border:`2px solid ${th.card}`,
+                        color:th.accentT,
+                        display:"flex",
+                        alignItems:"center",
+                        justifyContent:"center",
+                        fontSize:10,
+                        fontWeight:800,
+                        fontFamily:"'Outfit',sans-serif",
+                        lineHeight:1,
+                        boxShadow:`0 2px 10px color-mix(in srgb, ${th.accentBg} 42%, transparent)`,
+                        animation:"notifPop 0.24s cubic-bezier(0.34,1.4,0.64,1) forwards",
+                        pointerEvents:"none",
+                      }}>
+                        {unreadMessages > 9 ? "9+" : unreadMessages}
                       </div>
                     )}
                     {/* Remove X badge in edit mode — floats above avatar, delete-account style */}
@@ -13220,6 +13357,21 @@ import "./styles.css";
 
 
 
+        {/* ── Direct message sheet opened from notification/deep link ── */}
+        {openDirectMessageFriend && createPortal(
+          <DirectMessageSheet
+            user={user}
+            friend={openDirectMessageFriend}
+            onClose={() => setOpenDirectMessageFriend(null)}
+            onOpenProfile={() => {
+              const f = openDirectMessageFriend;
+              setOpenDirectMessageFriend(null);
+              setTimeout(() => setDashFriend(f), 220);
+            }}
+          />,
+          document.body
+        )}
+
         {/* ── Friend dashboard sheet ── */}
         {dashFriend && createPortal(
           <FriendDashboardSheet
@@ -13236,6 +13388,7 @@ import "./styles.css";
             onGetFriendPrograms={onGetFriendPrograms}
             onSaveCoachPrograms={onSaveCoachPrograms}
             onStopCoaching={onStopCoaching}
+            unreadMessages={unreadDirectByFriend[dashFriend.uid] || 0}
           />,
           document.body
         )}
@@ -19521,6 +19674,7 @@ import "./styles.css";
     const [friends, setFriends]                       = useState([]);
     const [starNotifications, setStarNotifications]   = useState([]); // reactions on own sessions
     const [unreadStars, setUnreadStars]               = useState(0);
+    const [unreadDirectFriendCount, setUnreadDirectFriendCount] = useState(0);
     const [notifOpen, setNotifOpen]                   = useState(false);
     const [bellRipple, setBellRipple]                 = useState(false);
     const [notifClosing, setNotifClosing]             = useState(false);
@@ -19531,6 +19685,37 @@ import "./styles.css";
     // Deep-link payload for opening a specific feed post from a notification tap.
     // Shape: { postId, ownerUid, contextName, mode }. SharingView consumes this on mount and clears it.
     const [deepLinkPost, setDeepLinkPost]             = useState(null);
+
+    useEffect(() => {
+      if (!user?.id || user?.isGuest) {
+        setUnreadDirectFriendCount(0);
+        return;
+      }
+      const dmMs = (v) => {
+        if (!v) return 0;
+        if (typeof v === "number") return v;
+        if (typeof v.toMillis === "function") return v.toMillis();
+        if (v.seconds) return v.seconds * 1000;
+        return Number(v) || 0;
+      };
+      const unsub = fsListenDirectThreads(user.id, (threads) => {
+        const unreadFrom = new Set();
+        (threads || []).forEach(thread => {
+          if (!thread || thread.lastSenderUid === user.id) return;
+          const otherUid =
+            thread.lastSenderUid ||
+            (thread.participantUids || []).find(uid => uid !== user.id) ||
+            String(thread.id || "").split("__").find(uid => uid !== user.id);
+          if (!otherUid) return;
+          const updatedAt = dmMs(thread.updatedAt);
+          const readAt = dmMs(thread.readBy?.[user.id]);
+          const storedUnread = Math.max(0, Number(thread.unreadCounts?.[user.id] || 0));
+          if (storedUnread > 0 || updatedAt > readAt) unreadFrom.add(otherUid);
+        });
+        setUnreadDirectFriendCount(unreadFrom.size);
+      });
+      return () => unsub();
+    }, [user?.id, user?.isGuest]);
     const [, setLastReadNotif]                         = useState(() => parseInt(ls("ib3-lastReadNotif", "0"), 10) || 0);
     const [competitions, setCompetitions]             = useState([]);
     const [pendingCoachRequests, setPendingCoachRequests] = useState([]); // incoming coach requests (user is athlete)
@@ -20400,11 +20585,11 @@ import "./styles.css";
               <circle cx="9.5" cy="9" r="3.2" stroke={c} strokeWidth="1.6" />
               <path d="M2.5 20c.6-3.4 3.6-6 7-6s6.4 2.6 7 6" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            {(pendingInvitations.length > 0 || unreadStars > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
+            {(pendingInvitations.length > 0 || unreadStars > 0 || unreadDirectFriendCount > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
               <div style={{
                 position: "absolute", top: -3, right: -3,
                 width: 11, height: 11, borderRadius: "50%",
-                background: unreadStars > 0 ? th.accentFg : "#CC1F42",
+                background: (unreadStars > 0 || unreadDirectFriendCount > 0) ? th.accentFg : "#CC1F42",
                 border: `1.5px solid ${th.nav}`,
                 animation: "pulse 1.5s ease-in-out infinite",
               }} />
@@ -21713,6 +21898,8 @@ import "./styles.css";
                     : `${d} ${tLang("days ago")}`;
                   const iconBg = n.type === "award_earned"
                     ? "rgba(212,175,55,0.18)"
+                    : n.type === "direct_message"
+                    ? `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`
                     : n.type === "compete_accepted" || n.type === "compete_invite"
                     ? "rgba(212,175,55,0.18)"
                     : n.type === "coach_request" || n.type === "coach_accepted"
@@ -21720,6 +21907,8 @@ import "./styles.css";
                     : `color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`;
                   const icon = n.type === "award_earned"
                     ? <span style={{ fontSize:15 }}>{n.awardIcon || "🏅"}</span>
+                    : n.type === "direct_message"
+                    ? <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 12.2c0 4.3-4 7.8-9 7.8-1.1 0-2.2-.17-3.2-.5L4 21l1.5-3.8C3.9 15.9 3 14.1 3 12.2 3 7.9 7 4.4 12 4.4s9 3.5 9 7.8Z" stroke={th.accentFg} strokeWidth="2" strokeLinejoin="round"/><path d="M8.2 12h.01M12 12h.01M15.8 12h.01" stroke={th.accentFg} strokeWidth="2.4" strokeLinecap="round"/></svg>
                     : n.type === "compete_accepted" || n.type === "compete_invite"
                     ? <span style={{ fontSize:14 }}>🏆</span>
                     : n.type === "coach_request" || n.type === "coach_accepted"
@@ -21758,6 +21947,9 @@ import "./styles.css";
                     if (n.type === "award_earned") {
                       return <><span style={{ fontWeight:700 }}>{tLang("Award unlocked")}</span><span style={{ color:th.muted }}> · </span><span style={{ fontWeight:700, color:th.text }}>{n.awardLabel || n.text}</span></>;
                     }
+                    if (n.type === "direct_message") {
+                      return <><span style={{ fontWeight:700 }}>{who}</span><span style={{ color:th.muted }}> {tLang("sent you a message")}</span></>;
+                    }
                     return n.text || <span style={{ color:th.text }}>{who}</span>;
                   };
                   const text = renderText();
@@ -21775,6 +21967,8 @@ import "./styles.css";
                     linkPayload = { mode:"scroll", postId: `session_${user.id}_${n.sessionId}` };
                   } else if (n.type === "program_star" && n.spId) {
                     linkPayload = { mode:"scroll", postId: n.postId || `program_${n.spId}` };
+                  } else if (n.type === "direct_message" && n.fromUid) {
+                    linkPayload = { mode:"message", friendUid:n.fromUid, name:n.name, photoURL:n.photoURL || null };
                   } else if (
                     n.type === "friend_request" ||
                     n.type === "compete_invite" ||
