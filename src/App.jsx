@@ -3853,12 +3853,12 @@ import "./styles.css";
           @keyframes eiSlideDown { from{transform:translateY(0);opacity:1} to{transform:translateY(100%);opacity:0} }
         `}</style>
         <div onClick={close} style={{
-          position:"fixed", inset:0, zIndex:70,
+          position:"fixed", inset:0, zIndex:120,
           background:"rgba(0,0,0,0.55)", backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
           animation: closing ? "eiFadeOut 0.3s ease-in forwards" : "eiFadeIn 0.25s ease-out forwards",
         }} />
         <div style={{
-          position:"fixed", inset:0, zIndex:71,
+          position:"fixed", inset:0, zIndex:121,
           display:"flex", flexDirection:"column", justifyContent:"flex-end",
           maxWidth:480, margin:"0 auto", pointerEvents:"none",
         }}>
@@ -4994,6 +4994,40 @@ import "./styles.css";
       snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => a.ts - b.ts)),
       err => { console.warn("fsListenComments:", err.code, err.message); cb([], err); }
     );
+  }
+
+  async function fsToggleCommentStar(postId, uid, messageId) {
+    if (!postId || !uid || !messageId) return { ok:false };
+    const ref = doc(fbDb, "comments", String(postId), "messages", String(messageId));
+    try {
+      const snap = await getDoc(ref);
+      const reactions = snap.exists() ? (snap.data().reactions || {}) : {};
+      const field = `reactions.${uid}`;
+      if (reactions?.[uid] === "star") {
+        await updateDoc(ref, { [field]: deleteField() });
+        return { ok:true, starred:false };
+      }
+      await updateDoc(ref, { [field]: "star" });
+      return { ok:true, starred:true };
+    } catch (e) {
+      console.warn("fsToggleCommentStar:", e.code, e.message);
+      return { ok:false, error:e };
+    }
+  }
+
+  async function fsEditComment(postId, messageId, text) {
+    const clean = (text || "").trim();
+    if (!postId || !messageId || !clean) return { ok:false };
+    try {
+      await updateDoc(doc(fbDb, "comments", String(postId), "messages", String(messageId)), {
+        text: clean,
+        editedAt: Date.now(),
+      });
+      return { ok:true };
+    } catch (e) {
+      console.warn("fsEditComment:", e.code, e.message);
+      return { ok:false, error:e };
+    }
   }
 
   async function fsDeleteComment(postId, messageId) {
@@ -9870,7 +9904,7 @@ import "./styles.css";
             {/* ── Sticky save bar ── */}
             <div style={{
               position:"absolute", bottom:0, left:0, right:0,
-              padding:`12px 16px calc(env(safe-area-inset-bottom, 0px) + 16px)`,
+              padding:`12px 16px calc(env(safe-area-inset-bottom, 0px) + 8px)`,
             }}>
               <button
                 onClick={handleSave}
@@ -11880,10 +11914,28 @@ import "./styles.css";
     const [sending, setSending] = useState(false);
     const [closing, setClosing] = useState(false);
     const [permError, setPermError] = useState(false);
+    const [menuCommentId, setMenuCommentId] = useState(null);
+    const [closingMenuId, setClosingMenuId] = useState(null);
+    const [editingComment, setEditingComment] = useState(null);
     const listRef = useRef(null);
     const mountedRef = useRef(true);
-    useEffect(() => () => { mountedRef.current = false; }, []);
-    const close = () => { setClosing(true); setTimeout(onClose, 300); };
+    const menuCloseTimerRef = useRef(null);
+    useEffect(() => () => {
+      mountedRef.current = false;
+      if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+    }, []);
+    const closeCommentMenu = () => {
+      if (!menuCommentId) return;
+      const id = menuCommentId;
+      if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+      setClosingMenuId(id);
+      setMenuCommentId(null);
+      menuCloseTimerRef.current = setTimeout(() => {
+        setClosingMenuId(cur => cur === id ? null : cur);
+        menuCloseTimerRef.current = null;
+      }, 170);
+    };
+    const close = () => { closeCommentMenu(); setClosing(true); setTimeout(onClose, 300); };
 
     const fmtAgo = (ts) => {
       if (!ts) return "";
@@ -11912,13 +11964,31 @@ import "./styles.css";
     }, [postId]);
 
     const send = async () => {
-      const t = text.trim();
-      if (!t || sending) return;
+      const clean = text.trim();
+      if (!clean || sending) return;
       setSending(true);
       setText("");
-      await fsPostComment(postId, user.id, user.name, user.photoURL, t, ownerUid, contextName);
+      if (editingComment) {
+        await fsEditComment(postId, editingComment.id, clean);
+        setEditingComment(null);
+      } else {
+        await fsPostComment(postId, user.id, user.name, user.photoURL, clean, ownerUid, contextName);
+      }
       // Sheet may have been closed during the await — don't setState on unmount.
       if (mountedRef.current) setSending(false);
+    };
+    const startEditComment = (comment) => {
+      setEditingComment(comment);
+      setText(comment.text || "");
+      closeCommentMenu();
+    };
+    const cancelEditComment = () => {
+      setEditingComment(null);
+      setText("");
+    };
+    const toggleCommentStar = async (comment) => {
+      closeCommentMenu();
+      await fsToggleCommentStar(postId, user.id, comment.id);
     };
     const canSendComment = text.trim().length > 0 && !sending;
     const sendIconColor = canSendComment ? th.accentT : th.muted;
@@ -11930,6 +12000,8 @@ import "./styles.css";
           @keyframes cmBdOut {from{opacity:1}to{opacity:0}}
           @keyframes cmIn    {from{transform:translateY(100%);opacity:.6}to{transform:translateY(0);opacity:1}}
           @keyframes cmOut   {from{transform:translateY(0);opacity:1}to{transform:translateY(100%);opacity:0}}
+          @keyframes cmBubbleMenuIn  { from{opacity:0;transform:translateY(-4px) scale(.985);filter:blur(8px)} to{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} }
+          @keyframes cmBubbleMenuOut { from{opacity:1;transform:translateY(0) scale(1);filter:blur(0)} to{opacity:0;transform:translateY(-4px) scale(.985);filter:blur(8px)} }
         `}</style>
         <div onClick={close} style={{ position:"fixed",inset:0,zIndex:80,background:"rgba(0,0,0,0.5)",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)", animation: closing ? "cmBdOut .3s ease forwards" : "cmBdIn .25s ease forwards" }} />
         <div style={{ position:"fixed",inset:0,zIndex:81,display:"flex",flexDirection:"column",justifyContent:"flex-end",maxWidth:480,margin:"0 auto",pointerEvents:"none" }}>
@@ -11937,7 +12009,7 @@ import "./styles.css";
             background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"auto", maxHeight:"75vh",
+            marginTop:"auto", height:"86vh", maxHeight:"86vh",
             display:"flex", flexDirection:"column", pointerEvents:"auto",
             animation: closing ? "cmOut .3s cubic-bezier(0.4,0,1,1) forwards" : "cmIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
@@ -11950,7 +12022,11 @@ import "./styles.css";
               <button onClick={close} style={{ background:"none",border:"none",color:th.muted,fontSize:22,cursor:"pointer",lineHeight:1 }}>✕</button>
             </div>
             {/* Comment list */}
-            <div ref={listRef} style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"12px 18px" }}>
+            <div
+              ref={listRef}
+              onClick={closeCommentMenu}
+              style={{ flex:1, overflowY:"auto", overscrollBehavior:"contain", padding:"12px 18px 76px" }}
+            >
               {permError ? (
                 <div style={{ textAlign:"center", padding:"24px 0" }}>
                   <div style={{ fontSize:24, marginBottom:8 }}>🔒</div>
@@ -11965,24 +12041,159 @@ import "./styles.css";
               ) : comments.map(c => {
                 const ini = (c.authorName||"?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
                 const isOwn = c.authorUid === user.id;
+                const starred = c.reactions && Object.values(c.reactions).some(v => v === "star");
+                const starredByMe = c.reactions?.[user.id] === "star";
+                const menuOpen = menuCommentId === c.id;
+                const menuClosing = closingMenuId === c.id && !menuOpen;
+                const menuVisible = menuOpen || menuClosing;
                 return (
-                  <div key={c.id} style={{ display:"flex", gap:10, marginBottom:14, alignItems:"flex-start" }}>
+                  <div key={c.id} style={{ display:"flex", gap:10, marginBottom:14, alignItems:"flex-start", position:"relative", zIndex:menuVisible ? 8 : 1 }}>
                     {c.authorPhotoURL ? (
                       <img src={c.authorPhotoURL} alt={c.authorName} style={{ width:34,height:34,borderRadius:"50%",objectFit:"cover",flexShrink:0 }} />
                     ) : (
                       <div style={{ width:34,height:34,borderRadius:"50%",background:`color-mix(in srgb, ${th.accentBg} 18%, ${th.row})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,color:th.accentFg,flexShrink:0 }}>{ini}</div>
                     )}
-                    <div style={{ flex:1 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:3 }}>
                         <span style={{ fontWeight:700, fontSize:13, color:th.text }}>{c.authorName?.split(" ")[0]}</span>
                         <span style={{ fontSize:11, color:th.dim }}>{fmtAgo(c.ts)}</span>
-                        {isOwn && (
-                          <button onClick={() => fsDeleteComment(postId, c.id)}
-                            style={{ marginLeft:"auto", background:"none",border:"none",color:th.delText,fontSize:11,cursor:"pointer",padding:0 }}>{tr("Delete")}</button>
-                        )}
                       </div>
-                      <div style={{ fontSize:14, color:th.sub, lineHeight:1.5, background:th.sect, borderRadius:"4px 12px 12px 12px", padding:"8px 12px", display:"inline-block", maxWidth:"100%", wordBreak:"break-word" }}>
-                        {c.text}
+                      <div style={{ position:"relative", display:"inline-block", maxWidth:"100%" }}>
+                        {menuVisible && (
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              position:"absolute",
+                              left:0,
+                              top:"calc(100% + 11px)",
+                              zIndex:12,
+                              display:"flex",
+                              gap:6,
+                              padding:"6px",
+                              borderRadius:16,
+                              background:`linear-gradient(135deg, color-mix(in srgb, ${th.card} 66%, transparent) 0%, color-mix(in srgb, ${th.row} 38%, transparent) 100%)`,
+                              border:`1px solid color-mix(in srgb, ${th.border} 74%, rgba(255,255,255,0.22))`,
+                              boxShadow:"0 14px 34px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.16), inset 0 -1px 0 rgba(0,0,0,0.08)",
+                              backdropFilter:"blur(26px) saturate(1.75)",
+                              WebkitBackdropFilter:"blur(26px) saturate(1.75)",
+                              pointerEvents:menuClosing ? "none" : "auto",
+                              animation:menuClosing ? "cmBubbleMenuOut .18s ease forwards" : "cmBubbleMenuIn .2s cubic-bezier(0.18,0.9,0.2,1) forwards",
+                              transformOrigin:"top left",
+                            }}
+                          >
+                            <button
+                              onClick={() => toggleCommentStar(c)}
+                              style={{
+                                ...buttonTexture(th, starredByMe ? "accent" : "neutral"),
+                                borderRadius:12,
+                                width:36,
+                                height:34,
+                                padding:0,
+                                cursor:"pointer",
+                                display:"flex",
+                                alignItems:"center",
+                                justifyContent:"center",
+                                color:starredByMe ? th.accentT : th.accentFg,
+                              }}
+                              title={tr("Star")}
+                              aria-label={tr("Star")}
+                            >
+                              <svg
+                                width="17"
+                                height="17"
+                                viewBox="0 0 22 22"
+                                fill={starredByMe ? "currentColor" : "none"}
+                                aria-hidden="true"
+                                style={{ display:"block" }}
+                              >
+                                <polygon
+                                  points="11,2 13.9,8.3 21,9.3 16,14.1 17.2,21 11,17.8 4.8,21 6,14.1 1,9.3 8.1,8.3"
+                                  stroke="currentColor"
+                                  strokeWidth="1.8"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </button>
+                            {isOwn && (
+                              <button
+                                onClick={() => startEditComment(c)}
+                                style={{
+                                  ...buttonTexture(th, "neutral"),
+                                  borderRadius:12,
+                                  width:36,
+                                  height:34,
+                                  padding:0,
+                                  cursor:"pointer",
+                                  display:"flex",
+                                  alignItems:"center",
+                                  justifyContent:"center",
+                                  color:th.sub,
+                                }}
+                                title={tr("Edit")}
+                                aria-label={tr("Edit")}
+                              >
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block", transform:"rotate(-8deg)" }}>
+                                  <path d="M4 16.7V20h3.3L18.6 8.7l-3.3-3.3L4 16.7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                                  <path d="M14.4 6.3 16.2 4.5c.7-.7 1.8-.7 2.5 0l.8.8c.7.7.7 1.8 0 2.5l-1.8 1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (menuOpen) closeCommentMenu();
+                            else {
+                              if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
+                              setClosingMenuId(null);
+                              setMenuCommentId(c.id);
+                            }
+                          }}
+                          style={{
+                            fontSize:14,
+                            color:th.sub,
+                            lineHeight:1.5,
+                            background:th.sect,
+                            border:`1px solid ${menuOpen ? th.accentBg : "transparent"}`,
+                            borderRadius:"4px 12px 12px 12px",
+                            padding:"8px 12px",
+                            display:"inline-block",
+                            maxWidth:"100%",
+                            wordBreak:"break-word",
+                            cursor:"pointer",
+                            WebkitTapHighlightColor:"transparent",
+                            boxShadow:menuOpen ? `0 4px 14px color-mix(in srgb, ${th.accentBg} 16%, transparent)` : "none",
+                          }}
+                        >
+                          {c.text}
+                          {c.editedAt && (
+                            <span style={{ display:"block", marginTop:3, fontSize:10, color:th.dim, fontWeight:700 }}>
+                              {tr("edited")}
+                            </span>
+                          )}
+                        </div>
+                        {starred && (
+                          <div style={{
+                            position:"absolute",
+                            left:6,
+                            bottom:-11,
+                            width:22,
+                            height:22,
+                            borderRadius:"50%",
+                            background:th.card,
+                            border:`1px solid ${th.border}`,
+                            display:"flex",
+                            alignItems:"center",
+                            justifyContent:"center",
+                            color:th.accentFg,
+                            fontSize:12,
+                            boxShadow:"0 2px 8px rgba(0,0,0,0.18)",
+                            pointerEvents:"none",
+                          }}>
+                            ★
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -11991,6 +12202,27 @@ import "./styles.css";
             </div>
             {/* Input */}
             <div style={{ padding:"10px 18px calc(16px + env(safe-area-inset-bottom,0px))", borderTop:`1px solid ${th.border}`, display:"flex", gap:10, alignItems:"center", flexShrink:0 }}>
+              {editingComment && (
+                <button
+                  onClick={cancelEditComment}
+                  style={{
+                    background:"transparent",
+                    border:`1px solid ${th.border}`,
+                    borderRadius:"50%",
+                    width:32,
+                    height:32,
+                    color:th.muted,
+                    cursor:"pointer",
+                    flexShrink:0,
+                    fontSize:17,
+                    lineHeight:1,
+                  }}
+                  title={tr("Cancel")}
+                  aria-label={tr("Cancel")}
+                >
+                  ✕
+                </button>
+              )}
               {user.photoURL ? (
                 <img src={user.photoURL} alt="" style={{ width:32,height:32,borderRadius:"50%",objectFit:"cover",flexShrink:0 }} />
               ) : (
@@ -12002,7 +12234,7 @@ import "./styles.css";
                 value={text}
                 onChange={e => setText(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && send()}
-                placeholder={tr("Add a comment…")}
+                placeholder={editingComment ? tr("Edit comment...") : tr("Add a comment…")}
                 style={{ flex:1, background:th.sect, border:`1px solid ${th.border}`, borderRadius:20, padding:"9px 14px", fontSize:14, color:th.text, fontFamily:"'Outfit',sans-serif", outline:"none" }}
               />
               <button onClick={send} disabled={!canSendComment}
@@ -17175,9 +17407,14 @@ import "./styles.css";
                   onChange={(e) => setDateDraft(e.target.value)}
                   style={{
                     ...S.input,
-                    width: "calc(100% - 2px)",
-                    maxWidth: "calc(100% - 2px)",
+                    width: "100%",
+                    maxWidth: "100%",
                     minWidth: 0,
+                    WebkitAppearance: "none",
+                    appearance: "none",
+                    border: "1px solid transparent",
+                    boxShadow: `inset 0 0 0 1px ${th.inputB}`,
+                    backgroundClip: "padding-box",
                   }}
                 />
               </div>
@@ -21328,7 +21565,9 @@ import "./styles.css";
               flex: 1,
               overflowY: "auto",
               overflowX: "hidden",
-              padding: "calc(68px + env(safe-area-inset-top, 0px)) 16px 0",
+              padding: view === "workout"
+                ? "9px 16px 0"
+                : "calc(68px + env(safe-area-inset-top, 0px)) 16px 0",
               minHeight: 0,
               animation:
                 view === "workout"  ? "workoutFadeIn 0.45s cubic-bezier(0,0,0.2,1) forwards" :
