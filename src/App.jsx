@@ -1816,17 +1816,17 @@ import "./styles.css";
     { id: "x12", name: "Tibialis Raise", muscle: "Calves", group: "Legs" },
     // Chest extras
     { id: "x13", name: "Svend Press", muscle: "Chest", group: "Chest" },
-    { id: "x14", name: "Landmine Press", muscle: "Upper Chest", group: "Chest" },
+    { id: "x14", name: "Landmine Chest Press", muscle: "Upper Chest", group: "Chest" },
     { id: "x15", name: "Plate Press", muscle: "Chest", group: "Chest" },
     {
       id: "x16",
-      name: "Cable Fly (High-to-Low)",
+      name: "Single-Arm High-to-Low Cable Fly",
       muscle: "Lower Chest",
       group: "Chest",
     },
     {
       id: "x17",
-      name: "Cable Fly (Low-to-High)",
+      name: "Single-Arm Low-to-High Cable Fly",
       muscle: "Upper Chest",
       group: "Chest",
     },
@@ -1846,11 +1846,11 @@ import "./styles.css";
     },
     {
       id: "x21",
-      name: "Straight-Arm Cable Pulldown",
+      name: "Kneeling Straight-Arm Pulldown",
       muscle: "Lats",
       group: "Back",
     },
-    { id: "x22", name: "Face Pull (Rope)", muscle: "Rear Delts", group: "Back" },
+    { id: "x22", name: "Rear Delt Cable Row", muscle: "Rear Delts", group: "Back" },
     { id: "x23", name: "Kroc Row", muscle: "Lats", group: "Back" },
     { id: "x24", name: "Pendlay Row", muscle: "Mid Back", group: "Back" },
     // Arms extras
@@ -1967,13 +1967,13 @@ import "./styles.css";
     },
     {
       id: "m9",
-      name: "Shoulder Press Machine",
+      name: "Iso-Lateral Shoulder Press Machine",
       muscle: "Shoulders",
       group: "Shoulders",
     },
     {
       id: "m10",
-      name: "Lateral Raise Machine",
+      name: "Single-Arm Lateral Raise Machine",
       muscle: "Side Delts",
       group: "Shoulders",
     },
@@ -1985,7 +1985,7 @@ import "./styles.css";
     },
     { id: "m12", name: "Shrug Machine", muscle: "Traps", group: "Shoulders" },
     { id: "m13", name: "Bicep Curl Machine", muscle: "Biceps", group: "Arms" },
-    { id: "m14", name: "Preacher Curl Machine", muscle: "Biceps", group: "Arms" },
+    { id: "m14", name: "Single-Arm Preacher Curl Machine", muscle: "Biceps", group: "Arms" },
     {
       id: "m15",
       name: "Tricep Extension Machine",
@@ -1993,16 +1993,16 @@ import "./styles.css";
       group: "Arms",
     },
     { id: "m16", name: "Tricep Dip Machine", muscle: "Triceps", group: "Arms" },
-    { id: "m17", name: "Leg Extension Machine", muscle: "Quads", group: "Legs" },
+    { id: "m17", name: "Single-Leg Leg Extension Machine", muscle: "Quads", group: "Legs" },
     {
       id: "m18",
-      name: "Lying Leg Curl Machine",
+      name: "Single-Leg Lying Leg Curl Machine",
       muscle: "Hamstrings",
       group: "Legs",
     },
     {
       id: "m19",
-      name: "Seated Leg Curl Machine",
+      name: "Single-Leg Seated Leg Curl Machine",
       muscle: "Hamstrings",
       group: "Legs",
     },
@@ -2015,17 +2015,17 @@ import "./styles.css";
     },
     {
       id: "m24",
-      name: "Seated Calf Raise Machine",
+      name: "Donkey Calf Raise Machine",
       muscle: "Calves",
       group: "Legs",
     },
     {
       id: "m25",
-      name: "Standing Calf Raise Machine",
+      name: "Single-Leg Standing Calf Raise Machine",
       muscle: "Calves",
       group: "Legs",
     },
-    { id: "m26", name: "Hack Squat Machine", muscle: "Quads", group: "Legs" },
+    { id: "m26", name: "Pendulum Squat Machine", muscle: "Quads", group: "Legs" },
 
     /* ── CARDIO ── type:"cardio" marks these as cardio log entries (no sets/reps/weight) */
     {
@@ -2205,7 +2205,22 @@ import "./styles.css";
       muscle: "Outer Thigh",
       group: "Legs",
     },
-    { id: "lg11", name: "Cable Hip Flexion", muscle: "Quads", group: "Legs" },
+    { id: "lg11", name: "Cable Hip Flexion", muscle: "Hip Flexors", group: "Legs" },
+    { id: "lg12", name: "Cable Hip Adduction", muscle: "Inner Thigh", group: "Legs" },
+    { id: "lg13", name: "Copenhagen Plank", muscle: "Inner Thigh", group: "Legs" },
+    { id: "lg14", name: "Lateral Band Walk", muscle: "Outer Thigh", group: "Legs" },
+    { id: "lg15", name: "Side-Lying Hip Abduction", muscle: "Outer Thigh", group: "Legs" },
+    { id: "lg16", name: "Standing Hip Flexion", muscle: "Hip Flexors", group: "Legs" },
+    { id: "bk5", name: "Superman Hold", muscle: "Lower Back", group: "Back" },
+    { id: "bk6", name: "Bird Dog", muscle: "Lower Back", group: "Back" },
+    { id: "tr1", name: "Farmer's Carry", muscle: "Traps", group: "Shoulders" },
+    { id: "core1", name: "Crunch", muscle: "Abs", group: "Core" },
+    { id: "core2", name: "Reverse Crunch", muscle: "Abs", group: "Core" },
+    { id: "core3", name: "Bicycle Crunch", muscle: "Obliques", group: "Core" },
+    { id: "core4", name: "Dumbbell Side Bend", muscle: "Obliques", group: "Core" },
+    { id: "core5", name: "Captain's Chair Knee Raise", muscle: "Abs", group: "Core" },
+    { id: "core6", name: "Medicine Ball Slam", muscle: "Core", group: "Core" },
+    { id: "core7", name: "Suitcase Carry", muscle: "Obliques", group: "Core" },
   ];
 
 
@@ -2246,6 +2261,8 @@ import "./styles.css";
     x1:"E", x2:"E", x3:"M", x4:"M", x5:"H", x6:"M", x7:"M", x9:"M", x10:"H",
     x11:"E", x12:"E",
     lg1:"H", lg2:"H", lg5:"E", lg6:"M", lg7:"M", lg8:"E", lg9:"E", lg10:"E", lg11:"E",
+    lg12:"E", lg13:"M", lg14:"E", lg15:"E", lg16:"E",
+    bk5:"E", bk6:"E", tr1:"M",
     m17:"E", m18:"E", m19:"E", m22:"E", m23:"E", m24:"E", m25:"E", m26:"E",
     // ── Core ───────────────────────────────────────────────────────────────────
     x13:"M", x14:"H", x15:"M", x16:"M", x17:"M", x18:"E", x19:"E", x20:"E",
@@ -2253,6 +2270,7 @@ import "./styles.css";
     x29:"E", x30:"M", x31:"E", x32:"M", x33:"H", x34:"M", x35:"E", x36:"M",
     x37:"M", x38:"H", x39:"M", x40:"M", x41:"E", x42:"M", x43:"E", x44:"M",
     x45:"E", x46:"M", x47:"M", x48:"M",
+    core1:"E", core2:"E", core3:"M", core4:"E", core5:"M", core6:"M", core7:"M",
     // ── Machines (all Easy) ────────────────────────────────────────────────────
     m1:"E", m2:"E", m3:"E", m4:"E", m5:"E", m6:"E", m7:"E", m8:"E",
     m9:"E", m10:"E", m11:"E", m12:"E", m13:"E", m14:"E", m15:"E", m16:"E",
@@ -2332,10 +2350,16 @@ import "./styles.css";
     x4:"Hamstrings", x5:"Hamstrings · Core",
     x6:"Glutes · Hamstrings · Core", x7:"Hamstrings · Quads",
     x9:"Lower Back · Hamstrings", x10:"Hip Flexors",
+    lg11:"Abs", lg12:"Glutes", lg13:"Obliques · Glutes",
+    lg14:"Glutes", lg15:"Glutes", lg16:"Abs",
+    bk5:"Glutes", bk6:"Glutes · Core", tr1:"Forearms · Core",
     m17:"Hip Flexors", m18:"Glutes · Calves",
     m19:"Glutes · Calves", m22:"Hamstrings · Core",
     m23:"Hamstrings", m24:"Soleus", m25:"Soleus",
     m26:"Glutes · Hamstrings",
+    core1:"Hip Flexors", core2:"Hip Flexors", core3:"Abs · Hip Flexors",
+    core4:"Lower Back", core5:"Hip Flexors", core6:"Shoulders · Lats",
+    core7:"Forearms · Traps",
   };
 
   // ── Difficulty badge helper ──────────────────────────────────────────────────
@@ -2391,9 +2415,9 @@ import "./styles.css";
     "Obliques":      ["obliqueL","obliqueR"],
     "Core":          ["abs","obliqueL","obliqueR"],
     "Quads":         ["quadL","quadR"],
-    "Hip Flexors":   ["quadL","quadR"],
-    "Inner Thigh":   ["quadL","quadR"],
-    "Outer Thigh":   ["quadL","quadR"],
+    "Hip Flexors":   ["hipFlexorL","hipFlexorR"],
+    "Inner Thigh":   ["innerThighL","innerThighR"],
+    "Outer Thigh":   ["outerThighL","outerThighR"],
     "Hamstrings":    ["hamL","hamR"],
     "Glutes":        ["gluteL","gluteR"],
     "Calves":        ["calfFL","calfFR","calfBL","calfBR"],
@@ -3710,14 +3734,20 @@ import "./styles.css";
       { ids:["lowerBack"], d:"M700 667 C723 645 784 645 810 667 C807 721 784 768 754 793 C724 768 702 721 700 667 Z" },
       { ids:["gluteL"], d:"M652 620 C706 586 756 625 758 706 C754 775 707 804 655 777 C620 737 617 660 652 620 Z" },
       { ids:["gluteR"], d:"M858 620 C804 586 754 625 752 706 C756 775 803 804 855 777 C890 737 893 660 858 620 Z" },
+      { ids:["hipFlexorL"], d:"M207 636 C232 648 252 681 250 728 C226 711 210 679 207 636 Z" },
+      { ids:["hipFlexorR"], d:"M351 636 C326 648 306 681 308 728 C332 711 348 679 351 636 Z" },
+      { ids:["outerThighL"], d:"M126 704 C145 727 155 816 150 930 C146 1000 134 1038 118 1049 C106 982 108 784 126 704 Z" },
+      { ids:["outerThighR"], d:"M432 704 C413 727 403 816 408 930 C412 1000 424 1038 440 1049 C452 982 450 784 432 704 Z" },
+      { ids:["innerThighL"], d:"M244 704 C266 744 273 851 266 963 C262 1014 254 1047 244 1056 C229 1005 228 780 244 704 Z" },
+      { ids:["innerThighR"], d:"M314 704 C292 744 285 851 292 963 C296 1014 304 1047 314 1056 C329 1005 330 780 314 704 Z" },
       { ids:["quadL"], d:"M158 670 C199 697 223 803 221 918 C219 990 198 1040 164 1057 C126 1001 119 795 142 715 C146 696 152 680 158 670 Z" },
       { ids:["quadR"], d:"M400 670 C359 697 335 803 337 918 C339 990 360 1040 394 1057 C432 1001 439 795 416 715 C412 696 406 680 400 670 Z" },
       { ids:["hamL"], d:"M649 779 C682 795 702 867 700 950 C699 1009 681 1052 651 1067 C619 1014 615 856 649 779 Z" },
       { ids:["hamR"], d:"M861 779 C828 795 808 867 810 950 C811 1009 829 1052 859 1067 C891 1014 895 856 861 779 Z" },
-      { ids:["calfFL"], d:"M141 1118 C179 1144 206 1215 201 1331 C197 1434 174 1510 140 1517 C108 1450 106 1202 141 1118 Z" },
-      { ids:["calfFR"], d:"M417 1118 C379 1144 352 1215 357 1331 C361 1434 384 1510 418 1517 C450 1450 452 1202 417 1118 Z" },
-      { ids:["calfBL"], d:"M639 1160 C680 1183 704 1260 696 1375 C689 1465 665 1515 637 1518 C601 1450 605 1236 639 1160 Z" },
-      { ids:["calfBR"], d:"M871 1160 C830 1183 806 1260 814 1375 C821 1465 845 1515 873 1518 C909 1450 905 1236 871 1160 Z" },
+      { ids:["calfFL"], d:"M145 1087 C171 1123 181 1214 173 1327 C168 1382 154 1421 139 1429 C121 1370 119 1187 145 1087 Z" },
+      { ids:["calfFR"], d:"M413 1087 C387 1123 377 1214 385 1327 C390 1382 404 1421 419 1429 C437 1370 439 1187 413 1087 Z" },
+      { ids:["calfBL"], d:"M648 1094 C680 1128 693 1220 684 1338 C677 1395 661 1428 638 1434 C613 1375 617 1191 648 1094 Z" },
+      { ids:["calfBR"], d:"M862 1094 C830 1128 817 1220 826 1338 C833 1395 849 1428 872 1434 C897 1375 893 1191 862 1094 Z" },
     ];
 
     const activeShape = (ids) => {
@@ -3776,13 +3806,14 @@ import "./styles.css";
             {atlasShapes.map((shape, i) => {
               const active = activeShape(shape.ids);
               if (!active) return null;
-              return (
+      return (
                 <path
                   key={`atlas-highlight-${i}`}
                   d={shape.d}
                   fill={active.fill || "#f4511e"}
                   opacity={regionOpacity(active)}
-                  stroke="none"
+                  stroke={bg}
+                  strokeWidth="7"
                   strokeLinejoin="round"
                   strokeLinecap="round"
                 />
@@ -3958,7 +3989,12 @@ import "./styles.css";
     { label: "Hamstrings",  fn: (e) => e.muscle === "Hamstrings" },
     { label: "Glutes",      fn: (e) => e.muscle === "Glutes" },
     { label: "Calves",      fn: (e) => e.muscle === "Calves" || e.muscle === "Soleus" },
+    { label: "Hip Flexors", fn: (e) => e.muscle === "Hip Flexors" },
+    { label: "Inner Thigh", fn: (e) => e.muscle === "Inner Thigh" },
+    { label: "Outer Thigh", fn: (e) => e.muscle === "Outer Thigh" },
     { label: "Thighs",      fn: (e) => e.muscle === "Inner Thigh" || e.muscle === "Outer Thigh" || e.muscle === "Hip Flexors" },
+    { label: "Abs",         fn: (e) => e.muscle === "Abs" },
+    { label: "Obliques",    fn: (e) => e.muscle === "Obliques" },
     { label: "Core",        fn: (e) => e.group === "Core" || e.muscle === "Abs" || e.muscle === "Obliques" },
     { label: "Cardio",      fn: (e) => e.group === "Cardio" },
   ];
@@ -3973,6 +4009,8 @@ import "./styles.css";
     "Upper Back",
     "Lower Back",
     "Full Back",
+    "Abs",
+    "Obliques",
     "Shoulders",
     "Rear Delts",
     "Side Delts",
@@ -3986,6 +4024,7 @@ import "./styles.css";
     "Hamstrings",
     "Glutes",
     "Calves",
+    "Hip Flexors",
     "Inner Thigh",
 	    "Outer Thigh",
 	  ];
@@ -4020,14 +4059,20 @@ import "./styles.css";
 	    { label: "Lower Back", group: "Back", d: "M700 667 C723 645 784 645 810 667 C807 721 784 768 754 793 C724 768 702 721 700 667 Z" },
 	    { label: "Glutes", group: "Legs", d: "M652 620 C706 586 756 625 758 706 C754 775 707 804 655 777 C620 737 617 660 652 620 Z" },
 	    { label: "Glutes", group: "Legs", d: "M858 620 C804 586 754 625 752 706 C756 775 803 804 855 777 C890 737 893 660 858 620 Z" },
+	    { label: "Hip Flexors", group: "Legs", d: "M207 636 C232 648 252 681 250 728 C226 711 210 679 207 636 Z" },
+	    { label: "Hip Flexors", group: "Legs", d: "M351 636 C326 648 306 681 308 728 C332 711 348 679 351 636 Z" },
+	    { label: "Outer Thigh", group: "Legs", d: "M126 704 C145 727 155 816 150 930 C146 1000 134 1038 118 1049 C106 982 108 784 126 704 Z" },
+	    { label: "Outer Thigh", group: "Legs", d: "M432 704 C413 727 403 816 408 930 C412 1000 424 1038 440 1049 C452 982 450 784 432 704 Z" },
+	    { label: "Inner Thigh", group: "Legs", d: "M244 704 C266 744 273 851 266 963 C262 1014 254 1047 244 1056 C229 1005 228 780 244 704 Z" },
+	    { label: "Inner Thigh", group: "Legs", d: "M314 704 C292 744 285 851 292 963 C296 1014 304 1047 314 1056 C329 1005 330 780 314 704 Z" },
 	    { label: "Quads", group: "Legs", d: "M158 670 C199 697 223 803 221 918 C219 990 198 1040 164 1057 C126 1001 119 795 142 715 C146 696 152 680 158 670 Z" },
 	    { label: "Quads", group: "Legs", d: "M400 670 C359 697 335 803 337 918 C339 990 360 1040 394 1057 C432 1001 439 795 416 715 C412 696 406 680 400 670 Z" },
 	    { label: "Hamstrings", group: "Legs", d: "M649 779 C682 795 702 867 700 950 C699 1009 681 1052 651 1067 C619 1014 615 856 649 779 Z" },
 	    { label: "Hamstrings", group: "Legs", d: "M861 779 C828 795 808 867 810 950 C811 1009 829 1052 859 1067 C891 1014 895 856 861 779 Z" },
-	    { label: "Calves", group: "Legs", d: "M141 1118 C179 1144 206 1215 201 1331 C197 1434 174 1510 140 1517 C108 1450 106 1202 141 1118 Z" },
-	    { label: "Calves", group: "Legs", d: "M417 1118 C379 1144 352 1215 357 1331 C361 1434 384 1510 418 1517 C450 1450 452 1202 417 1118 Z" },
-	    { label: "Calves", group: "Legs", d: "M639 1160 C680 1183 704 1260 696 1375 C689 1465 665 1515 637 1518 C601 1450 605 1236 639 1160 Z" },
-	    { label: "Calves", group: "Legs", d: "M871 1160 C830 1183 806 1260 814 1375 C821 1465 845 1515 873 1518 C909 1450 905 1236 871 1160 Z" },
+	    { label: "Calves", group: "Legs", d: "M145 1087 C171 1123 181 1214 173 1327 C168 1382 154 1421 139 1429 C121 1370 119 1187 145 1087 Z" },
+	    { label: "Calves", group: "Legs", d: "M413 1087 C387 1123 377 1214 385 1327 C390 1382 404 1421 419 1429 C437 1370 439 1187 413 1087 Z" },
+	    { label: "Calves", group: "Legs", d: "M648 1094 C680 1128 693 1220 684 1338 C677 1395 661 1428 638 1434 C613 1375 617 1191 648 1094 Z" },
+	    { label: "Calves", group: "Legs", d: "M862 1094 C830 1128 817 1220 826 1338 C833 1395 849 1428 872 1434 C897 1375 893 1191 862 1094 Z" },
 	  ];
 
   /* ─── Suggested program templates ──────────────────────────────────────────── */
@@ -5593,6 +5638,15 @@ import "./styles.css";
     };
   }
 
+  const bottomSheetCtaBarStyle = {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: "12px 18px 20px",
+    zIndex: 10,
+  };
+
   function Btn({ children, onClick, disabled, style = {} }) {
     const th = useTheme();
     return (
@@ -6410,9 +6464,10 @@ import "./styles.css";
 	  function ExerciseMapIcon() {
 	    return (
 	      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true" style={{ display:"block" }}>
+	        <circle cx="16" cy="4.7" r="3.2" fill="currentColor" />
 	        <path
 	          fill="currentColor"
-	          d="M16 1.5c2.35 0 3.95 1.75 3.95 4.1 0 .98-.25 1.86-.76 2.55-.2.27-.29.68-.24 1.08l1.45.6c2.72.74 4.42 2.33 5.05 4.84l.86 3.68c.3 1.17 1.42 2.32 2.06 3.48.62 1.14.25 2.33-.73 2.76-.98.43-1.75-.2-2.28-1.13l-1.82-3.14c-.77-1.35-1.44-3.05-1.99-5.05l-.85 4.36c-.32 1.66-.22 3.42-.04 5.12l.57 5.3c.1 1.02-.58 1.8-1.58 1.8-.92 0-1.54-.6-1.71-1.55l-1.05-5.78c-.16-.94-.44-1.45-.89-1.45s-.73.51-.89 1.45l-1.05 5.78c-.17.95-.79 1.55-1.71 1.55-1 0-1.68-.78-1.58-1.8l.57-5.3c.18-1.7.28-3.46-.04-5.12l-.85-4.36c-.55 2-1.22 3.7-1.99 5.05l-1.82 3.14c-.53.93-1.3 1.56-2.28 1.13-.98-.43-1.35-1.62-.73-2.76.64-1.16 1.76-2.31 2.06-3.48l.86-3.68c.63-2.51 2.33-4.1 5.05-4.84l1.45-.6c.05-.4-.04-.81-.24-1.08-.51-.69-.76-1.57-.76-2.55 0-2.35 1.6-4.1 3.95-4.1Z"
+	          d="M12.4 8.4h7.2c2.2 0 3.9 1.45 4.38 3.58l1.58 7.02c.22.96-.38 1.78-1.28 1.98-.82.18-1.52-.28-1.78-1.12l-1.62-5.26-1.05 5.08 1.52 8.52c.18 1-.48 1.88-1.47 1.88-.76 0-1.38-.5-1.52-1.25L17.15 22.2c-.11-.6-.45-.9-1.15-.9s-1.04.3-1.15.9l-1.21 6.63c-.14.75-.76 1.25-1.52 1.25-.99 0-1.65-.88-1.47-1.88l1.52-8.52-1.05-5.08-1.62 5.26c-.26.84-.96 1.3-1.78 1.12-.9-.2-1.5-1.02-1.28-1.98l1.58-7.02C8.5 9.85 10.2 8.4 12.4 8.4Z"
 	        />
 	      </svg>
 	    );
@@ -9902,10 +9957,7 @@ import "./styles.css";
             </div>
 
             {/* ── Sticky save bar ── */}
-            <div style={{
-              position:"absolute", bottom:0, left:0, right:0,
-              padding:`12px 16px calc(env(safe-area-inset-bottom, 0px) + 8px)`,
-            }}>
+            <div style={bottomSheetCtaBarStyle}>
               <button
                 onClick={handleSave}
                 disabled={saving || !name.trim() || exs.length === 0}
@@ -11725,7 +11777,7 @@ import "./styles.css";
 
             {/* Save button — mirrors ExercisePicker confirm button, receiver only */}
             {isReceiver && (
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 20px", zIndex: 10 }}>
+              <div style={bottomSheetCtaBarStyle}>
                 <button
                   onClick={() => { if (saved) return; onSave(prog); setSaved(true); }}
                   style={{
@@ -11883,7 +11935,7 @@ import "./styles.css";
               })}
             </div>
             {!isOwn && (
-              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "12px 18px 20px", zIndex: 10 }}>
+              <div style={bottomSheetCtaBarStyle}>
                 <button
                   onClick={() => { if (saved) return; onSave(buildProgram()); setSaved(true); }}
                   style={{
