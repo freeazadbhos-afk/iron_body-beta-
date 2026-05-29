@@ -1,5 +1,6 @@
 import "./styles.css";
   import bodyMuscleAtlasUrl from "./assets/Body Muscle Atlas.svg";
+  import bodyMuscleAtlasFemaleUrl from "./assets/Body Muscle Atlas Female Front Back.svg";
   import { createPortal } from "react-dom";
   import {
     useState,
@@ -1078,6 +1079,10 @@ import "./styles.css";
   const LANG_LABELS = { en: "English", tr: "Türkçe" };
   const LangCtx = createContext("en");
   const useLang = () => useContext(LangCtx);
+  // Current user's gender ("male" | "female" | null) — drives which muscle-atlas
+  // illustration the BodyAnatomy diagram renders. Defaults to null (male artwork).
+  const GenderCtx = createContext(null);
+  const useGender = () => useContext(GenderCtx);
   // ── Tap-ripple utility ──────────────────────────────────────────────────────
   // Material-style ripple: a circle originates at the tap point and expands until
   // it covers the entire button, then fades out. The button's own border-radius
@@ -3681,19 +3686,46 @@ import "./styles.css";
     const dark = th.bg === "#080809" || th.card === "#0f0f12";
     const bg = dark ? "#20211f" : "#fbfbfa";
     const label = dark ? "#d2d4ce" : "#747570";
-    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
     const activeRegions = highlights || {};
-    const cropY = 70;
-    const cropH = 1430;
-    const imageShift = `${-(cropY / 1536) * 100}%`;
+
+    // ── Atlas source + crop ──────────────────────────────────────────────────
+    // Two illustrations: the male atlas (portrait 1024×1536, front+back already
+    // stacked side by side) and the female atlas (landscape 1536×1024). The
+    // female figures sit centred inside a wide canvas with big side margins, so
+    // we crop tightly to the content bounding box to make them appear closely
+    // side by side — matching the male presentation.
+    const gender = useGender();
+    const isFemale = gender === "female";
+    const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
+    // Native image dimensions + crop window (in the image's own viewBox units).
+    const NATIVE_W = isFemale ? 1536 : 1024;
+    const NATIVE_H = isFemale ? 1024 : 1536;
+    const cropX = isFemale ? 205 : 0;
+    const cropY = isFemale ? 5   : 70;
+    const cropW = isFemale ? 1118 : 1024;
+    const cropH = isFemale ? 1002 : 1430;
+    // The female highlight regions aren't mapped to this artwork yet, so we only
+    // overlay the (male-tuned) highlight shapes on the male atlas.
+    const showHighlights = !isFemale;
+    // Colour handling. The male art is BLACK line-work on transparent; the female
+    // art is WHITE line-work on a solid BLACK background. We render the female art
+    // OPAQUE (no blend modes — those proved unreliable and rendered blank) so it
+    // always shows:
+    //   • dark mode  → as-is (white lines on its own black background)
+    //   • light mode → invert (black lines on white) so it reads on the light UI
+    const atlasFilter = isFemale
+      ? (dark ? "none" : "invert(1)")
+      : (dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none");
+    // Generalized 2-D crop: scale the image so cropW native units fill the frame
+    // width, then shift by the crop origin (percent of the image's own box).
     const atlasImageStyle = (opacity) => ({
       position:"absolute",
       left:0,
       top:0,
-      width:"100%",
+      width:`${(NATIVE_W / cropW) * 100}%`,
       height:"auto",
-      transform:`translateY(${imageShift})`,
-      transformOrigin:"top center",
+      transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
+      transformOrigin:"top left",
       opacity,
       filter:atlasFilter,
       WebkitFilter:atlasFilter,
@@ -3777,56 +3809,75 @@ import "./styles.css";
           style={{
             position:"relative",
             width:"100%",
-            aspectRatio:`1024 / ${cropH}`,
+            aspectRatio:`${cropW} / ${cropH}`,
             overflow:"hidden",
             borderRadius:14,
+            // The female art is a full BLACK fill with the muscle lines as transparent
+            // gaps. So the frame backdrop shows THROUGH the lines and becomes the line
+            // colour. Dark mode: black fill (no filter) + white backdrop → white lines.
+            // Light mode: invert makes the fill white + black backdrop → black lines.
+            background: isFemale ? (dark ? "#ffffff" : "#000000") : "transparent",
           }}
         >
-          <img
-            src={bodyMuscleAtlasUrl}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            style={atlasImageStyle(dark ? 0.8 : 0.28)}
-          />
-          <svg
-            viewBox={`0 ${cropY} 1024 ${cropH}`}
-            xmlns="http://www.w3.org/2000/svg"
-            preserveAspectRatio="xMidYMid meet"
-            style={{
-              position:"absolute",
-              inset:0,
-              display:"block",
-              width:"100%",
-              height:"100%",
-              pointerEvents:"none",
-              mixBlendMode:"normal",
-            }}
-          >
-            {atlasShapes.map((shape, i) => {
-              const active = activeShape(shape.ids);
-              if (!active) return null;
-      return (
-                <path
-                  key={`atlas-highlight-${i}`}
-                  d={shape.d}
-                  fill={active.fill || "#f4511e"}
-                  opacity={regionOpacity(active)}
-                  stroke={bg}
-                  strokeWidth="5"
-                  strokeLinejoin="round"
-                  strokeLinecap="round"
-                />
-              );
-            })}
-          </svg>
-          <img
-            src={bodyMuscleAtlasUrl}
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            style={atlasImageStyle(dark ? 0.98 : 0.72)}
-          />
+          {showHighlights ? (
+            <>
+              {/* Male: faded base → highlight overlay → sharper base (highlights read "under the skin") */}
+              <img
+                src={atlasUrl}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                style={atlasImageStyle(dark ? 0.8 : 0.28)}
+              />
+              <svg
+                viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
+                xmlns="http://www.w3.org/2000/svg"
+                preserveAspectRatio="xMidYMid meet"
+                style={{
+                  position:"absolute",
+                  inset:0,
+                  display:"block",
+                  width:"100%",
+                  height:"100%",
+                  pointerEvents:"none",
+                  mixBlendMode:"normal",
+                }}
+              >
+                {atlasShapes.map((shape, i) => {
+                  const active = activeShape(shape.ids);
+                  if (!active) return null;
+                  return (
+                    <path
+                      key={`atlas-highlight-${i}`}
+                      d={shape.d}
+                      fill={active.fill || "#f4511e"}
+                      opacity={regionOpacity(active)}
+                      stroke={bg}
+                      strokeWidth="5"
+                      strokeLinejoin="round"
+                      strokeLinecap="round"
+                    />
+                  );
+                })}
+              </svg>
+              <img
+                src={atlasUrl}
+                alt=""
+                aria-hidden="true"
+                draggable={false}
+                style={atlasImageStyle(dark ? 0.98 : 0.72)}
+              />
+            </>
+          ) : (
+            /* Female: single clean, tightly-framed image (highlight regions not yet mapped to this artwork). */
+            <img
+              src={atlasUrl}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              style={atlasImageStyle(1)}
+            />
+          )}
         </div>
         <div style={{
           position:"absolute",
@@ -4074,6 +4125,55 @@ import "./styles.css";
 	    { label: "Calves", group: "Legs", d: "M650 1057 C681 1088 690 1169 681 1258 C675 1310 658 1343 638 1348 C616 1289 622 1136 650 1057 Z" },
 	    { label: "Calves", group: "Legs", d: "M860 1057 C829 1088 820 1169 829 1258 C835 1310 852 1343 872 1348 C894 1289 888 1136 860 1057 Z" },
 	  ];
+
+  // Female-figure tap regions for the MUSCLE MAP. Affine-mapped from
+  // ATLAS_PICKER_SHAPES into the female atlas coordinate space (front/back
+  // figures matched by bounding box) so taps land on the right muscle.
+  const ATLAS_PICKER_SHAPES_FEMALE = [
+    { label: "Traps", group: "Back", d: "M385.9 143.7 C409.5 130.3 442.6 131.9 467.2 146.1 C491.9 131.9 525.0 130.3 550.7 143.7 C530.4 161.8 499.3 172.8 467.2 172.8 C435.1 172.8 405.2 161.8 385.9 143.7 Z" },
+    { label: "Upper Back", group: "Back", d: "M980.3 166.2 C1007.0 145.0 1038.0 139.5 1064.7 155.2 C1091.4 139.5 1122.3 145.0 1150.1 166.2 C1131.9 192.9 1098.8 208.7 1064.7 208.7 C1030.5 208.7 998.5 192.9 980.3 166.2 Z" },
+    { label: "Shoulders", group: "Shoulders", d: "M280.0 201.8 C300.3 181.4 337.8 172.8 376.3 184.5 C353.8 208.9 331.4 245.0 292.8 262.3 C273.6 246.6 270.4 220.7 280.0 201.8 Z" },
+    { label: "Shoulders", group: "Shoulders", d: "M665.2 201.8 C644.9 181.4 607.4 172.8 568.9 184.5 C591.4 208.9 613.8 245.0 652.4 262.3 C671.6 246.6 674.8 220.7 665.2 201.8 Z" },
+    { label: "Shoulders", group: "Shoulders", d: "M875.7 206.3 C902.4 185.1 944.0 179.6 982.4 193.7 C955.8 218.9 930.1 247.2 885.3 263.7 C867.1 249.5 863.9 224.4 875.7 206.3 Z" },
+    { label: "Shoulders", group: "Shoulders", d: "M1255.8 206.3 C1229.1 185.1 1187.5 179.6 1149.0 193.7 C1175.7 218.9 1201.4 247.2 1246.2 263.7 C1264.4 249.5 1267.6 224.4 1255.8 206.3 Z" },
+    { label: "Chest", group: "Chest", d: "M342.1 194.8 C389.1 186.9 446.9 194.0 464.0 223.8 C469.4 248.2 464.0 282.7 453.3 303.2 C405.2 320.5 345.3 302.4 321.7 268.6 C318.5 238.0 322.8 211.3 342.1 194.8 Z" },
+    { label: "Chest", group: "Chest", d: "M603.1 194.8 C556.1 186.9 498.3 194.0 481.2 223.8 C475.8 248.2 481.2 282.7 491.9 303.2 C540.0 320.5 599.9 302.4 623.5 268.6 C626.7 238.0 622.4 211.3 603.1 194.8 Z" },
+    { label: "Upper Chest", group: "Chest", d: "M344.2 193.2 C390.2 185.3 446.9 192.4 464.0 222.3 C418.0 225.4 370.9 219.9 330.3 208.9 C333.5 202.6 337.8 197.9 344.2 193.2 Z" },
+    { label: "Upper Chest", group: "Chest", d: "M601.0 193.2 C555.0 185.3 498.3 192.4 481.2 222.3 C527.2 225.4 574.2 219.9 614.9 208.9 C611.7 202.6 607.4 197.9 601.0 193.2 Z" },
+    { label: "Lower Chest", group: "Chest", d: "M327.1 246.6 C363.5 267.8 411.6 284.3 455.5 287.5 C452.3 295.3 446.9 302.4 439.4 307.1 C395.6 319.7 343.1 302.4 321.7 270.2 C321.7 260.8 323.9 252.9 327.1 246.6 Z" },
+    { label: "Lower Chest", group: "Chest", d: "M618.1 246.6 C581.7 267.8 533.6 284.3 489.7 287.5 C492.9 295.3 498.3 302.4 505.8 307.1 C549.6 319.7 602.1 302.4 623.5 270.2 C623.5 260.8 621.3 252.9 618.1 246.6 Z" },
+    { label: "Abs", group: "Core", d: "M419.1 312.6 C437.3 304.0 456.5 306.3 468.3 318.9 C480.1 306.3 499.3 304.0 517.5 312.6 C528.2 354.2 522.9 440.7 469.4 490.1 C415.9 440.7 408.4 354.2 419.1 312.6 Z" },
+    { label: "Obliques", group: "Core", d: "M377.4 304.7 C398.8 332.2 406.3 406.1 395.6 459.5 C367.7 443.0 348.5 398.2 349.5 353.5 C350.6 330.7 360.2 314.2 377.4 304.7 Z" },
+    { label: "Obliques", group: "Core", d: "M567.8 304.7 C546.4 332.2 538.9 406.1 549.6 459.5 C577.5 443.0 596.7 398.2 595.6 353.5 C594.6 330.7 584.9 314.2 567.8 304.7 Z" },
+    { label: "Biceps", group: "Arms", d: "M280.0 274.9 C306.7 257.6 329.2 271.0 330.3 304.7 C328.1 340.9 307.8 381.7 276.8 402.2 C259.7 370.7 259.7 300.0 280.0 274.9 Z" },
+    { label: "Biceps", group: "Arms", d: "M665.2 274.9 C638.4 257.6 616.0 271.0 614.9 304.7 C617.0 340.9 637.4 381.7 668.4 402.2 C685.5 370.7 685.5 300.0 665.2 274.9 Z" },
+    { label: "Triceps", group: "Arms", d: "M878.9 278.6 C905.6 261.3 928.0 274.7 929.1 308.5 C925.9 347.8 907.7 387.1 877.8 408.3 C858.6 375.3 858.6 303.8 878.9 278.6 Z" },
+    { label: "Triceps", group: "Arms", d: "M1252.6 278.6 C1225.9 261.3 1203.5 274.7 1202.4 308.5 C1205.6 347.8 1223.8 387.1 1253.7 408.3 C1272.9 375.3 1272.9 303.8 1252.6 278.6 Z" },
+    { label: "Forearms", group: "Arms", d: "M241.5 384.9 C267.2 383.3 276.8 405.3 271.4 439.9 C265.0 476.0 247.9 515.3 229.7 534.1 C220.1 491.7 222.2 417.9 241.5 384.9 Z" },
+    { label: "Forearms", group: "Arms", d: "M703.7 384.9 C678.0 383.3 668.4 405.3 673.8 439.9 C680.2 476.0 697.3 515.3 715.5 534.1 C725.1 491.7 723.0 417.9 703.7 384.9 Z" },
+    { label: "Forearms", group: "Arms", d: "M838.3 388.7 C863.9 387.1 873.5 409.1 868.2 443.7 C861.8 479.9 844.7 519.2 826.5 538.1 C816.9 495.6 819.1 421.7 838.3 388.7 Z" },
+    { label: "Forearms", group: "Arms", d: "M1293.2 388.7 C1267.6 387.1 1257.9 409.1 1263.3 443.7 C1269.7 479.9 1286.8 519.2 1304.9 538.1 C1314.5 495.6 1312.4 421.7 1293.2 388.7 Z" },
+    { label: "Lats", group: "Back", d: "M945.1 248.8 C973.9 266.8 996.3 315.6 1003.8 371.4 C1010.2 425.6 998.5 483.0 977.1 521.5 C952.5 491.7 934.4 427.2 929.1 356.5 C925.9 301.4 931.2 263.7 945.1 248.8 Z" },
+    { label: "Lats", group: "Back", d: "M1186.4 248.8 C1157.6 266.8 1135.1 315.6 1127.7 371.4 C1121.3 425.6 1133.0 483.0 1154.4 521.5 C1178.9 491.7 1197.1 427.2 1202.4 356.5 C1205.6 301.4 1200.3 263.7 1186.4 248.8 Z" },
+    { label: "Mid Back", group: "Back", d: "M1019.8 188.2 C1046.5 175.7 1085.0 175.7 1111.7 188.2 C1118.1 281.8 1107.4 397.3 1064.7 474.4 C1022.0 397.3 1013.4 281.8 1019.8 188.2 Z" },
+    { label: "Lower Back", group: "Back", d: "M1007.0 464.9 C1031.6 447.7 1096.7 447.7 1124.5 464.9 C1121.3 507.4 1096.7 544.3 1064.7 564.0 C1032.6 544.3 1009.1 507.4 1007.0 464.9 Z" },
+    { label: "Glutes", group: "Legs", d: "M955.8 428.0 C1013.4 401.3 1066.8 431.9 1068.9 495.6 C1064.7 549.8 1014.5 572.6 959.0 551.4 C921.6 520.0 918.4 459.4 955.8 428.0 Z" },
+    { label: "Glutes", group: "Legs", d: "M1175.7 428.0 C1118.1 401.3 1064.7 431.9 1062.5 495.6 C1066.8 549.8 1117.0 572.6 1172.5 551.4 C1209.9 520.0 1213.1 459.4 1175.7 428.0 Z" },
+    { label: "Hip Flexors", group: "Legs", d: "M395.6 436.7 C422.3 446.2 443.7 472.1 441.6 509.0 C415.9 495.6 398.8 470.5 395.6 436.7 Z" },
+    { label: "Hip Flexors", group: "Legs", d: "M549.6 436.7 C522.9 446.2 501.5 472.1 503.6 509.0 C529.3 495.6 546.4 470.5 549.6 436.7 Z" },
+    { label: "Outer Thigh", group: "Legs", d: "M308.9 490.1 C329.2 508.2 339.9 578.1 334.6 667.7 C330.3 722.7 317.4 752.5 300.3 761.2 C287.5 708.5 289.6 553.0 308.9 490.1 Z" },
+    { label: "Outer Thigh", group: "Legs", d: "M636.3 490.1 C616.0 508.2 605.3 578.1 610.6 667.7 C614.9 722.7 627.7 752.5 644.9 761.2 C657.7 708.5 655.6 553.0 636.3 490.1 Z" },
+    { label: "Inner Thigh", group: "Legs", d: "M435.1 490.1 C458.7 521.6 466.2 605.6 458.7 693.6 C454.4 733.7 445.8 759.6 435.1 766.7 C419.1 726.6 418.0 549.9 435.1 490.1 Z" },
+    { label: "Inner Thigh", group: "Legs", d: "M510.0 490.1 C486.5 521.6 479.0 605.6 486.5 693.6 C490.8 733.7 499.3 759.6 510.0 766.7 C526.1 726.6 527.2 549.9 510.0 490.1 Z" },
+    { label: "Quads", group: "Legs", d: "M343.1 463.4 C387.0 484.6 412.7 567.9 410.5 658.3 C408.4 714.8 385.9 754.1 349.5 767.5 C308.9 723.5 301.4 561.6 326.0 498.8 C330.3 483.9 336.7 471.3 343.1 463.4 Z" },
+    { label: "Quads", group: "Legs", d: "M602.1 463.4 C558.2 484.6 532.5 567.9 534.7 658.3 C536.8 714.8 559.3 754.1 595.6 767.5 C636.3 723.5 643.8 561.6 619.2 498.8 C614.9 483.9 608.5 471.3 602.1 463.4 Z" },
+    { label: "Hamstrings", group: "Legs", d: "M952.5 553.0 C987.8 565.6 1009.1 622.2 1007.0 687.4 C1005.9 733.8 986.7 767.6 954.7 779.4 C920.5 737.7 916.2 613.5 952.5 553.0 Z" },
+    { label: "Hamstrings", group: "Legs", d: "M1178.9 553.0 C1143.7 565.6 1122.3 622.2 1124.5 687.4 C1125.5 733.8 1144.8 767.6 1176.8 779.4 C1211.0 737.7 1215.2 613.5 1178.9 553.0 Z" },
+    { label: "Calves", group: "Legs", d: "M335.6 763.5 C364.5 787.1 372.0 849.9 364.5 915.2 C358.1 958.4 341.0 988.2 322.8 991.4 C304.6 946.6 308.9 826.4 335.6 763.5 Z" },
+    { label: "Calves", group: "Legs", d: "M609.6 763.5 C580.7 787.1 573.2 849.9 580.7 915.2 C587.1 958.4 604.2 988.2 622.4 991.4 C640.6 946.6 636.3 826.4 609.6 763.5 Z" },
+    { label: "Calves", group: "Legs", d: "M953.6 771.5 C986.7 795.9 996.3 859.6 986.7 929.5 C980.3 970.4 962.2 996.4 940.8 1000.3 C917.3 953.9 923.7 833.6 953.6 771.5 Z" },
+    { label: "Calves", group: "Legs", d: "M1177.9 771.5 C1144.8 795.9 1135.1 859.6 1144.8 929.5 C1151.2 970.4 1169.3 996.4 1190.7 1000.3 C1214.2 953.9 1207.8 833.6 1177.9 771.5 Z" },
+  ];
 
   /* ─── Suggested program templates ──────────────────────────────────────────── */
   const SUGGESTED = [
@@ -6497,12 +6597,26 @@ import "./styles.css";
 	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
 	    const th = useTheme();
 	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
-	    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
-	    const selectedGroup = (ATLAS_PICKER_SHAPES.find((s) => s.label === selectedMuscle) || {}).group;
+	    // Female users get the female atlas + female-mapped tap regions; everyone
+	    // else gets the male atlas. The female art is white-on-black, so we key its
+	    // background out with a theme-aware blend (see BodyAnatomy for the rationale).
+	    const gender = useGender();
+	    const isFemale = gender === "female";
+	    const pickerShapes = isFemale ? ATLAS_PICKER_SHAPES_FEMALE : ATLAS_PICKER_SHAPES;
+	    const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
+	    const NATIVE_W = isFemale ? 1536 : 1024;
+	    const NATIVE_H = isFemale ? 1024 : 1536;
+	    const cropX = isFemale ? 205 : 0;
+	    const cropY = isFemale ? 5 : 70;
+	    const cropW = isFemale ? 1118 : 1024;
+	    const cropH = isFemale ? 1002 : 1340;
+	    // Female art is rendered OPAQUE (no blend modes — they rendered blank): as-is
+	    // in dark mode (white lines on its black bg), inverted in light mode.
+	    const atlasFilter = isFemale
+	      ? (dark ? "none" : "invert(1)")
+	      : (dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none");
+	    const selectedGroup = (pickerShapes.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
-	    const cropY = 70;
-	    const cropH = 1340;
-	    const imageShift = `${-(cropY / 1536) * 100}%`;
 	    return (
 	      <div style={{
 	        position:"relative",
@@ -6511,18 +6625,23 @@ import "./styles.css";
 	        margin:"0 auto",
 	        borderRadius:18,
 	        overflow:"hidden",
+	        isolation:"isolate",
 	        background:dark ? "#20211f" : "#fbfbfa",
 	        padding:"3px 4px",
 	      }}>
 	        <div style={{
 	          position:"relative",
 	          width:"100%",
-	          aspectRatio:`1024 / ${cropH}`,
+	          aspectRatio:`${cropW} / ${cropH}`,
 	          overflow:"hidden",
 	          borderRadius:14,
+	          // Female art is a full BLACK fill with the lines as transparent gaps, so the
+	          // backdrop shows through the lines = line colour (opposite the theme):
+	          // dark → white lines on black, light → black lines on white (with invert).
+	          background: isFemale ? (dark ? "#ffffff" : "#000000") : "transparent",
 	        }}>
 	          <img
-	            src={bodyMuscleAtlasUrl}
+	            src={atlasUrl}
 	            alt=""
 	            aria-hidden="true"
 	            draggable={false}
@@ -6530,11 +6649,11 @@ import "./styles.css";
 	              position:"absolute",
 	              left:0,
 	              top:0,
-	              width:"100%",
+	              width:`${(NATIVE_W / cropW) * 100}%`,
 	              height:"auto",
-	              transform:`translateY(${imageShift})`,
-	              transformOrigin:"top center",
-	              opacity:dark ? 0.98 : 0.74,
+	              transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
+	              transformOrigin:"top left",
+	              opacity: isFemale ? 1 : (dark ? 0.98 : 0.74),
 	              filter:atlasFilter,
 	              WebkitFilter:atlasFilter,
 	              pointerEvents:"none",
@@ -6543,12 +6662,12 @@ import "./styles.css";
 	            }}
 	          />
 	          <svg
-	            viewBox={`0 ${cropY} 1024 ${cropH}`}
+	            viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
 	            xmlns="http://www.w3.org/2000/svg"
 	            preserveAspectRatio="xMidYMid meet"
 	            style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
 	          >
-	            {ATLAS_PICKER_SHAPES.map((shape, i) => {
+	            {pickerShapes.map((shape, i) => {
 	              const active = selectedMuscle === shape.label;
 	              const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
 	              return (
@@ -20020,6 +20139,11 @@ import "./styles.css";
             name: resolvedName || (isGuest ? "Guest" : ""),
             email: fbUser.email || local.email || "",
             photoURL: resolvedPhoto,
+            // Read age + gender from the local profile cache so they're available
+            // immediately on load (gender drives the muscle-atlas model). Firestore
+            // settings sync below can still fill these in if the cache lacks them.
+            age: local.age || null,
+            gender: local.gender || null,
             isGuest,
           });
           // If name is blank after all fallbacks — keep polling until displayName propagates
@@ -21048,6 +21172,7 @@ import "./styles.css";
     return (
       <ThemeCtx.Provider value={th}>
        <LangCtx.Provider value={lang}>
+        <GenderCtx.Provider value={(user?.gender || "").toLowerCase() || null}>
         {/* Background layers — fixed, never affect layout */}
         <div
           style={{
@@ -22672,6 +22797,7 @@ import "./styles.css";
         </>
       )}
 
+        </GenderCtx.Provider>
        </LangCtx.Provider>
       </ThemeCtx.Provider>
     );
