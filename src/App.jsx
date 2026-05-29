@@ -11990,6 +11990,12 @@ import "./styles.css";
       closeCommentMenu();
       await fsToggleCommentStar(postId, user.id, comment.id);
     };
+    const deleteComment = async (comment) => {
+      if (!comment || comment.authorUid !== user.id) return;
+      closeCommentMenu();
+      if (editingComment?.id === comment.id) cancelEditComment();
+      await fsDeleteComment(postId, comment.id);
+    };
     const canSendComment = text.trim().length > 0 && !sending;
     const sendIconColor = canSendComment ? th.accentT : th.muted;
 
@@ -12009,7 +12015,7 @@ import "./styles.css";
             background:`color-mix(in srgb, ${th.card} 92%, transparent)`,
             backdropFilter:"blur(28px) saturate(1.5)", WebkitBackdropFilter:"blur(28px) saturate(1.5)",
             borderRadius:"24px 24px 0 0", borderTop:`1px solid ${th.border}`,
-            marginTop:"auto", height:"86vh", maxHeight:"86vh",
+            marginTop:"auto", height:"50vh", maxHeight:"50vh",
             display:"flex", flexDirection:"column", pointerEvents:"auto",
             animation: closing ? "cmOut .3s cubic-bezier(0.4,0,1,1) forwards" : "cmIn .38s cubic-bezier(0.32,0.72,0,1) forwards",
           }}>
@@ -12135,6 +12141,32 @@ import "./styles.css";
                                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block", transform:"rotate(-8deg)" }}>
                                   <path d="M4 16.7V20h3.3L18.6 8.7l-3.3-3.3L4 16.7Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
                                   <path d="M14.4 6.3 16.2 4.5c.7-.7 1.8-.7 2.5 0l.8.8c.7.7.7 1.8 0 2.5l-1.8 1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </button>
+                            )}
+                            {isOwn && (
+                              <button
+                                onClick={() => deleteComment(c)}
+                                style={{
+                                  ...buttonTexture(th, "danger"),
+                                  borderRadius:12,
+                                  width:36,
+                                  height:34,
+                                  padding:0,
+                                  cursor:"pointer",
+                                  display:"flex",
+                                  alignItems:"center",
+                                  justifyContent:"center",
+                                  color:"#fff",
+                                }}
+                                title={tr("Delete")}
+                                aria-label={tr("Delete")}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display:"block" }}>
+                                  <path d="M4 7h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                  <path d="M9 7V5.5C9 4.7 9.7 4 10.5 4h3C14.3 4 15 4.7 15 5.5V7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                  <path d="M7 7l.8 12.2c.1 1 1 1.8 2 1.8h4.4c1 0 1.9-.8 2-1.8L17 7" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/>
+                                  <path d="M10.5 11v6M13.5 11v6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                                 </svg>
                               </button>
                             )}
