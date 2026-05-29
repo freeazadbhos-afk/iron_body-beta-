@@ -7179,8 +7179,11 @@ import "./styles.css";
         });
         // Pending stash no longer needed once the proper profile cache is in place
         lsDel("ib3-pending-signup");
-        // 3. Seed default programs, but keep shortcuts empty so home tab is clean
-        lsSet(uKey(cred.user.uid, "programs"), DEFAULT_PROGRAMS);
+        // 3. Start with an EMPTY Workouts tab — new users build their own programs.
+        //    (We write [] explicitly, and also flag this account as freshly created
+        //    so the App() loader doesn't backfill DEFAULT_PROGRAMS over the empty list.)
+        lsSet(uKey(cred.user.uid, "programs"), []);
+        lsSet("ib3-fresh-signup-" + cred.user.uid, true);
         lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"], hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false });
         // 4. Register public profile immediately so this user appears in others' suggestions
         fsRegisterPublicProfile(cred.user.uid, trimmedName, null, email.trim().toLowerCase());
@@ -17724,7 +17727,7 @@ import "./styles.css";
     );
   }
 
-  function AwardsDashboard({ sessions, user, settings, onUpdateSettings }) {
+  function AwardsDashboard({ sessions, user, settings, onUpdateSettings, awardPopupRequest, onConsumeAwardPopup }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
@@ -17810,6 +17813,23 @@ import "./styles.css";
       const next = pendingAwardPopupsRef.current.shift();
       setAwardPopup(next || null);
     };
+
+    // Re-open the achievement popup when the user taps its notification. The
+    // request carries { id, label, icon } from the stored notification; we
+    // resolve the matching award for its description, but prefer the notified
+    // label/icon so the popup matches exactly what was unlocked.
+    useEffect(() => {
+      if (!awardPopupRequest) return;
+      const found = awards.find(a => a.id === awardPopupRequest.id);
+      setAwardPopup({
+        id: awardPopupRequest.id,
+        icon: awardPopupRequest.icon || found?.icon || "🏆",
+        label: awardPopupRequest.label || found?.label || t("Award unlocked"),
+        desc: found?.desc || "",
+      });
+      onConsumeAwardPopup && onConsumeAwardPopup();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [awardPopupRequest]);
 
     // Persist any newly-earned persistable awards so they survive a broken streak,
     // and notify the user exactly once when any award is first achieved.
@@ -17935,7 +17955,7 @@ import "./styles.css";
               {awardPopup.label}
             </div>
             <div style={{ fontSize:13, color:th.muted, lineHeight:1.5, marginBottom:18 }}>
-              {awardPopup.desc}<br />{t("Nice work. This award has been added to your profile.")}
+              {awardPopup.desc ? <>{awardPopup.desc}<br /></> : null}{t("Nice work. This award has been added to your profile.")}
             </div>
             <button
               onClick={closeAwardPopup}
@@ -17958,6 +17978,8 @@ import "./styles.css";
     onSaveMeasurement,
     settings,
     onUpdateSettings,
+    awardPopupRequest,
+    onConsumeAwardPopup,
     theme,
     themeAuto,
     lang,
@@ -18681,7 +18703,7 @@ import "./styles.css";
         </div>{/* end profile card */}
 
         {/* ── Awards card — separate from profile info ── */}
-        <AwardsDashboard sessions={sessions} user={user} settings={settings} onUpdateSettings={onUpdateSettings} />
+        <AwardsDashboard sessions={sessions} user={user} settings={settings} onUpdateSettings={onUpdateSettings} awardPopupRequest={awardPopupRequest} onConsumeAwardPopup={onConsumeAwardPopup} />
 
         {/* Body measurements card */}
         <div
@@ -19683,7 +19705,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.1 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.2 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
@@ -20070,6 +20092,10 @@ import "./styles.css";
     // Deep-link payload for opening a specific feed post from a notification tap.
     // Shape: { postId, ownerUid, contextName, mode }. SharingView consumes this on mount and clears it.
     const [deepLinkPost, setDeepLinkPost]             = useState(null);
+    // Request to re-open the "Achievement unlocked" popup from a notification tap.
+    // Shape: { id, label, icon }. AwardsDashboard (inside the Profile sheet) consumes
+    // it on mount and clears it via onConsumeAwardPopup.
+    const [awardPopupRequest, setAwardPopupRequest]   = useState(null);
 
     useEffect(() => {
       if (!user?.id || user?.isGuest) {
@@ -20140,8 +20166,12 @@ import "./styles.css";
 
       // ── Step 1: Show local cache immediately (instant UI) ──────────────────────
       const localProgs = ls(uKey(user.id, "programs"), null);
+      // Freshly signed-up accounts intentionally start with no programs. Only fall
+      // back to DEFAULT_PROGRAMS when there's no cache at all (null) AND this isn't
+      // a fresh signup — an empty array is a valid, respected state.
+      const isFreshSignup = ls("ib3-fresh-signup-" + user.id, false);
       setPrograms(
-        localProgs && localProgs.length > 0 ? localProgs : DEFAULT_PROGRAMS
+        Array.isArray(localProgs) ? localProgs : (isFreshSignup ? [] : DEFAULT_PROGRAMS)
       );
       setSessions(ls(uKey(user.id, "sessions"), []));
       setSettings(ls(uKey(user.id, "settings"), DEFAULT_SETTINGS));
@@ -20157,8 +20187,14 @@ import "./styles.css";
           if (fsProgs && fsProgs.length > 0) {
             setPrograms(fsProgs);
             lsSet(uKey(user.id, "programs"), fsProgs);
+            // Established account synced — clear any stale fresh-signup flag.
+            lsDel("ib3-fresh-signup-" + user.id);
+          } else if (isFreshSignup) {
+            // Brand-new signup with nothing in Firestore — keep the Workouts tab
+            // empty (do NOT seed defaults) and push the empty list up.
+            await fsSavePrograms(user.id, []);
           } else if (!localProgs || localProgs.length === 0) {
-            // Truly new account — seed defaults to Firestore
+            // Older account with no programs anywhere — seed defaults to Firestore
             await fsSavePrograms(user.id, DEFAULT_PROGRAMS);
           } else {
             // Local has data but Firestore doesn't — push local up
@@ -20306,6 +20342,8 @@ import "./styles.css";
         const p = typeof pOrFn === "function" ? pOrFn(prev) : pOrFn;
         lsSet(uKey(user.id, "programs"), p);
         fsSavePrograms(user.id, p);
+        // Once the user has created a program, they're no longer "fresh".
+        if (p && p.length > 0) lsDel("ib3-fresh-signup-" + user.id);
         return p;
       });
     };
@@ -22366,8 +22404,18 @@ import "./styles.css";
                     n.type === "coach_accepted"
                   ) {
                     linkPayload = { mode:"pending" };
+                  } else if (n.type === "award_earned" && n.awardId) {
+                    // Re-open the achievement popup. Handled separately below since it
+                    // opens the Profile sheet (where AwardsDashboard lives) rather than Sharing.
+                    linkPayload = { mode:"award", awardId:n.awardId, awardLabel:n.awardLabel, awardIcon:n.awardIcon };
                   }
                   const handleClick = linkPayload ? () => {
+                    if (linkPayload.mode === "award") {
+                      setAwardPopupRequest({ id: linkPayload.awardId, label: linkPayload.awardLabel, icon: linkPayload.awardIcon });
+                      setProfileOpen(true);
+                      closeNotif();
+                      return;
+                    }
                     setDeepLinkPost(linkPayload);
                     setView("sharing");
                     closeNotif();
@@ -22490,6 +22538,8 @@ import "./styles.css";
                   onSaveMeasurement={saveMeasurements}
                   settings={settings}
                   onUpdateSettings={saveSettings}
+                  awardPopupRequest={awardPopupRequest}
+                  onConsumeAwardPopup={() => setAwardPopupRequest(null)}
                   theme={theme}
                   themeAuto={themeAuto}
                   lang={lang}
