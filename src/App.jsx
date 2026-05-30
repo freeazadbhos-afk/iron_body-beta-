@@ -3698,12 +3698,21 @@ import "./styles.css";
     const isFemale = gender === "female";
     const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
     // Native image dimensions + crop window (in the image's own viewBox units).
+    // For female, we render front and back as TWO tightly-cropped images
+    // side-by-side so the figures appear at the same visual height as the male
+    // model. Each figure's tight bbox (measured from the SVG paths):
+    //   front  x 219..708  y 18..989
+    //   back   x 818..1306 y 20..983
     const NATIVE_W = isFemale ? 1536 : 1024;
     const NATIVE_H = isFemale ? 1024 : 1536;
     const cropX = isFemale ? 205 : 0;
     const cropY = isFemale ? 5   : 70;
     const cropW = isFemale ? 1118 : 1024;
+    // Female cropH uses the per-figure bbox height so the frame's aspect
+    // matches a tall, male-style presentation. Two figures side-by-side with
+    // a small gap, each ~489 wide × 971 tall.
     const cropH = isFemale ? 1002 : 1430;
+    const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
     // The female highlight regions aren't mapped to this artwork yet, so we only
     // overlay the (male-tuned) highlight shapes on the male atlas.
     const showHighlights = !isFemale;
@@ -3809,7 +3818,12 @@ import "./styles.css";
           style={{
             position:"relative",
             width:"100%",
-            aspectRatio:`${cropW} / ${cropH}`,
+            // Female frame aspect: TWO tight-cropped figures side-by-side. Two
+            // figures of (489+488=977) wide, tallest 971 high, with a small gap.
+            // Yields ~1.04 aspect (vs the previous 1.12) so the panel is taller
+            // and the figures fill more vertical space — closer to the male
+            // model's visual height.
+            aspectRatio: isFemale ? `${FEM_FIG.fW + FEM_FIG.bW + 30} / ${Math.max(FEM_FIG.fH, FEM_FIG.bH)}` : `${cropW} / ${cropH}`,
             overflow:"hidden",
             borderRadius:14,
             // The female art is a full BLACK fill with the muscle lines as transparent
@@ -3869,14 +3883,41 @@ import "./styles.css";
               />
             </>
           ) : (
-            /* Female: single clean, tightly-framed image (highlight regions not yet mapped to this artwork). */
-            <img
-              src={atlasUrl}
-              alt=""
-              aria-hidden="true"
-              draggable={false}
-              style={atlasImageStyle(1)}
-            />
+            // Female: render front and back as TWO tight-cropped images side-by-side
+            // in a 50/50 grid. This eliminates the wide blank space between figures in
+            // the source SVG so the figures display at the same visual height as the
+            // male model. Each half-frame crops the native image to that figure's
+            // bounding box; the image scales up and translates so only that figure
+            // shows within its half.
+            <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
+              {[
+                { x: FEM_FIG.fX, y: FEM_FIG.fY, w: FEM_FIG.fW, h: FEM_FIG.fH, k:"fr" },
+                { x: FEM_FIG.bX, y: FEM_FIG.bY, w: FEM_FIG.bW, h: FEM_FIG.bH, k:"bk" },
+              ].map(fig => (
+                <div key={fig.k} style={{ position:"relative", overflow:"hidden" }}>
+                  <img
+                    src={atlasUrl}
+                    alt=""
+                    aria-hidden="true"
+                    draggable={false}
+                    style={{
+                      position:"absolute",
+                      left:0, top:0,
+                      width: `${(NATIVE_W / fig.w) * 100}%`,
+                      height:"auto",
+                      transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
+                      transformOrigin:"top left",
+                      opacity:1,
+                      filter:atlasFilter,
+                      WebkitFilter:atlasFilter,
+                      pointerEvents:"none",
+                      userSelect:"none",
+                      WebkitUserSelect:"none",
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           )}
         </div>
         <div style={{
@@ -6610,6 +6651,8 @@ import "./styles.css";
 	    const cropY = isFemale ? 5 : 70;
 	    const cropW = isFemale ? 1118 : 1024;
 	    const cropH = isFemale ? 1002 : 1340;
+	    // Per-figure bboxes for female so each side can be displayed tightly cropped.
+	    const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
 	    // Female art is rendered OPAQUE (no blend modes — they rendered blank): as-is
 	    // in dark mode (white lines on its black bg), inverted in light mode.
 	    const atlasFilter = isFemale
@@ -6617,6 +6660,16 @@ import "./styles.css";
 	      : (dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none");
 	    const selectedGroup = (pickerShapes.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
+	    // Split picker shapes into front/back groups so each side renders only its own
+	    // tap regions inside the corresponding tight viewBox. Centroid x split = midpoint
+	    // between front (centred ~463) and back (~1062) figures.
+	    const femSplit = (FEM_FIG.fX + FEM_FIG.fW + FEM_FIG.bX) / 2;
+	    const shapeCenX = (d) => {
+	      const xs = d.match(/-?\d+(?:\.\d+)?/g)?.filter((_,i)=>i%2===0).map(parseFloat) || [];
+	      return xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : 0;
+	    };
+	    const femFront = isFemale ? pickerShapes.filter(s => shapeCenX(s.d) < femSplit) : [];
+	    const femBack  = isFemale ? pickerShapes.filter(s => shapeCenX(s.d) >= femSplit) : [];
 	    return (
 	      <div style={{
 	        position:"relative",
@@ -6632,7 +6685,11 @@ import "./styles.css";
 	        <div style={{
 	          position:"relative",
 	          width:"100%",
-	          aspectRatio:`${cropW} / ${cropH}`,
+	          // Female aspect uses the per-figure bboxes (no wasted gap) so the
+	          // figures appear at the same visual height as the male model.
+	          aspectRatio: isFemale
+	            ? `${FEM_FIG.fW + FEM_FIG.bW + 30} / ${Math.max(FEM_FIG.fH, FEM_FIG.bH)}`
+	            : `${cropW} / ${cropH}`,
 	          overflow:"hidden",
 	          borderRadius:14,
 	          // Female art is a full BLACK fill with the lines as transparent gaps, so the
@@ -6640,66 +6697,141 @@ import "./styles.css";
 	          // dark → white lines on black, light → black lines on white (with invert).
 	          background: isFemale ? (dark ? "#ffffff" : "#000000") : "transparent",
 	        }}>
-	          <img
-	            src={atlasUrl}
-	            alt=""
-	            aria-hidden="true"
-	            draggable={false}
-	            style={{
-	              position:"absolute",
-	              left:0,
-	              top:0,
-	              width:`${(NATIVE_W / cropW) * 100}%`,
-	              height:"auto",
-	              transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
-	              transformOrigin:"top left",
-	              opacity: isFemale ? 1 : (dark ? 0.98 : 0.74),
-	              filter:atlasFilter,
-	              WebkitFilter:atlasFilter,
-	              pointerEvents:"none",
-	              userSelect:"none",
-	              WebkitUserSelect:"none",
-	            }}
-	          />
-	          <svg
-	            viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
-	            xmlns="http://www.w3.org/2000/svg"
-	            preserveAspectRatio="xMidYMid meet"
-	            style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
-	          >
-	            {pickerShapes.map((shape, i) => {
-	              const active = selectedMuscle === shape.label;
-	              const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
-	              return (
-	                <path
-	                  key={`${shape.label}-${i}`}
-	                  d={shape.d}
-	                  role="button"
-	                  tabIndex={0}
-	                  aria-label={shape.label}
-	                  onClick={() => onSelect(shape.label)}
-	                  onKeyDown={(e) => {
-	                    if (e.key === "Enter" || e.key === " ") {
-	                      e.preventDefault();
-	                      onSelect(shape.label);
-	                    }
-	                  }}
-	                  fill={active ? accent : "rgba(255,255,255,0.001)"}
-	                  opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
-	                  stroke={active ? accent : "transparent"}
-	                  strokeWidth={active ? 10 : 0}
-	                  strokeLinejoin="round"
-	                  strokeLinecap="round"
-	                  style={{
-	                    cursor:"pointer",
-	                    outline:"none",
-	                    pointerEvents:"all",
-	                    transition:"opacity .16s, fill .16s, stroke .16s",
-	                  }}
-	                />
-	              );
-	            })}
-	          </svg>
+	          {isFemale ? (
+	            // Female: front + back as two tightly-cropped halves with their own
+	            // tap-region SVGs, each viewBox set to the figure's bbox.
+	            <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
+	              {[
+	                { x:FEM_FIG.fX, y:FEM_FIG.fY, w:FEM_FIG.fW, h:FEM_FIG.fH, shapes:femFront, k:"fr" },
+	                { x:FEM_FIG.bX, y:FEM_FIG.bY, w:FEM_FIG.bW, h:FEM_FIG.bH, shapes:femBack,  k:"bk" },
+	              ].map(fig => (
+	                <div key={fig.k} style={{ position:"relative", overflow:"hidden" }}>
+	                  <img
+	                    src={atlasUrl}
+	                    alt=""
+	                    aria-hidden="true"
+	                    draggable={false}
+	                    style={{
+	                      position:"absolute",
+	                      left:0, top:0,
+	                      width:`${(NATIVE_W / fig.w) * 100}%`,
+	                      height:"auto",
+	                      transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
+	                      transformOrigin:"top left",
+	                      opacity:1,
+	                      filter:atlasFilter,
+	                      WebkitFilter:atlasFilter,
+	                      pointerEvents:"none",
+	                      userSelect:"none",
+	                      WebkitUserSelect:"none",
+	                    }}
+	                  />
+	                  <svg
+	                    viewBox={`${fig.x} ${fig.y} ${fig.w} ${fig.h}`}
+	                    xmlns="http://www.w3.org/2000/svg"
+	                    preserveAspectRatio="xMidYMid meet"
+	                    style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
+	                  >
+	                    {fig.shapes.map((shape, i) => {
+	                      const active = selectedMuscle === shape.label;
+	                      const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
+	                      return (
+	                        <path
+	                          key={`${fig.k}-${shape.label}-${i}`}
+	                          d={shape.d}
+	                          role="button"
+	                          tabIndex={0}
+	                          aria-label={shape.label}
+	                          onClick={() => onSelect(shape.label)}
+	                          onKeyDown={(e) => {
+	                            if (e.key === "Enter" || e.key === " ") {
+	                              e.preventDefault();
+	                              onSelect(shape.label);
+	                            }
+	                          }}
+	                          fill={active ? accent : "rgba(255,255,255,0.001)"}
+	                          opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
+	                          stroke={active ? accent : "transparent"}
+	                          strokeWidth={active ? 10 : 0}
+	                          strokeLinejoin="round"
+	                          strokeLinecap="round"
+	                          style={{
+	                            cursor:"pointer",
+	                            outline:"none",
+	                            pointerEvents:"all",
+	                            transition:"opacity .16s, fill .16s, stroke .16s",
+	                          }}
+	                        />
+	                      );
+	                    })}
+	                  </svg>
+	                </div>
+	              ))}
+	            </div>
+	          ) : (
+	            <>
+	              <img
+	                src={atlasUrl}
+	                alt=""
+	                aria-hidden="true"
+	                draggable={false}
+	                style={{
+	                  position:"absolute",
+	                  left:0,
+	                  top:0,
+	                  width:`${(NATIVE_W / cropW) * 100}%`,
+	                  height:"auto",
+	                  transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
+	                  transformOrigin:"top left",
+	                  opacity: dark ? 0.98 : 0.74,
+	                  filter:atlasFilter,
+	                  WebkitFilter:atlasFilter,
+	                  pointerEvents:"none",
+	                  userSelect:"none",
+	                  WebkitUserSelect:"none",
+	                }}
+	              />
+	              <svg
+	                viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
+	                xmlns="http://www.w3.org/2000/svg"
+	                preserveAspectRatio="xMidYMid meet"
+	                style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
+	              >
+	                {pickerShapes.map((shape, i) => {
+	                  const active = selectedMuscle === shape.label;
+	                  const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
+	                  return (
+	                    <path
+	                      key={`${shape.label}-${i}`}
+	                      d={shape.d}
+	                      role="button"
+	                      tabIndex={0}
+	                      aria-label={shape.label}
+	                      onClick={() => onSelect(shape.label)}
+	                      onKeyDown={(e) => {
+	                        if (e.key === "Enter" || e.key === " ") {
+	                          e.preventDefault();
+	                          onSelect(shape.label);
+	                        }
+	                      }}
+	                      fill={active ? accent : "rgba(255,255,255,0.001)"}
+	                      opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
+	                      stroke={active ? accent : "transparent"}
+	                      strokeWidth={active ? 10 : 0}
+	                      strokeLinejoin="round"
+	                      strokeLinecap="round"
+	                      style={{
+	                        cursor:"pointer",
+	                        outline:"none",
+	                        pointerEvents:"all",
+	                        transition:"opacity .16s, fill .16s, stroke .16s",
+	                      }}
+	                    />
+	                  );
+	                })}
+	              </svg>
+	            </>
+	          )}
 	        </div>
 	      </div>
 	    );
@@ -7209,6 +7341,7 @@ import "./styles.css";
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [pw, setPw] = useState("");
+    const [signupGender, setSignupGender] = useState(""); // "Male" | "Female" | "Other"
     const [showPw, setShowPw] = useState(false);
     const [err, setErr] = useState("");
     const [loading, setLoading] = useState(false);
@@ -7267,7 +7400,7 @@ import "./styles.css";
     };
 
     const handleSignup = async () => {
-      if (!name.trim() || !email.trim() || !pw) {
+      if (!name.trim() || !email.trim() || !pw || !signupGender) {
         setErr("All fields required.");
         return;
       }
@@ -7280,10 +7413,10 @@ import "./styles.css";
       try {
         const trimmedName = name.trim();
         const lowerEmail = email.trim().toLowerCase();
-        // Stash a pending-signup name keyed by email BEFORE Firebase creates the user.
-        // onAuthStateChanged may fire before fbUpdateProfile/saveLocalProfile complete,
-        // so this is a guaranteed fallback for the very first user object built.
-        lsSet("ib3-pending-signup", { email: lowerEmail, name: trimmedName });
+        // Stash a pending-signup name+gender keyed by email BEFORE Firebase creates
+        // the user. onAuthStateChanged may fire before fbUpdateProfile/saveLocalProfile
+        // complete, so this is a guaranteed fallback for the first user object built.
+        lsSet("ib3-pending-signup", { email: lowerEmail, name: trimmedName, gender: signupGender });
         const cred = await createUserWithEmailAndPassword(
           fbAuth,
           email.trim(),
@@ -7291,10 +7424,12 @@ import "./styles.css";
         );
         // 1. Set displayName on Firebase user
         await fbUpdateProfile(cred.user, { displayName: trimmedName });
-        // 2. Write to local cache IMMEDIATELY — guarantees onAuthStateChanged finds the name
+        // 2. Write to local cache IMMEDIATELY — guarantees onAuthStateChanged finds
+        //    name + gender (which drives the muscle-atlas model)
         saveLocalProfile(cred.user.uid, {
           name: trimmedName,
           email: lowerEmail,
+          gender: signupGender,
         });
         // Pending stash no longer needed once the proper profile cache is in place
         lsDel("ib3-pending-signup");
@@ -7304,6 +7439,8 @@ import "./styles.css";
         lsSet(uKey(cred.user.uid, "programs"), []);
         lsSet("ib3-fresh-signup-" + cred.user.uid, true);
         lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"], hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false });
+        // Persist gender to Firestore settings so it survives across devices/installs.
+        fsSaveSettings(cred.user.uid, { name: trimmedName, gender: signupGender });
         // 4. Register public profile immediately so this user appears in others' suggestions
         fsRegisterPublicProfile(cred.user.uid, trimmedName, null, email.trim().toLowerCase());
         // 4. Reload Firebase user so displayName is fresh on next auth state change
@@ -7448,6 +7585,34 @@ import "./styles.css";
                 marginBottom: 12,
               }}
             />
+          )}
+          {/* Gender picker (signup only) — required so the muscle-atlas model can be
+              chosen at signup. Three options as discrete chips, matching profile editor. */}
+          {tab === "signup" && (
+            <div style={{ display:"flex", gap:8, marginBottom:12 }}>
+              {["Male","Female","Other"].map(g => (
+                <button key={g}
+                  onClick={() => setSignupGender(prev => prev === g ? "" : g)}
+                  style={{
+                    flex:1,
+                    background: signupGender === g
+                      ? "rgba(200,240,48,0.85)"
+                      : "rgba(255,255,255,0.09)",
+                    backdropFilter:"blur(10px)",
+                    border:`1px solid ${signupGender === g ? "rgba(200,240,48,0.95)" : "rgba(255,255,255,0.15)"}`,
+                    borderRadius:12,
+                    padding:"12px 0",
+                    color: signupGender === g ? "#080809" : "rgba(240,240,240,0.85)",
+                    fontSize:14,
+                    fontWeight:700,
+                    cursor:"pointer",
+                    fontFamily:"'Outfit',sans-serif",
+                    transition:"background .15s, color .15s, border-color .15s",
+                  }}>
+                  {t(g)}
+                </button>
+              ))}
+            </div>
           )}
           <input
             type="email"
@@ -7864,8 +8029,8 @@ import "./styles.css";
                 </div>
               </div>
             ) : (
-              /* Invisible placeholder row — mirrors the real row structure so the
-                  card stays at the max grid size regardless of how many PRs exist. */
+              // Invisible placeholder row — mirrors the real row structure so the
+              // card stays at the max grid size regardless of how many PRs exist.
               <div key={`ph-${i}`} style={{
                 display:"flex", alignItems:"center", gap:10,
                 padding:"8px 0",
@@ -18080,7 +18245,7 @@ import "./styles.css";
               onClick={closeAwardPopup}
               style={{ width:"100%", ...buttonTexture(th, "accent"), borderRadius:13, padding:"13px", cursor:"pointer", fontFamily:"'Outfit',sans-serif", fontWeight:800, fontSize:13, letterSpacing:0.6 }}
             >
-              {t("NICE WORK")}
+              {t("DONE")}
             </button>
           </div>
         </>,
@@ -20122,15 +20287,22 @@ import "./styles.css";
           // Priority: 1) local cache (written at signup before this fires)
           // 2) Firebase displayName  3) pending-signup stash (email-matched)  4) email prefix
           let resolvedName = local.name || fbUser.displayName || "";
-          if (!resolvedName) {
+          let resolvedGender = local.gender || null;
+          if (!resolvedName || !resolvedGender) {
             const pending = ls("ib3-pending-signup", null);
-            if (pending && pending.email === (fbUser.email || "").toLowerCase() && pending.name) {
-              resolvedName = pending.name;
-              // Persist the name to the proper profile cache now that the uid is known
-              saveLocalProfile(fbUser.uid, { name: pending.name, email: fbUser.email || "" });
+            if (pending && pending.email === (fbUser.email || "").toLowerCase()) {
+              if (!resolvedName && pending.name) resolvedName = pending.name;
+              if (!resolvedGender && pending.gender) resolvedGender = pending.gender;
+              // Persist name + gender to the proper profile cache now that the uid is known
+              saveLocalProfile(fbUser.uid, {
+                ...local,
+                name: resolvedName || local.name || "",
+                email: fbUser.email || "",
+                gender: resolvedGender || local.gender || null,
+              });
               lsDel("ib3-pending-signup");
               // And push displayName to Firebase so subsequent sessions don't need this fallback
-              fbUpdateProfile(fbUser, { displayName: pending.name }).catch(() => {});
+              if (resolvedName) fbUpdateProfile(fbUser, { displayName: resolvedName }).catch(() => {});
             }
           }
           const resolvedPhoto = local.photoURL || null;
@@ -20139,11 +20311,12 @@ import "./styles.css";
             name: resolvedName || (isGuest ? "Guest" : ""),
             email: fbUser.email || local.email || "",
             photoURL: resolvedPhoto,
-            // Read age + gender from the local profile cache so they're available
-            // immediately on load (gender drives the muscle-atlas model). Firestore
-            // settings sync below can still fill these in if the cache lacks them.
+            // Read age + gender from the local profile cache (or pending-signup
+            // stash) so they're available immediately on load. Gender drives the
+            // muscle-atlas model. Firestore settings sync below can still fill
+            // these in if the cache lacks them.
             age: local.age || null,
-            gender: local.gender || null,
+            gender: resolvedGender || null,
             isGuest,
           });
           // If name is blank after all fallbacks — keep polling until displayName propagates
