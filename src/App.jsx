@@ -9314,7 +9314,7 @@ import "./styles.css";
                       const barBg = hasData
                         ? (hasResist && hasCardio ? "#E8612C" : hasCardio ? "#5B9CF6" : th.accentBg)
                         : th.inputB;
-                      const col = hasData ? (hasCardio && !hasResist ? "#5B9CF6" : th.accentFg) : th.inputB;
+                      const col = hasData ? (hasResist && hasCardio ? "#E8612C" : hasCardio ? "#5B9CF6" : th.accentFg) : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
@@ -9444,7 +9444,7 @@ import "./styles.css";
                       const barBg = hasData
                         ? (hasResist && hasCardio ? "#E8612C" : hasCardio ? "#5B9CF6" : th.accentBg)
                         : th.inputB;
-                      const col = hasData ? (hasCardio && !hasResist ? "#5B9CF6" : th.accentFg) : th.inputB;
+                      const col = hasData ? (hasResist && hasCardio ? "#E8612C" : hasCardio ? "#5B9CF6" : th.accentFg) : th.inputB;
                       const dateLabel = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
                       return (
                         <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0 }}>
