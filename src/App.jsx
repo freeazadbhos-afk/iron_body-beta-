@@ -10387,14 +10387,17 @@ import "./styles.css";
         (sessions || []).filter(s => (s.startTime||0) >= weekStart.getTime())
           .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
       ).size;
+      // Same catalogue order as the user's own awards (perfect week → monthly →
+      // streaks), then earned-first. Competition Win is omitted here since a
+      // friend's competition history isn't available to the viewer.
       return [
+        { id:"weekly",   icon:"🗓️", label:t("Perfect Week"), earned: daysThisWeek >= 5 },
+        { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), earned: daysThisMonth >= 20 },
         { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),   earned: bestStreak >= 7 },
         { id:"streak14", icon:"⚡", label:t("14-Day Streak"),  earned: bestStreak >= 14 },
         { id:"streak21", icon:"💎", label:t("21-Day Streak"),  earned: bestStreak >= 21 },
         { id:"streak30", icon:"👑", label:t("1-Month Streak"), earned: bestStreak >= 30 },
-        { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), earned: daysThisMonth >= 20 },
-        { id:"weekly",   icon:"🗓️", label:t("Perfect Week"), earned: daysThisWeek >= 5 },
-      ];
+      ].sort((a, b) => (b.earned ? 1 : 0) - (a.earned ? 1 : 0));
     })() : [];
 
     const friendAwardsJSX = friendAwards.length ? (
@@ -17948,15 +17951,19 @@ import "./styles.css";
     const notifiedAwards = Array.isArray(settings?.notifiedAwards) ? settings.notifiedAwards : [];
     const isPersisted = (id) => persistedEarned.includes(id);
 
+    // Fixed catalogue order: perfect week → monthly → competition → streaks (7→30).
     const awards = [
+      { id:"weekly",   icon:"🗓️", label:weekLabel,          desc:t("5 workouts this week"),           earned: daysThisWeek >= 5 },
+      { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), desc:t("20 workouts in {month}", { month: t(monthName) }), earned: daysThisMonth >= 20 },
+      { id:"comp",     icon:"🏆", label:t("Competition Win"), desc:t("Win a 7-day challenge"),          earned: (user._awardsWon || 0) >= 1 },
       { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),    desc:t("Train 7 days in a row"),          earned: streak >= 7  || bestStreak >= 7  || isPersisted("streak7"),  persistable:true },
       { id:"streak14", icon:"⚡", label:t("14-Day Streak"),   desc:t("Train 14 days in a row"),         earned: streak >= 14 || bestStreak >= 14 || isPersisted("streak14"), persistable:true },
       { id:"streak21", icon:"💎", label:t("21-Day Streak"),   desc:t("Train 21 days in a row"),         earned: streak >= 21 || bestStreak >= 21 || isPersisted("streak21"), persistable:true },
       { id:"streak30", icon:"👑", label:t("1-Month Streak"),  desc:t("Train 30 days in a row"),         earned: streak >= 30 || bestStreak >= 30 || isPersisted("streak30"), persistable:true },
-      { id:"comp",     icon:"🏆", label:t("Competition Win"), desc:t("Win a 7-day challenge"),          earned: (user._awardsWon || 0) >= 1 },
-      { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), desc:t("20 workouts in {month}", { month: t(monthName) }), earned: daysThisMonth >= 20 },
-      { id:"weekly",   icon:"🗓️", label:weekLabel,          desc:t("5 workouts this week"),           earned: daysThisWeek >= 5 },
-    ];
+    ]
+      // Earned awards float to the front; within each group the catalogue order
+      // above is preserved (Array.sort is stable). Drives display + pagination.
+      .sort((a, b) => (b.earned ? 1 : 0) - (a.earned ? 1 : 0));
 
     const earnedAwardIds = awards.filter(a => a.earned).map(a => a.id).join(",");
     const closeAwardPopup = () => {
@@ -18482,12 +18489,8 @@ import "./styles.css";
               <button
                 onClick={() => setShowUpgrade(true)}
                 style={{
-                  background: `color-mix(in srgb, ${th.accentBg} 80%, transparent)`,
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  border: "none",
+                  ...buttonTexture(th, "accent"),
                   borderRadius: 10,
-                  color: th.accentT,
                   padding: "10px 18px",
                   cursor: "pointer",
                   fontWeight: 700,
@@ -18888,12 +18891,8 @@ import "./styles.css";
                     setEditingMeasureIdx(null);
                   }}
                   style={{
-                    background: "rgba(220, 50, 50, 0.15)",
-                    backdropFilter: "blur(10px)",
-                    WebkitBackdropFilter: "blur(10px)",
-                    border: "1px solid rgba(220, 50, 50, 0.3)",
+                    ...buttonTexture(th, "danger"),
                     borderRadius: 9,
-                    color: th.delText,
                     padding: "7px 12px",
                     cursor: "pointer",
                     fontSize: 12,
@@ -18901,7 +18900,7 @@ import "./styles.css";
                     fontWeight: 700,
                   }}
                 >
-                  Delete
+                  {t("Delete")}
                 </button>
               )}
               <button
@@ -18912,12 +18911,8 @@ import "./styles.css";
                   } else openMeasureForm(null);
                 }}
                 style={{
-                  backdropFilter: "blur(10px)",
-                  WebkitBackdropFilter: "blur(10px)",
-                  background: showMeasure ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
-                  border: `1px solid ${showMeasure ? th.accentBg : th.inputB}`,
+                  ...buttonTexture(th, showMeasure ? "accent" : "neutral"),
                   borderRadius: 9,
-                  color: showMeasure ? th.accentT : th.muted,
                   padding: "7px 14px",
                   cursor: "pointer",
                   fontSize: 12,
@@ -18925,7 +18920,7 @@ import "./styles.css";
                   fontWeight: 700,
                 }}
               >
-                {showMeasure ? "Cancel" : "Edit"}
+                {showMeasure ? t("Cancel") : t("Edit")}
               </button>
             </div>
           </div>
@@ -19400,12 +19395,8 @@ import "./styles.css";
                 if (isAdmin && !showFeedback) handleLoadFeedbacks();
               }}
               style={{
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                background: showFeedback ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
-                border: `1px solid ${showFeedback ? th.accentBg : th.inputB}`,
+                ...buttonTexture(th, showFeedback ? "accent" : "neutral"),
                 borderRadius: 9,
-                color: showFeedback ? th.accentT : th.muted,
                 padding: "7px 14px",
                 cursor: "pointer",
                 fontSize: 12,
@@ -19607,12 +19598,8 @@ import "./styles.css";
                 setChangelogSent(false);
               }}
               style={{
-                backdropFilter: "blur(10px)",
-                WebkitBackdropFilter: "blur(10px)",
-                background: showChangelog ? `color-mix(in srgb, ${th.accentBg} 85%, transparent)` : "transparent",
-                border: `1px solid ${showChangelog ? th.accentBg : th.inputB}`,
+                ...buttonTexture(th, showChangelog ? "accent" : "neutral"),
                 borderRadius: 9,
-                color: showChangelog ? th.accentT : th.muted,
                 padding: "7px 14px",
                 cursor: "pointer",
                 fontSize: 12,
@@ -19778,15 +19765,13 @@ import "./styles.css";
                                   }
                                 }}
                                 style={{
-                                  background: "none",
-                                  border: "1px solid #CC1F42",
+                                  ...buttonTexture(th, "danger"),
                                   borderRadius: 7,
-                                  color: "#CC1F42",
                                   fontSize: 11,
                                   padding: "3px 10px",
                                   cursor: "pointer",
                                   fontFamily: "'Outfit',sans-serif",
-                                  fontWeight: 600,
+                                  fontWeight: 700,
                                 }}
                               >
                                 {t("Delete")}
