@@ -121,6 +121,25 @@ import "./styles.css";
     pause: "#1e1800",
     pauseB: "#E8612C",
   };
+  // ─── Accent themes ──────────────────────────────────────────────────────────
+  // Each accent overrides the theme's accent keys. Every accent defines a separate
+  // light + dark variant so it stays legible against both backgrounds:
+  //   • light → a deeper, saturated tone that carries white text (accentT)
+  //   • dark  → a brighter, lighter tone that carries near-black text (accentT)
+  // accentFg (accent-as-text on cards) mirrors accentBg, matching the base themes.
+  const ACCENTS = {
+    default:   { label: "Default",   light: { bg: "#0D9E8E", t: "#ffffff", fg: "#0D9E8E" }, dark: { bg: "#c8f030", t: "#080809", fg: "#c8f030" } },
+    raspberry: { label: "Raspberry", light: { bg: "#C81E5A", t: "#ffffff", fg: "#C81E5A" }, dark: { bg: "#FF5C8A", t: "#080809", fg: "#FF5C8A" } },
+    tangerine: { label: "Tangerine", light: { bg: "#E2622A", t: "#ffffff", fg: "#E2622A" }, dark: { bg: "#FF9A3D", t: "#080809", fg: "#FF9A3D" } },
+    lavender:  { label: "Lavender",  light: { bg: "#7C4DD1", t: "#ffffff", fg: "#7C4DD1" }, dark: { bg: "#C4A9F5", t: "#080809", fg: "#C4A9F5" } },
+  };
+  const ACCENT_ORDER = ["default", "raspberry", "tangerine", "lavender"];
+  // Apply a named accent to a base theme, returning a new theme object.
+  function applyAccent(base, mode, accentKey) {
+    const def = ACCENTS[accentKey] || ACCENTS.default;
+    const v = def[mode] || def.light;
+    return { ...base, accentBg: v.bg, accentT: v.t, accentFg: v.fg };
+  }
   const ThemeCtx = createContext(DARK);
   const useTheme = () => useContext(ThemeCtx);
 
@@ -435,6 +454,12 @@ import "./styles.css";
     "APPEARANCE": "GÖRÜNÜM",
     "Language": "Dil",
     "LANGUAGE": "DİL",
+    "Themes": "Temalar",
+    "Accent color": "Vurgu rengi",
+    "Default": "Varsayılan",
+    "Raspberry": "Ahududu",
+    "Tangerine": "Mandalina",
+    "Lavender": "Lavanta",
     "Dark mode": "Koyu mod",
     "Auto: dark 19:00-06:00": "Otomatik: koyu 19:00-06:00",
     "RESET TO AUTO (TIME-BASED)": "OTOMATİĞE DÖN (SAATE GÖRE)",
@@ -7665,7 +7690,9 @@ import "./styles.css";
     const cutoff = range === "7d"
       ? now - 7 * 24 * 60 * 60 * 1000
       : range === "month"
-      ? now - 30 * 24 * 60 * 60 * 1000
+      // Current calendar month (from the 1st), not a rolling 30-day window.
+      ? new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()
+      // Current calendar year (from Jan 1).
       : new Date(new Date().getFullYear(), 0, 1).getTime();
     const ws = sessions.filter(s => (s.startTime || 0) >= cutoff);
     const resistSess = ws.filter(s => (s.exercises||[]).some(e => e.type !== "cardio"));
@@ -18105,6 +18132,8 @@ import "./styles.css";
     onConsumeAwardPopup,
     theme,
     themeAuto,
+    accent,
+    onAccentChange,
     lang,
     onLangChange,
     onLogout,
@@ -19243,6 +19272,70 @@ import "./styles.css";
                   {theme === "dark" ? t("dark until 06:00") : t("light until 19:00")}
                 </div>
               )}
+
+              {/* Themes — accent colour picker */}
+              <div
+                style={{
+                  borderTop: `1px solid ${th.border}`,
+                  marginTop: 16,
+                  paddingTop: 16,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 700,
+                    color: th.text,
+                    textAlign: "left",
+                    marginBottom: 2,
+                  }}
+                >
+                  {t("Themes")}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: th.muted,
+                    marginTop: 2,
+                    marginBottom: 14,
+                    textAlign: "left",
+                  }}
+                >
+                  {t("Accent color")}
+                </div>
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  {ACCENT_ORDER.map((key) => {
+                    const def = ACCENTS[key];
+                    const swatch = def[theme === "dark" ? "dark" : "light"].bg;
+                    const isActive = (accent || "default") === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => onAccentChange && onAccentChange(key)}
+                        aria-label={t(def.label)}
+                        title={t(def.label)}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: "50%",
+                          background: swatch,
+                          border: isActive
+                            ? `3px solid ${th.text}`
+                            : `2px solid ${th.inputB}`,
+                          boxShadow: isActive
+                            ? `0 0 0 2px ${th.card}, 0 4px 12px color-mix(in srgb, ${swatch} 55%, transparent)`
+                            : "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          flexShrink: 0,
+                          transition: "border .15s, box-shadow .15s, transform .15s",
+                          transform: isActive ? "scale(1.06)" : "scale(1)",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             {/* Language card — mirrors Appearance card */}
@@ -20054,8 +20147,9 @@ import "./styles.css";
   export default function App() {
     const [theme, setTheme] = useState(getAutoTheme);
     const [themeAuto, setThemeAuto] = useState(true);
+    const [accent, setAccent] = useState("default");
     const [lang, setLang] = useState("en");
-    const th = theme === "dark" ? DARK : LIGHT;
+    const th = applyAccent(theme === "dark" ? DARK : LIGHT, theme === "dark" ? "dark" : "light", accent);
 
     // Re-evaluate auto theme every minute if in auto mode
     useEffect(() => {
@@ -20077,10 +20171,15 @@ import "./styles.css";
 
     // Edge-to-edge: extend content under iOS status bar
     useEffect(() => {
-      // 1. viewport-fit=cover — lets the layout fill the full screen incl. safe areas
+      // 1. viewport-fit=cover — lets the layout fill the full screen incl. safe areas.
+      //    maximum-scale=1 + user-scalable=no stops iOS Safari from auto-zooming
+      //    when a small-font input is focused and the keyboard opens.
       const vp = document.querySelector("meta[name=viewport]");
-      if (vp && !vp.getAttribute("content").includes("viewport-fit")) {
-        vp.setAttribute("content", vp.getAttribute("content") + ", viewport-fit=cover");
+      if (vp) {
+        vp.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+        );
       }
 
       // 2. Transparent status bar — CRITICAL for removing the black bar in PWA mode
@@ -20314,6 +20413,8 @@ import "./styles.css";
       setMeasurements(getMeasurements(user.id));
       const savedLang = ls(uKey(user.id, "lang"), "en");
       if (LANGS.includes(savedLang)) setLang(savedLang);
+      const savedAccent = ls(uKey(user.id, "accent"), "default");
+      if (ACCENT_ORDER.includes(savedAccent)) setAccent(savedAccent);
 
       // ── Step 2: Sync Firestore in background (no spinner) ──────────────────────
       const loadFromFirestore = async () => {
@@ -21145,11 +21246,14 @@ import "./styles.css";
               <circle cx="9.5" cy="9" r="3.2" stroke={c} strokeWidth="1.6" />
               <path d="M2.5 20c.6-3.4 3.6-6 7-6s6.4 2.6 7 6" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
             </svg>
-            {(pendingInvitations.length > 0 || unreadStars > 0 || unreadDirectFriendCount > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
+            {/* Sharing dot flags only ACTIONABLE items: incoming friend requests,
+                incoming compete requests, and unread DMs. Stars/comments are
+                informational and surface on the notification bell instead. */}
+            {(pendingInvitations.length > 0 || unreadDirectFriendCount > 0 || competitions.filter(c => c.toUid === user.id && c.status === "pending").length > 0) && (
               <div style={{
                 position: "absolute", top: -3, right: -3,
                 width: 11, height: 11, borderRadius: "50%",
-                background: (unreadStars > 0 || unreadDirectFriendCount > 0) ? th.accentFg : "#CC1F42",
+                background: unreadDirectFriendCount > 0 ? th.accentFg : "#CC1F42",
                 border: `1.5px solid ${th.nav}`,
                 animation: "pulse 1.5s ease-in-out infinite",
               }} />
@@ -22679,6 +22783,12 @@ import "./styles.css";
                   onConsumeAwardPopup={() => setAwardPopupRequest(null)}
                   theme={theme}
                   themeAuto={themeAuto}
+                  accent={accent}
+                  onAccentChange={(a) => {
+                    if (!ACCENT_ORDER.includes(a)) return;
+                    setAccent(a);
+                    if (user?.id) lsSet(uKey(user.id, "accent"), a);
+                  }}
                   lang={lang}
                   onLangChange={(l) => {
                     if (!LANGS.includes(l)) return;
