@@ -3689,43 +3689,21 @@ import "./styles.css";
     const activeRegions = highlights || {};
 
     // ── Atlas source + crop ──────────────────────────────────────────────────
-    // Two illustrations: the male atlas (portrait 1024×1536, front+back already
-    // stacked side by side) and the female atlas (landscape 1536×1024). The
-    // female figures sit centred inside a wide canvas with big side margins, so
-    // we crop tightly to the content bounding box to make them appear closely
-    // side by side — matching the male presentation.
+    // Two illustrations: male (1024×1536) and female (same layout/dimensions).
+    // Female users see the female atlas; everyone else sees the male atlas.
+    // Both share the same crop window and rendering path.
     const gender = useGender();
     const isFemale = gender === "female";
     const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
-    // Native image dimensions + crop window (in the image's own viewBox units).
-    // For female, we render front and back as TWO tightly-cropped images
-    // side-by-side so the figures appear at the same visual height as the male
-    // model. Each figure's tight bbox (measured from the SVG paths):
-    //   front  x 219..708  y 18..989
-    //   back   x 818..1306 y 20..983
-    const NATIVE_W = isFemale ? 1536 : 1024;
-    const NATIVE_H = isFemale ? 1024 : 1536;
-    // Same OUTER canvas aspect for male and female so the card and FRONT/BACK
-    // label placement are identical. For female, each half-cell uses an inner
-    // aspect-ratio wrapper to keep the figure's natural proportions and centre
-    // it vertically inside the (taller) cell.
-    const cropX = isFemale ? 205 : 0;
-    const cropY = isFemale ? 5   : 70;
+    const NATIVE_W = 1024;
+    const NATIVE_H = 1536;
+    const cropX = 0;
+    const cropY = 70;
     const cropW = 1024;
     const cropH = 1430;
-    const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
-    // The female highlight regions aren't mapped to this artwork yet, so we only
-    // overlay the (male-tuned) highlight shapes on the male atlas.
-    const showHighlights = !isFemale;
-    // Colour handling. The male art is BLACK line-work on transparent; the female
-    // art is WHITE line-work on a solid BLACK background. We render the female art
-    // OPAQUE (no blend modes — those proved unreliable and rendered blank) so it
-    // always shows:
-    //   • dark mode  → as-is (white lines on its own black background)
-    //   • light mode → invert (black lines on white) so it reads on the light UI
-    const atlasFilter = isFemale
-      ? (dark ? "none" : "invert(1)")
-      : (dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none");
+    // Both atlases: transparent bg + black lines.
+    // Invert in dark mode → white lines on dark canvas. No filter in light → black lines on white.
+    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
     // Generalized 2-D crop: scale the image so cropW native units fill the frame
     // width, then shift by the crop origin (percent of the image's own box).
     const atlasImageStyle = (opacity) => ({
@@ -3819,111 +3797,62 @@ import "./styles.css";
           style={{
             position:"relative",
             width:"100%",
-            // Same aspect for male and female canvases so the outer card and
-            // FRONT/BACK label placement are identical across genders.
             aspectRatio:`${cropW} / ${cropH}`,
             overflow:"hidden",
             borderRadius:14,
-            // Outer canvas matches the figure's "paper" colour so the empty area
-            // around the figures blends with the SVG (white in light mode, black
-            // in dark mode). The line colour lives on the inner wrapper below.
-            background: isFemale ? (dark ? "#000000" : "#ffffff") : "transparent",
+            // Female SVG has a solid dark bg; canvas colour keeps edges seamless
+            // after the CSS invert (light → white canvas, dark → dark canvas).
+            background: isFemale ? (dark ? "#20211f" : "#ffffff") : "transparent",
           }}
         >
-          {showHighlights ? (
-            <>
-              {/* Male: faded base → highlight overlay → sharper base (highlights read "under the skin") */}
-              <img
-                src={atlasUrl}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                style={atlasImageStyle(dark ? 0.8 : 0.28)}
-              />
-              <svg
-                viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
-                xmlns="http://www.w3.org/2000/svg"
-                preserveAspectRatio="xMidYMid meet"
-                style={{
-                  position:"absolute",
-                  inset:0,
-                  display:"block",
-                  width:"100%",
-                  height:"100%",
-                  pointerEvents:"none",
-                  mixBlendMode:"normal",
-                }}
-              >
-                {atlasShapes.map((shape, i) => {
-                  const active = activeShape(shape.ids);
-                  if (!active) return null;
-                  return (
-                    <path
-                      key={`atlas-highlight-${i}`}
-                      d={shape.d}
-                      fill={active.fill || "#f4511e"}
-                      opacity={regionOpacity(active)}
-                      stroke={bg}
-                      strokeWidth="5"
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
-                  );
-                })}
-              </svg>
-              <img
-                src={atlasUrl}
-                alt=""
-                aria-hidden="true"
-                draggable={false}
-                style={atlasImageStyle(dark ? 0.98 : 0.72)}
-              />
-            </>
-          ) : (
-            // Female: front + back as tight-cropped halves inside a male-aspect
-            // canvas. Each half-cell flex-centres an inner aspect-ratio wrapper
-            // holding the cropped image, so the figure preserves its natural
-            // proportions and the canvas matches the male layout exactly.
-            <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
-              {[
-                { x: FEM_FIG.fX, y: FEM_FIG.fY, w: FEM_FIG.fW, h: FEM_FIG.fH, k:"fr" },
-                { x: FEM_FIG.bX, y: FEM_FIG.bY, w: FEM_FIG.bW, h: FEM_FIG.bH, k:"bk" },
-              ].map(fig => (
-                <div key={fig.k} style={{ position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                  <div style={{
-                    position:"relative",
-                    width:"100%",
-                    aspectRatio:`${fig.w} / ${fig.h}`,
-                    overflow:"hidden",
-                    // Line colour: opposite of paper, shows through the SVG's
-                    // transparent line gaps (white lines in dark mode, black in light).
-                    background: dark ? "#ffffff" : "#000000",
-                  }}>
-                    <img
-                      src={atlasUrl}
-                      alt=""
-                      aria-hidden="true"
-                      draggable={false}
-                      style={{
-                        position:"absolute",
-                        left:0, top:0,
-                        width: `${(NATIVE_W / fig.w) * 100}%`,
-                        height:"auto",
-                        transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
-                        transformOrigin:"top left",
-                        opacity:1,
-                        filter:atlasFilter,
-                        WebkitFilter:atlasFilter,
-                        pointerEvents:"none",
-                        userSelect:"none",
-                        WebkitUserSelect:"none",
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <>
+            {/* Faded base → highlight overlay → sharper base */}
+            <img
+              src={atlasUrl}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              style={atlasImageStyle(dark ? 0.8 : 0.28)}
+            />
+            <svg
+              viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
+              xmlns="http://www.w3.org/2000/svg"
+              preserveAspectRatio="xMidYMid meet"
+              style={{
+                position:"absolute",
+                inset:0,
+                display:"block",
+                width:"100%",
+                height:"100%",
+                pointerEvents:"none",
+                mixBlendMode:"normal",
+              }}
+            >
+              {atlasShapes.map((shape, i) => {
+                const active = activeShape(shape.ids);
+                if (!active) return null;
+                return (
+                  <path
+                    key={`atlas-highlight-${i}`}
+                    d={shape.d}
+                    fill={active.fill || "#f4511e"}
+                    opacity={regionOpacity(active)}
+                    stroke={bg}
+                    strokeWidth="5"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+            </svg>
+            <img
+              src={atlasUrl}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              style={atlasImageStyle(dark ? 0.98 : 0.72)}
+            />
+          </>
         </div>
         <div style={{
           position:"absolute",
@@ -6643,40 +6572,23 @@ import "./styles.css";
 	  function InteractiveExerciseAtlas({ selectedMuscle, onSelect }) {
 	    const th = useTheme();
 	    const dark = th.bg === "#080809" || th.card === "#0f0f12";
-	    // Female users get the female atlas + female-mapped tap regions; everyone
-	    // else gets the male atlas. The female art is white-on-black, so we key its
-	    // background out with a theme-aware blend (see BodyAnatomy for the rationale).
+	    // Both atlases share the same layout, dimensions, and tap-region coords.
+	    // Female users just see the female artwork; everything else is identical.
 	    const gender = useGender();
 	    const isFemale = gender === "female";
-	    const pickerShapes = isFemale ? ATLAS_PICKER_SHAPES_FEMALE : ATLAS_PICKER_SHAPES;
 	    const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
-	    const NATIVE_W = isFemale ? 1536 : 1024;
-	    const NATIVE_H = isFemale ? 1024 : 1536;
-	    // Same outer canvas aspect for male + female so the picker frame matches
-	    // the male sizing. Female figures live in inner aspect-ratio cells (below).
-	    const cropX = isFemale ? 205 : 0;
-	    const cropY = isFemale ? 5 : 70;
+	    const pickerShapes = ATLAS_PICKER_SHAPES;
+	    const NATIVE_W = 1024;
+	    const NATIVE_H = 1536;
+	    const cropX = 0;
+	    const cropY = 70;
 	    const cropW = 1024;
-	    const cropH = isFemale ? 1340 : 1340;
-	    // Per-figure bboxes for female so each side can be displayed tightly cropped.
-	    const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
-	    // Female art is rendered OPAQUE (no blend modes — they rendered blank): as-is
-	    // in dark mode (white lines on its black bg), inverted in light mode.
-	    const atlasFilter = isFemale
-	      ? (dark ? "none" : "invert(1)")
-	      : (dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none");
+	    const cropH = 1340;
+	    // Both atlases: transparent bg + black lines.
+	    // Invert in dark mode → white lines on dark canvas. No filter in light → black lines on white.
+	    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
 	    const selectedGroup = (pickerShapes.find((s) => s.label === selectedMuscle) || {}).group;
 	    const selectedAccent = selectedMuscle ? muscleAccent(selectedMuscle, selectedGroup, dark) : th.accentBg;
-	    // Split picker shapes into front/back groups so each side renders only its own
-	    // tap regions inside the corresponding tight viewBox. Centroid x split = midpoint
-	    // between front (centred ~463) and back (~1062) figures.
-	    const femSplit = (FEM_FIG.fX + FEM_FIG.fW + FEM_FIG.bX) / 2;
-	    const shapeCenX = (d) => {
-	      const xs = d.match(/-?\d+(?:\.\d+)?/g)?.filter((_,i)=>i%2===0).map(parseFloat) || [];
-	      return xs.length ? xs.reduce((a,b)=>a+b,0)/xs.length : 0;
-	    };
-	    const femFront = isFemale ? pickerShapes.filter(s => shapeCenX(s.d) < femSplit) : [];
-	    const femBack  = isFemale ? pickerShapes.filter(s => shapeCenX(s.d) >= femSplit) : [];
 	    return (
 	      <div style={{
 	        position:"relative",
@@ -6692,161 +6604,73 @@ import "./styles.css";
 	        <div style={{
 	          position:"relative",
 	          width:"100%",
-	          // Same outer aspect for male and female so the picker frame is identical.
 	          aspectRatio:`${cropW} / ${cropH}`,
 	          overflow:"hidden",
 	          borderRadius:14,
-	          // Outer canvas matches the figure's "paper" colour so the empty area
-	          // around the figures blends with the SVG (white in light mode, black
-	          // in dark mode). The line colour lives on the inner wrapper below.
-	          background: isFemale ? (dark ? "#000000" : "#ffffff") : "transparent",
+	          background: isFemale ? (dark ? "#20211f" : "#ffffff") : "transparent",
 	        }}>
-	          {isFemale ? (
-	            // Female: front + back as two tightly-cropped halves with their own
-	            // tap-region SVGs. Each half flex-centres an inner aspect-ratio
-	            // wrapper holding the cropped image + tap-region SVG.
-	            <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
-	              {[
-	                { x:FEM_FIG.fX, y:FEM_FIG.fY, w:FEM_FIG.fW, h:FEM_FIG.fH, shapes:femFront, k:"fr" },
-	                { x:FEM_FIG.bX, y:FEM_FIG.bY, w:FEM_FIG.bW, h:FEM_FIG.bH, shapes:femBack,  k:"bk" },
-	              ].map(fig => (
-	                <div key={fig.k} style={{ position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
-	                  <div style={{
-	                    position:"relative",
-	                    width:"100%",
-	                    aspectRatio:`${fig.w} / ${fig.h}`,
-	                    overflow:"hidden",
-	                    // Line colour: opposite of paper, shows through the SVG's
-	                    // transparent line gaps (white lines in dark, black in light).
-	                    background: dark ? "#ffffff" : "#000000",
-	                  }}>
-	                  <img
-	                    src={atlasUrl}
-	                    alt=""
-	                    aria-hidden="true"
-	                    draggable={false}
+	          <>
+	            <img
+	              src={atlasUrl}
+	              alt=""
+	              aria-hidden="true"
+	              draggable={false}
+	              style={{
+	                position:"absolute",
+	                left:0,
+	                top:0,
+	                width:`${(NATIVE_W / cropW) * 100}%`,
+	                height:"auto",
+	                transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
+	                transformOrigin:"top left",
+	                opacity: dark ? 0.98 : 0.74,
+	                filter:atlasFilter,
+	                WebkitFilter:atlasFilter,
+	                pointerEvents:"none",
+	                userSelect:"none",
+	                WebkitUserSelect:"none",
+	              }}
+	            />
+	            <svg
+	              viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
+	              xmlns="http://www.w3.org/2000/svg"
+	              preserveAspectRatio="xMidYMid meet"
+	              style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
+	            >
+	              {pickerShapes.map((shape, i) => {
+	                const active = selectedMuscle === shape.label;
+	                const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
+	                return (
+	                  <path
+	                    key={`${shape.label}-${i}`}
+	                    d={shape.d}
+	                    role="button"
+	                    tabIndex={0}
+	                    aria-label={shape.label}
+	                    onClick={() => onSelect(shape.label)}
+	                    onKeyDown={(e) => {
+	                      if (e.key === "Enter" || e.key === " ") {
+	                        e.preventDefault();
+	                        onSelect(shape.label);
+	                      }
+	                    }}
+	                    fill={active ? accent : "rgba(255,255,255,0.001)"}
+	                    opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
+	                    stroke={active ? accent : "transparent"}
+	                    strokeWidth={active ? 10 : 0}
+	                    strokeLinejoin="round"
+	                    strokeLinecap="round"
 	                    style={{
-	                      position:"absolute",
-	                      left:0, top:0,
-	                      width:`${(NATIVE_W / fig.w) * 100}%`,
-	                      height:"auto",
-	                      transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
-	                      transformOrigin:"top left",
-	                      opacity:1,
-	                      filter:atlasFilter,
-	                      WebkitFilter:atlasFilter,
-	                      pointerEvents:"none",
-	                      userSelect:"none",
-	                      WebkitUserSelect:"none",
+	                      cursor:"pointer",
+	                      outline:"none",
+	                      pointerEvents:"all",
+	                      transition:"opacity .16s, fill .16s, stroke .16s",
 	                    }}
 	                  />
-	                  <svg
-	                    viewBox={`${fig.x} ${fig.y} ${fig.w} ${fig.h}`}
-	                    xmlns="http://www.w3.org/2000/svg"
-	                    preserveAspectRatio="xMidYMid meet"
-	                    style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
-	                  >
-	                    {fig.shapes.map((shape, i) => {
-	                      const active = selectedMuscle === shape.label;
-	                      const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
-	                      return (
-	                        <path
-	                          key={`${fig.k}-${shape.label}-${i}`}
-	                          d={shape.d}
-	                          role="button"
-	                          tabIndex={0}
-	                          aria-label={shape.label}
-	                          onClick={() => onSelect(shape.label)}
-	                          onKeyDown={(e) => {
-	                            if (e.key === "Enter" || e.key === " ") {
-	                              e.preventDefault();
-	                              onSelect(shape.label);
-	                            }
-	                          }}
-	                          fill={active ? accent : "rgba(255,255,255,0.001)"}
-	                          opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
-	                          stroke={active ? accent : "transparent"}
-	                          strokeWidth={active ? 10 : 0}
-	                          strokeLinejoin="round"
-	                          strokeLinecap="round"
-	                          style={{
-	                            cursor:"pointer",
-	                            outline:"none",
-	                            pointerEvents:"all",
-	                            transition:"opacity .16s, fill .16s, stroke .16s",
-	                          }}
-	                        />
-	                      );
-	                    })}
-	                  </svg>
-	                  </div>
-	                </div>
-	              ))}
-	            </div>
-	          ) : (
-	            <>
-	              <img
-	                src={atlasUrl}
-	                alt=""
-	                aria-hidden="true"
-	                draggable={false}
-	                style={{
-	                  position:"absolute",
-	                  left:0,
-	                  top:0,
-	                  width:`${(NATIVE_W / cropW) * 100}%`,
-	                  height:"auto",
-	                  transform:`translate(${-(cropX / NATIVE_W) * 100}%, ${-(cropY / NATIVE_H) * 100}%)`,
-	                  transformOrigin:"top left",
-	                  opacity: dark ? 0.98 : 0.74,
-	                  filter:atlasFilter,
-	                  WebkitFilter:atlasFilter,
-	                  pointerEvents:"none",
-	                  userSelect:"none",
-	                  WebkitUserSelect:"none",
-	                }}
-	              />
-	              <svg
-	                viewBox={`${cropX} ${cropY} ${cropW} ${cropH}`}
-	                xmlns="http://www.w3.org/2000/svg"
-	                preserveAspectRatio="xMidYMid meet"
-	                style={{ position:"absolute", inset:0, display:"block", width:"100%", height:"100%" }}
-	              >
-	                {pickerShapes.map((shape, i) => {
-	                  const active = selectedMuscle === shape.label;
-	                  const accent = active ? muscleAccent(shape.label, shape.group, dark) : selectedAccent;
-	                  return (
-	                    <path
-	                      key={`${shape.label}-${i}`}
-	                      d={shape.d}
-	                      role="button"
-	                      tabIndex={0}
-	                      aria-label={shape.label}
-	                      onClick={() => onSelect(shape.label)}
-	                      onKeyDown={(e) => {
-	                        if (e.key === "Enter" || e.key === " ") {
-	                          e.preventDefault();
-	                          onSelect(shape.label);
-	                        }
-	                      }}
-	                      fill={active ? accent : "rgba(255,255,255,0.001)"}
-	                      opacity={active ? (dark ? 0.86 : 0.78) : 0.001}
-	                      stroke={active ? accent : "transparent"}
-	                      strokeWidth={active ? 10 : 0}
-	                      strokeLinejoin="round"
-	                      strokeLinecap="round"
-	                      style={{
-	                        cursor:"pointer",
-	                        outline:"none",
-	                        pointerEvents:"all",
-	                        transition:"opacity .16s, fill .16s, stroke .16s",
-	                      }}
-	                    />
-	                  );
-	                })}
-	              </svg>
-	            </>
-	          )}
+	                );
+	              })}
+	            </svg>
+	          </>
 	        </div>
 	      </div>
 	    );
