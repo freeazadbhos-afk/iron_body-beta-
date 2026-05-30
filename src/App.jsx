@@ -3705,13 +3705,14 @@ import "./styles.css";
     //   back   x 818..1306 y 20..983
     const NATIVE_W = isFemale ? 1536 : 1024;
     const NATIVE_H = isFemale ? 1024 : 1536;
+    // Same OUTER canvas aspect for male and female so the card and FRONT/BACK
+    // label placement are identical. For female, each half-cell uses an inner
+    // aspect-ratio wrapper to keep the figure's natural proportions and centre
+    // it vertically inside the (taller) cell.
     const cropX = isFemale ? 205 : 0;
     const cropY = isFemale ? 5   : 70;
-    const cropW = isFemale ? 1118 : 1024;
-    // Female cropH uses the per-figure bbox height so the frame's aspect
-    // matches a tall, male-style presentation. Two figures side-by-side with
-    // a small gap, each ~489 wide × 971 tall.
-    const cropH = isFemale ? 1002 : 1430;
+    const cropW = 1024;
+    const cropH = 1430;
     const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
     // The female highlight regions aren't mapped to this artwork yet, so we only
     // overlay the (male-tuned) highlight shapes on the male atlas.
@@ -3818,19 +3819,15 @@ import "./styles.css";
           style={{
             position:"relative",
             width:"100%",
-            // Female frame aspect: TWO tight-cropped figures side-by-side. Two
-            // figures of (489+488=977) wide, tallest 971 high, with a small gap.
-            // Yields ~1.04 aspect (vs the previous 1.12) so the panel is taller
-            // and the figures fill more vertical space — closer to the male
-            // model's visual height.
-            aspectRatio: isFemale ? `${FEM_FIG.fW + FEM_FIG.bW + 30} / ${Math.max(FEM_FIG.fH, FEM_FIG.bH)}` : `${cropW} / ${cropH}`,
+            // Same aspect for male and female canvases so the outer card and
+            // FRONT/BACK label placement are identical across genders.
+            aspectRatio:`${cropW} / ${cropH}`,
             overflow:"hidden",
             borderRadius:14,
-            // The female art is a full BLACK fill with the muscle lines as transparent
-            // gaps. So the frame backdrop shows THROUGH the lines and becomes the line
-            // colour. Dark mode: black fill (no filter) + white backdrop → white lines.
-            // Light mode: invert makes the fill white + black backdrop → black lines.
-            background: isFemale ? (dark ? "#ffffff" : "#000000") : "transparent",
+            // Outer canvas matches the figure's "paper" colour so the empty area
+            // around the figures blends with the SVG (white in light mode, black
+            // in dark mode). The line colour lives on the inner wrapper below.
+            background: isFemale ? (dark ? "#000000" : "#ffffff") : "transparent",
           }}
         >
           {showHighlights ? (
@@ -3883,38 +3880,46 @@ import "./styles.css";
               />
             </>
           ) : (
-            // Female: render front and back as TWO tight-cropped images side-by-side
-            // in a 50/50 grid. This eliminates the wide blank space between figures in
-            // the source SVG so the figures display at the same visual height as the
-            // male model. Each half-frame crops the native image to that figure's
-            // bounding box; the image scales up and translates so only that figure
-            // shows within its half.
+            // Female: front + back as tight-cropped halves inside a male-aspect
+            // canvas. Each half-cell flex-centres an inner aspect-ratio wrapper
+            // holding the cropped image, so the figure preserves its natural
+            // proportions and the canvas matches the male layout exactly.
             <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
               {[
                 { x: FEM_FIG.fX, y: FEM_FIG.fY, w: FEM_FIG.fW, h: FEM_FIG.fH, k:"fr" },
                 { x: FEM_FIG.bX, y: FEM_FIG.bY, w: FEM_FIG.bW, h: FEM_FIG.bH, k:"bk" },
               ].map(fig => (
-                <div key={fig.k} style={{ position:"relative", overflow:"hidden" }}>
-                  <img
-                    src={atlasUrl}
-                    alt=""
-                    aria-hidden="true"
-                    draggable={false}
-                    style={{
-                      position:"absolute",
-                      left:0, top:0,
-                      width: `${(NATIVE_W / fig.w) * 100}%`,
-                      height:"auto",
-                      transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
-                      transformOrigin:"top left",
-                      opacity:1,
-                      filter:atlasFilter,
-                      WebkitFilter:atlasFilter,
-                      pointerEvents:"none",
-                      userSelect:"none",
-                      WebkitUserSelect:"none",
-                    }}
-                  />
+                <div key={fig.k} style={{ position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <div style={{
+                    position:"relative",
+                    width:"100%",
+                    aspectRatio:`${fig.w} / ${fig.h}`,
+                    overflow:"hidden",
+                    // Line colour: opposite of paper, shows through the SVG's
+                    // transparent line gaps (white lines in dark mode, black in light).
+                    background: dark ? "#ffffff" : "#000000",
+                  }}>
+                    <img
+                      src={atlasUrl}
+                      alt=""
+                      aria-hidden="true"
+                      draggable={false}
+                      style={{
+                        position:"absolute",
+                        left:0, top:0,
+                        width: `${(NATIVE_W / fig.w) * 100}%`,
+                        height:"auto",
+                        transform:`translate(${-(fig.x / NATIVE_W) * 100}%, ${-(fig.y / NATIVE_H) * 100}%)`,
+                        transformOrigin:"top left",
+                        opacity:1,
+                        filter:atlasFilter,
+                        WebkitFilter:atlasFilter,
+                        pointerEvents:"none",
+                        userSelect:"none",
+                        WebkitUserSelect:"none",
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -6647,10 +6652,12 @@ import "./styles.css";
 	    const atlasUrl = isFemale ? bodyMuscleAtlasFemaleUrl : bodyMuscleAtlasUrl;
 	    const NATIVE_W = isFemale ? 1536 : 1024;
 	    const NATIVE_H = isFemale ? 1024 : 1536;
+	    // Same outer canvas aspect for male + female so the picker frame matches
+	    // the male sizing. Female figures live in inner aspect-ratio cells (below).
 	    const cropX = isFemale ? 205 : 0;
 	    const cropY = isFemale ? 5 : 70;
-	    const cropW = isFemale ? 1118 : 1024;
-	    const cropH = isFemale ? 1002 : 1340;
+	    const cropW = 1024;
+	    const cropH = isFemale ? 1340 : 1340;
 	    // Per-figure bboxes for female so each side can be displayed tightly cropped.
 	    const FEM_FIG = { fX:219, fY:18, fW:489, fH:971, bX:818, bY:20, bW:488, bH:963 };
 	    // Female art is rendered OPAQUE (no blend modes — they rendered blank): as-is
@@ -6685,27 +6692,34 @@ import "./styles.css";
 	        <div style={{
 	          position:"relative",
 	          width:"100%",
-	          // Female aspect uses the per-figure bboxes (no wasted gap) so the
-	          // figures appear at the same visual height as the male model.
-	          aspectRatio: isFemale
-	            ? `${FEM_FIG.fW + FEM_FIG.bW + 30} / ${Math.max(FEM_FIG.fH, FEM_FIG.bH)}`
-	            : `${cropW} / ${cropH}`,
+	          // Same outer aspect for male and female so the picker frame is identical.
+	          aspectRatio:`${cropW} / ${cropH}`,
 	          overflow:"hidden",
 	          borderRadius:14,
-	          // Female art is a full BLACK fill with the lines as transparent gaps, so the
-	          // backdrop shows through the lines = line colour (opposite the theme):
-	          // dark → white lines on black, light → black lines on white (with invert).
-	          background: isFemale ? (dark ? "#ffffff" : "#000000") : "transparent",
+	          // Outer canvas matches the figure's "paper" colour so the empty area
+	          // around the figures blends with the SVG (white in light mode, black
+	          // in dark mode). The line colour lives on the inner wrapper below.
+	          background: isFemale ? (dark ? "#000000" : "#ffffff") : "transparent",
 	        }}>
 	          {isFemale ? (
 	            // Female: front + back as two tightly-cropped halves with their own
-	            // tap-region SVGs, each viewBox set to the figure's bbox.
+	            // tap-region SVGs. Each half flex-centres an inner aspect-ratio
+	            // wrapper holding the cropped image + tap-region SVG.
 	            <div style={{ position:"absolute", inset:0, display:"grid", gridTemplateColumns:"1fr 1fr", gap:0 }}>
 	              {[
 	                { x:FEM_FIG.fX, y:FEM_FIG.fY, w:FEM_FIG.fW, h:FEM_FIG.fH, shapes:femFront, k:"fr" },
 	                { x:FEM_FIG.bX, y:FEM_FIG.bY, w:FEM_FIG.bW, h:FEM_FIG.bH, shapes:femBack,  k:"bk" },
 	              ].map(fig => (
-	                <div key={fig.k} style={{ position:"relative", overflow:"hidden" }}>
+	                <div key={fig.k} style={{ position:"relative", overflow:"hidden", display:"flex", alignItems:"center", justifyContent:"center" }}>
+	                  <div style={{
+	                    position:"relative",
+	                    width:"100%",
+	                    aspectRatio:`${fig.w} / ${fig.h}`,
+	                    overflow:"hidden",
+	                    // Line colour: opposite of paper, shows through the SVG's
+	                    // transparent line gaps (white lines in dark, black in light).
+	                    background: dark ? "#ffffff" : "#000000",
+	                  }}>
 	                  <img
 	                    src={atlasUrl}
 	                    alt=""
@@ -6765,6 +6779,7 @@ import "./styles.css";
 	                      );
 	                    })}
 	                  </svg>
+	                  </div>
 	                </div>
 	              ))}
 	            </div>
