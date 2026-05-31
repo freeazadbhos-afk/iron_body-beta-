@@ -207,6 +207,7 @@ import "./styles.css";
     "Name": "İsim",
     "Full name": "Tam isim",
     "Age": "Yaş",
+    "Birth date": "Doğum tarihi",
     "Gender": "Cinsiyet",
     "Male": "Erkek",
     "Female": "Kadın",
@@ -489,6 +490,7 @@ import "./styles.css";
     "DISPLAY NAME": "GÖRÜNEN AD",
     "EMAIL": "E-POSTA",
     "AGE": "YAŞ",
+    "BIRTH DATE": "DOĞUM TARİHİ",
     "GENDER": "CİNSİYET",
     "PROFILE PHOTO": "PROFİL FOTOĞRAFI",
     "(optional)": "(isteğe bağlı)",
@@ -509,6 +511,8 @@ import "./styles.css";
     "Body Measurements": "Vücut Ölçüleri",
     "Last Record:": "Son Kayıt:",
     "years": "yaş",
+    "Birth date required.": "Doğum tarihi zorunlu.",
+    "Enter a valid birth date.": "Geçerli bir doğum tarihi gir.",
     "e.g. 28": "ör. 28",
     "All fields required.": "Tüm alanlar zorunlu.",
     "Password must be 6+ characters.": "Parola en az 6 karakter olmalı.",
@@ -4530,6 +4534,38 @@ import "./styles.css";
     const [y, m, d] = value.split("-").map(Number);
     return new Date(y, m - 1, d, 12, 0, 0, 0);
   }
+  function normalizeBirthDateInput(value) {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return "";
+    const [y, m, d] = value.split("-").map(Number);
+    const parsed = new Date(y, m - 1, d, 12, 0, 0, 0);
+    const today = new Date();
+    const todayNoon = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 0, 0, 0);
+    if (
+      y < 1900 ||
+      parsed.getFullYear() !== y ||
+      parsed.getMonth() !== m - 1 ||
+      parsed.getDate() !== d ||
+      parsed > todayNoon
+    ) {
+      return "";
+    }
+    return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  }
+  function calculateAgeFromBirthDate(value, now = new Date()) {
+    const normalized = normalizeBirthDateInput(value);
+    if (!normalized) return null;
+    const [y, m, d] = normalized.split("-").map(Number);
+    let age = now.getFullYear() - y;
+    const monthDiff = now.getMonth() - (m - 1);
+    if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < d)) age -= 1;
+    return age >= 0 ? age : null;
+  }
+  function profileAge(profile) {
+    const computed = calculateAgeFromBirthDate(profile?.birthDate);
+    if (computed != null) return computed;
+    const legacyAge = Number(profile?.age);
+    return Number.isFinite(legacyAge) && legacyAge > 0 ? legacyAge : null;
+  }
   function uid() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2);
   }
@@ -7265,6 +7301,7 @@ import "./styles.css";
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [pw, setPw] = useState("");
+    const [signupBirthDate, setSignupBirthDate] = useState("");
     const [signupGender, setSignupGender] = useState(""); // "Male" | "Female" | "Other"
     const [showPw, setShowPw] = useState(false);
     const [err, setErr] = useState("");
@@ -7324,8 +7361,13 @@ import "./styles.css";
     };
 
     const handleSignup = async () => {
-      if (!name.trim() || !email.trim() || !pw || !signupGender) {
+      const normalizedBirthDate = normalizeBirthDateInput(signupBirthDate);
+      if (!name.trim() || !email.trim() || !pw || !signupGender || !signupBirthDate) {
         setErr("All fields required.");
+        return;
+      }
+      if (!normalizedBirthDate) {
+        setErr("Enter a valid birth date.");
         return;
       }
       if (pw.length < 6) {
@@ -7337,10 +7379,11 @@ import "./styles.css";
       try {
         const trimmedName = name.trim();
         const lowerEmail = email.trim().toLowerCase();
-        // Stash a pending-signup name+gender keyed by email BEFORE Firebase creates
+        const calculatedAge = calculateAgeFromBirthDate(normalizedBirthDate);
+        // Stash pending signup profile data keyed by email BEFORE Firebase creates
         // the user. onAuthStateChanged may fire before fbUpdateProfile/saveLocalProfile
         // complete, so this is a guaranteed fallback for the first user object built.
-        lsSet("ib3-pending-signup", { email: lowerEmail, name: trimmedName, gender: signupGender });
+        lsSet("ib3-pending-signup", { email: lowerEmail, name: trimmedName, birthDate: normalizedBirthDate, age: calculatedAge, gender: signupGender });
         const cred = await createUserWithEmailAndPassword(
           fbAuth,
           email.trim(),
@@ -7353,6 +7396,8 @@ import "./styles.css";
         saveLocalProfile(cred.user.uid, {
           name: trimmedName,
           email: lowerEmail,
+          birthDate: normalizedBirthDate,
+          age: calculatedAge,
           gender: signupGender,
         });
         // Pending stash no longer needed once the proper profile cache is in place
@@ -7363,8 +7408,8 @@ import "./styles.css";
         lsSet(uKey(cred.user.uid, "programs"), []);
         lsSet("ib3-fresh-signup-" + cred.user.uid, true);
         lsSet(uKey(cred.user.uid, "settings"), { homePrograms: [], homeDashboards: ["streak","intensity","strength","volume"], hasDashOnboarded: false, hasProgramOnboarded: false, hasProgramBuildOnboarded: false, hasSharingOnboarded: false, hasSharingOnboardedV2: false, hasSharingOnboardedV3: false });
-        // Persist gender to Firestore settings so it survives across devices/installs.
-        fsSaveSettings(cred.user.uid, { name: trimmedName, gender: signupGender });
+        // Persist birth date + gender to Firestore settings so they survive across devices/installs.
+        fsSaveSettings(cred.user.uid, { name: trimmedName, birthDate: normalizedBirthDate, age: calculatedAge, gender: signupGender });
         // 4. Register public profile immediately so this user appears in others' suggestions
         fsRegisterPublicProfile(cred.user.uid, trimmedName, null, email.trim().toLowerCase());
         // 4. Reload Firebase user so displayName is fresh on next auth state change
@@ -7489,26 +7534,54 @@ import "./styles.css";
             ))}
           </div>
           {tab === "signup" && (
-            <input
-              type="text"
-              placeholder={t("First name")}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              style={{
-                width: "100%",
-                background: "rgba(255,255,255,0.09)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.15)",
-                borderRadius: 12,
-                padding: "14px 16px",
-                color: "#f0f0f0",
-                fontSize: 16,
-                fontWeight: 500,
-                outline: "none",
-                fontFamily: "'Outfit',sans-serif",
-                marginBottom: 12,
-              }}
-            />
+            <>
+              <input
+                type="text"
+                placeholder={t("First name")}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                style={{
+                  width: "100%",
+                  background: "rgba(255,255,255,0.09)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  borderRadius: 12,
+                  padding: "14px 16px",
+                  color: "#f0f0f0",
+                  fontSize: 16,
+                  fontWeight: 500,
+                  outline: "none",
+                  fontFamily: "'Outfit',sans-serif",
+                  marginBottom: 12,
+                }}
+              />
+              <div style={{ marginBottom:12 }}>
+                <div style={{ color:"rgba(255,255,255,0.62)", fontSize:11, fontWeight:800, letterSpacing:1.4, textTransform:"uppercase", margin:"0 0 6px 2px" }}>
+                  {t("Birth date")}
+                </div>
+                <input
+                  type="date"
+                  value={signupBirthDate}
+                  max={dateInputValue()}
+                  onChange={(e) => setSignupBirthDate(e.target.value)}
+                  aria-label={t("Birth date")}
+                  style={{
+                    width: "100%",
+                    background: "rgba(255,255,255,0.09)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    borderRadius: 12,
+                    padding: "14px 16px",
+                    color: "#f0f0f0",
+                    colorScheme: "dark",
+                    fontSize: 16,
+                    fontWeight: 500,
+                    outline: "none",
+                    fontFamily: "'Outfit',sans-serif",
+                  }}
+                />
+              </div>
+            </>
           )}
           {/* Gender picker (signup only) — required so the muscle-atlas model can be
               chosen at signup. Three options as discrete chips, matching profile editor. */}
@@ -18342,7 +18415,7 @@ import "./styles.css";
     const [eEmail, setEEmail] = useState(user.email);
     const [ePhoto, setEPhoto] = useState(user.photoURL || "");
     const profilePhotoInputRef = useRef(null);
-    const [eAge, setEAge] = useState(user.age || "");
+    const [eBirthDate, setEBirthDate] = useState(user.birthDate || "");
     const [eGender, setEGender] = useState(user.gender || "");
     const [ePw, setEPw] = useState("");
     const [eConfirm, setEConfirm] = useState("");
@@ -18384,6 +18457,7 @@ import "./styles.css";
     const [feedbackSending, setFeedbackSending] = useState(false);
     const [adminFeedbacks, setAdminFeedbacks] = useState([]);
     const isAdmin = user.email === "freeazadbhos@gmail.com";
+    const visibleAge = profileAge(user);
     const handleSendFeedback = async () => {
       if (!feedbackText.trim()) return;
       setFeedbackSending(true);
@@ -18542,6 +18616,15 @@ import "./styles.css";
         setEditErr("New password must be 6+ characters.");
         return;
       }
+      const normalizedBirthDate = normalizeBirthDateInput(eBirthDate);
+      if (!eBirthDate) {
+        setEditErr("Birth date required.");
+        return;
+      }
+      if (!normalizedBirthDate) {
+        setEditErr("Enter a valid birth date.");
+        return;
+      }
       const fbUser = fbAuth.currentUser;
       if (!fbUser) {
         setEditErr("Not authenticated.");
@@ -18572,18 +18655,23 @@ import "./styles.css";
         if (photoData && photoData.startsWith("data:")) {
           photoData = await resizeImage(photoData, 120);
         }
+        const calculatedAge = calculateAgeFromBirthDate(normalizedBirthDate);
+        const existingProfile = getLocalProfile(fbUser.uid) || {};
         saveLocalProfile(fbUser.uid, {
+          ...existingProfile,
           name: eName.trim(),
           email: eEmail.trim().toLowerCase(),
           photoURL: photoData,
-          age: eAge ? parseInt(eAge) : null,
+          birthDate: normalizedBirthDate,
+          age: calculatedAge,
           gender: eGender || null,
         });
-        // Push ALL profile fields to Firestore settings (name, photo, age, gender)
+        // Push ALL profile fields to Firestore settings (name, photo, birth date, age, gender)
         fsSaveSettings(fbUser.uid, {
           name: eName.trim(),
           photoURL: photoData || null,
-          age: eAge ? parseInt(eAge) : null,
+          birthDate: normalizedBirthDate,
+          age: calculatedAge,
           gender: eGender || null,
         });
         // Keep public profile in sync for user discovery
@@ -18595,7 +18683,8 @@ import "./styles.css";
           name: eName.trim(),
           email: eEmail.trim().toLowerCase(),
           photoURL: photoData,
-          age: eAge ? parseInt(eAge) : null,
+          birthDate: normalizedBirthDate,
+          age: calculatedAge,
           gender: eGender || null,
         });
         setEPw("");
@@ -18829,9 +18918,9 @@ import "./styles.css";
                 {user.name}
               </div>
               <div style={{ fontSize: 14, color: th.muted, textAlign: "left" }}>{user.email}</div>
-              {(user.age || user.gender) && (
+              {(visibleAge != null || user.gender) && (
                 <div style={{ fontSize: 13, color: th.dim, textAlign: "left", marginTop: 3 }}>
-                  {[user.gender ? t(user.gender) : null, user.age ? `${user.age} ${t("years")}` : null].filter(Boolean).join(" · ")}
+                  {[user.gender ? t(user.gender) : null, visibleAge != null ? `${visibleAge} ${t("years")}` : null].filter(Boolean).join(" · ")}
                 </div>
               )}
             </div>
@@ -18843,7 +18932,7 @@ import "./styles.css";
                 setEName(user.name);
                 setEEmail(user.email);
                 setEPhoto(user.photoURL || "");
-                setEAge(user.age ? String(user.age) : "");
+                setEBirthDate(user.birthDate || "");
                 setEGender(user.gender || "");
               }}
               style={{
@@ -18877,18 +18966,16 @@ import "./styles.css";
                 onChange={(e) => setEEmail(e.target.value)}
                 style={{ ...S.input, marginBottom: 12 }}
               />
-              {/* Age & Gender side by side */}
+              {/* Birth date & gender side by side */}
               <div style={{ display:"flex", gap:10, marginBottom:12 }}>
                 <div style={{ flex:1 }}>
-                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("AGE")}</div>
+                  <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("BIRTH DATE")}</div>
                   <input
-                    type="number"
-                    min="1"
-                    max="120"
-                    placeholder={t("e.g. 28")}
-                    value={eAge}
-                    onChange={(e) => setEAge(e.target.value)}
-                    style={{ ...S.input }}
+                    type="date"
+                    max={dateInputValue()}
+                    value={eBirthDate}
+                    onChange={(e) => setEBirthDate(e.target.value)}
+                    style={{ ...S.input, colorScheme: th.bg === "#080809" ? "dark" : "light" }}
                   />
                 </div>
                 <div style={{ flex:1 }}>
@@ -20090,7 +20177,7 @@ import "./styles.css";
             }}
           >
             IRON BODY{" "}
-            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.2 </span>
+            <span style={{ color: th.accentFg, fontWeight: 700 }}>v1.9.3 </span>
           </div>
           <div style={{ color: th.dim, fontSize: 11, letterSpacing: "2px" }}>
             {t("DEVELOPED BY AZAD")}
@@ -20394,17 +20481,21 @@ import "./styles.css";
           // Priority: 1) local cache (written at signup before this fires)
           // 2) Firebase displayName  3) pending-signup stash (email-matched)  4) email prefix
           let resolvedName = local.name || fbUser.displayName || "";
+          let resolvedBirthDate = normalizeBirthDateInput(local.birthDate) || null;
           let resolvedGender = local.gender || null;
-          if (!resolvedName || !resolvedGender) {
+          if (!resolvedName || !resolvedBirthDate || !resolvedGender) {
             const pending = ls("ib3-pending-signup", null);
             if (pending && pending.email === (fbUser.email || "").toLowerCase()) {
               if (!resolvedName && pending.name) resolvedName = pending.name;
+              if (!resolvedBirthDate && pending.birthDate) resolvedBirthDate = normalizeBirthDateInput(pending.birthDate) || null;
               if (!resolvedGender && pending.gender) resolvedGender = pending.gender;
-              // Persist name + gender to the proper profile cache now that the uid is known
+              // Persist profile details to the proper profile cache now that the uid is known
               saveLocalProfile(fbUser.uid, {
                 ...local,
                 name: resolvedName || local.name || "",
                 email: fbUser.email || "",
+                birthDate: resolvedBirthDate || local.birthDate || null,
+                age: profileAge({ birthDate: resolvedBirthDate, age: pending.age ?? local.age }),
                 gender: resolvedGender || local.gender || null,
               });
               lsDel("ib3-pending-signup");
@@ -20418,11 +20509,12 @@ import "./styles.css";
             name: resolvedName || (isGuest ? "Guest" : ""),
             email: fbUser.email || local.email || "",
             photoURL: resolvedPhoto,
-            // Read age + gender from the local profile cache (or pending-signup
+            // Read birth date + gender from the local profile cache (or pending-signup
             // stash) so they're available immediately on load. Gender drives the
             // muscle-atlas model. Firestore settings sync below can still fill
             // these in if the cache lacks them.
-            age: local.age || null,
+            birthDate: resolvedBirthDate,
+            age: profileAge({ birthDate: resolvedBirthDate, age: local.age }),
             gender: resolvedGender || null,
             isGuest,
           });
@@ -20434,7 +20526,9 @@ import "./styles.css";
               .then(() => {
                 const fresh = fbAuth.currentUser;
                 if (fresh?.displayName) {
+                  const latestLocal = getLocalProfile(fbUser.uid) || local;
                   saveLocalProfile(fbUser.uid, {
+                    ...latestLocal,
                     name: fresh.displayName,
                     email: fbUser.email || "",
                   });
@@ -20633,21 +20727,24 @@ import "./styles.css";
               setUser((u) => (u ? { ...u, photoURL: fsSet.photoURL } : u));
             }
           }
-          // Restore name, age & gender from Firestore settings
-          if (fsSet?.age != null || fsSet?.gender != null || fsSet?.name) {
+          // Restore name, birth date, age & gender from Firestore settings
+          const remoteBirthDate = normalizeBirthDateInput(fsSet?.birthDate) || null;
+          if (fsSet?.age != null || remoteBirthDate || fsSet?.gender != null || fsSet?.name) {
             const localProf = getLocalProfile(user.id) || {};
-            if (!localProf.age && !localProf.gender) {
+            if ((remoteBirthDate && !localProf.birthDate) || (fsSet.age != null && !localProf.age) || (fsSet.gender != null && !localProf.gender) || (fsSet.name && !localProf.name)) {
               saveLocalProfile(user.id, {
                 ...localProf,
                 name: fsSet.name || localProf.name,
-                age: fsSet.age || null,
+                birthDate: remoteBirthDate || null,
+                age: profileAge({ birthDate: remoteBirthDate, age: fsSet.age }),
                 gender: fsSet.gender || null,
               });
             }
             setUser(u => u ? {
               ...u,
               name: u.name || fsSet.name || u.name,
-              age: u.age || fsSet.age || null,
+              birthDate: u.birthDate || remoteBirthDate || null,
+              age: profileAge({ birthDate: u.birthDate || remoteBirthDate, age: u.age || fsSet.age }),
               gender: u.gender || fsSet.gender || null,
             } : u);
           }
@@ -20771,6 +20868,30 @@ import "./styles.css";
             // Backfill public profile with Firestore data — fires for every existing user on every app open
             if (remote.name || user.name) {
               fsRegisterPublicProfile(user.id, remote.name || user.name, remote.photoURL || user.photoURL || null, user.email || "");
+            }
+            const remoteBirthDate = normalizeBirthDateInput(remote.birthDate) || null;
+            if (remote.name || remote.photoURL !== undefined || remoteBirthDate || remote.age != null || remote.gender != null) {
+              setUser(u => {
+                if (!u) return u;
+                const next = {
+                  ...u,
+                  name: remote.name || u.name,
+                  photoURL: remote.photoURL !== undefined ? remote.photoURL : u.photoURL,
+                  birthDate: remoteBirthDate || u.birthDate || null,
+                  age: profileAge({ birthDate: remoteBirthDate || u.birthDate, age: remote.age ?? u.age }),
+                  gender: remote.gender || u.gender || null,
+                };
+                saveLocalProfile(user.id, {
+                  ...(getLocalProfile(user.id) || {}),
+                  name: next.name,
+                  email: next.email,
+                  photoURL: next.photoURL || null,
+                  birthDate: next.birthDate || null,
+                  age: next.age,
+                  gender: next.gender,
+                });
+                return next;
+              });
             }
             setSettings(prev => {
               // Merge remote into defaults; never overwrite a valid array with null
