@@ -132,8 +132,10 @@ import "./styles.css";
     raspberry: { label: "Raspberry", light: { bg: "#C81E5A", t: "#ffffff", fg: "#C81E5A" }, dark: { bg: "#FF5C8A", t: "#080809", fg: "#FF5C8A" } },
     tangerine: { label: "Tangerine", light: { bg: "#E2622A", t: "#ffffff", fg: "#E2622A" }, dark: { bg: "#FF9A3D", t: "#080809", fg: "#FF9A3D" } },
     lavender:  { label: "Lavender",  light: { bg: "#7C4DD1", t: "#ffffff", fg: "#7C4DD1" }, dark: { bg: "#C4A9F5", t: "#080809", fg: "#C4A9F5" } },
+    blueberry: { label: "Blueberry", light: { bg: "#2563EB", t: "#ffffff", fg: "#2563EB" }, dark: { bg: "#6FA8FF", t: "#080809", fg: "#6FA8FF" } },
+    lime:      { label: "Lime",      light: { bg: "#5C8A0E", t: "#ffffff", fg: "#5C8A0E" }, dark: { bg: "#C6E84A", t: "#080809", fg: "#C6E84A" } },
   };
-  const ACCENT_ORDER = ["default", "raspberry", "tangerine", "lavender"];
+  const ACCENT_ORDER = ["default", "raspberry", "tangerine", "lavender", "blueberry", "lime"];
   // Apply a named accent to a base theme, returning a new theme object.
   function applyAccent(base, mode, accentKey) {
     const def = ACCENTS[accentKey] || ACCENTS.default;
@@ -460,6 +462,8 @@ import "./styles.css";
     "Raspberry": "Ahududu",
     "Tangerine": "Mandalina",
     "Lavender": "Lavanta",
+    "Blueberry": "Yaban Mersini",
+    "Lime": "Misket Limonu",
     "Dark mode": "Koyu mod",
     "Auto: dark 19:00-06:00": "Otomatik: koyu 19:00-06:00",
     "RESET TO AUTO (TIME-BASED)": "OTOMATİĞE DÖN (SAATE GÖRE)",
