@@ -133,7 +133,7 @@ import "./styles.css";
     tangerine: { label: "Tangerine", light: { bg: "#E2622A", t: "#ffffff", fg: "#E2622A" }, dark: { bg: "#FF9A3D", t: "#080809", fg: "#FF9A3D" } },
     lavender:  { label: "Lavender",  light: { bg: "#7C4DD1", t: "#ffffff", fg: "#7C4DD1" }, dark: { bg: "#C4A9F5", t: "#080809", fg: "#C4A9F5" } },
     blueberry: { label: "Blueberry", light: { bg: "#2563EB", t: "#ffffff", fg: "#2563EB" }, dark: { bg: "#6FA8FF", t: "#080809", fg: "#6FA8FF" } },
-    lime:      { label: "Lime",      light: { bg: "#5C8A0E", t: "#ffffff", fg: "#5C8A0E" }, dark: { bg: "#C6E84A", t: "#080809", fg: "#C6E84A" } },
+    lime:      { label: "Lime",      light: { bg: "#5C8A0E", t: "#ffffff", fg: "#5C8A0E" }, dark: { bg: "#F5D84A", t: "#080809", fg: "#F5D84A" } },
   };
   const ACCENT_ORDER = ["default", "raspberry", "tangerine", "lavender", "blueberry", "lime"];
   // Apply a named accent to a base theme, returning a new theme object.
@@ -3781,8 +3781,8 @@ import "./styles.css";
       { ids:["foreFR"], d:"M452 576 C432 574 422 600 426 642 C431 686 442 730 454 752 C464 704 464 616 452 576 Z" },
       { ids:["foreBL"], d:"M566 576 C586 574 596 600 592 642 C587 686 576 730 564 752 C554 704 554 616 566 576 Z" },
       { ids:["foreBR"], d:"M896 576 C876 574 866 600 870 642 C875 686 886 730 898 752 C908 704 908 616 896 576 Z" },
-      { ids:["latL"], d:"M640 395 C667 414 686 470 692 528 C696 572 690 598 670 606 C650 596 636 556 631 508 C627 460 629 416 640 395 Z" },
-      { ids:["latR"], d:"M820 395 C793 414 774 470 768 528 C764 572 770 598 790 606 C810 596 824 556 829 508 C833 460 831 416 820 395 Z" },
+      { ids:["latL"], d:"M663 395 C690 414 709 470 715 528 C719 572 713 598 693 606 C673 596 659 556 654 508 C650 460 652 416 663 395 Z" },
+      { ids:["latR"], d:"M843 395 C816 414 797 470 791 528 C787 572 793 598 813 606 C833 596 847 556 852 508 C856 460 854 416 843 395 Z" },
       { ids:["midBack"], d:"M712 315 C737 299 773 299 798 315 C803 410 796 520 754 590 C714 520 707 410 712 315 Z" },
       { ids:["lowerBack"], d:"M702 540 C725 520 783 520 806 540 C803 600 784 648 754 668 C724 648 705 600 702 540 Z" },
       { ids:["gluteL"], d:"M652 620 C706 586 756 625 758 706 C754 775 707 804 655 777 C620 737 617 660 652 620 Z" },
@@ -4154,8 +4154,8 @@ import "./styles.css";
 	    { label: "Forearms", group: "Arms", d: "M452 576 C432 574 422 600 426 642 C431 686 442 730 454 752 C464 704 464 616 452 576 Z" },
 	    { label: "Forearms", group: "Arms", d: "M566 576 C586 574 596 600 592 642 C587 686 576 730 564 752 C554 704 554 616 566 576 Z" },
 	    { label: "Forearms", group: "Arms", d: "M896 576 C876 574 866 600 870 642 C875 686 886 730 898 752 C908 704 908 616 896 576 Z" },
-	    { label: "Lats", group: "Back", d: "M640 395 C667 414 686 470 692 528 C696 572 690 598 670 606 C650 596 636 556 631 508 C627 460 629 416 640 395 Z" },
-	    { label: "Lats", group: "Back", d: "M820 395 C793 414 774 470 768 528 C764 572 770 598 790 606 C810 596 824 556 829 508 C833 460 831 416 820 395 Z" },
+	    { label: "Lats", group: "Back", d: "M663 395 C690 414 709 470 715 528 C719 572 713 598 693 606 C673 596 659 556 654 508 C650 460 652 416 663 395 Z" },
+	    { label: "Lats", group: "Back", d: "M843 395 C816 414 797 470 791 528 C787 572 793 598 813 606 C833 596 847 556 852 508 C856 460 854 416 843 395 Z" },
 	    { label: "Mid Back", group: "Back", d: "M712 315 C737 299 773 299 798 315 C803 410 796 520 754 590 C714 520 707 410 712 315 Z" },
 	    { label: "Lower Back", group: "Back", d: "M702 540 C725 520 783 520 806 540 C803 600 784 648 754 668 C724 648 705 600 702 540 Z" },
 	    { label: "Glutes", group: "Legs", d: "M652 620 C706 586 756 625 758 706 C754 775 707 804 655 777 C620 737 617 660 652 620 Z" },
@@ -5822,7 +5822,7 @@ import "./styles.css";
       </button>
     );
   }
-  function CheckCircle({ done, onClick }) {
+  function CheckCircle({ done, onClick, tickColor }) {
     const th = useTheme();
     const [smashing, setSmashing] = useState(false);
     const [burst, setBurst] = useState(false);
@@ -5878,7 +5878,7 @@ import "./styles.css";
         >
           {done && (
             <span style={{
-              color: th.accentT, fontSize: 16, fontWeight: 900,
+              color: tickColor || th.accentT, fontSize: 16, fontWeight: 900,
               display: "block",
               animation: smashing ? "checkTick 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards" : "none",
             }}>
@@ -5911,7 +5911,7 @@ import "./styles.css";
   }
 
   /* ─── WeightPicker ───────────────────────────────────────────────────────────── */
-  function WeightPicker({ value, onChange }) {
+  function WeightPicker({ value, onChange, disabled = false }) {
     const th = useTheme();
     const [open, setOpen] = useState(false);
     const [wpClosing, setWpClosing] = useState(false);
@@ -5953,6 +5953,7 @@ import "./styles.css";
     };
 
     const handleScroll = (e) => {
+      if (disabled) return;
       clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const el = e.target;
@@ -5968,18 +5969,22 @@ import "./styles.css";
     return (
       <div style={{ position: "relative" }}>
         <div
-          onClick={() => { if (open) closeWp(); else setOpen(true); }}
+          onClick={() => {
+            if (disabled) return;
+            if (open) closeWp(); else setOpen(true);
+          }}
           style={{
             ...buttonTexture(th, open ? "accentSoft" : "neutral"),
             borderRadius: 9,
             padding: "7px 11px",
-            cursor: "pointer",
+            cursor: disabled ? "not-allowed" : "pointer",
             minWidth: 64,
             textAlign: "center",
             color: open ? th.accentFg : th.text,
             fontWeight: 700,
             fontSize: 14,
             userSelect: "none",
+            opacity: disabled ? 0.72 : 1,
             transition: "border-color .15s, background .15s, box-shadow .15s, transform .15s",
           }}
         >
@@ -12183,6 +12188,31 @@ import "./styles.css";
     const listRef = useRef(null);
     const mountedRef = useRef(true);
     const menuCloseTimerRef = useRef(null);
+    const commentStarStorageKey = user?.id ? uKey(user.id, "commentStars") : null;
+    const [localCommentStars, setLocalCommentStars] = useState(() =>
+      commentStarStorageKey ? ls(commentStarStorageKey, {}) : {}
+    );
+    const localCommentStarsRef = useRef(localCommentStars);
+    useEffect(() => {
+      localCommentStarsRef.current = localCommentStars;
+    }, [localCommentStars]);
+    const commentStarKey = useCallback((commentId) => `${postId}::${commentId}`, [postId]);
+    const mergeLocalCommentStars = useCallback((items, overrides = localCommentStarsRef.current) => {
+      if (!user?.id) return items;
+      return (items || []).map((comment) => {
+        const key = commentStarKey(comment.id);
+        if (!(key in (overrides || {}))) return comment;
+        const reactions = { ...(comment.reactions || {}) };
+        if (overrides[key]) reactions[user.id] = "star";
+        else delete reactions[user.id];
+        return { ...comment, reactions };
+      });
+    }, [commentStarKey, user?.id]);
+    const saveLocalCommentStars = useCallback((next) => {
+      localCommentStarsRef.current = next;
+      setLocalCommentStars(next);
+      if (commentStarStorageKey) lsSet(commentStarStorageKey, next);
+    }, [commentStarStorageKey]);
     useEffect(() => () => {
       mountedRef.current = false;
       if (menuCloseTimerRef.current) clearTimeout(menuCloseTimerRef.current);
@@ -12215,7 +12245,7 @@ import "./styles.css";
       try {
         unsub = fsListenComments(postId, (c, err) => {
           if (err) { setPermError(true); return; }
-          setComments(c);
+          setComments(mergeLocalCommentStars(c));
           setPermError(false);
           setTimeout(() => listRef.current?.scrollTo({ top: 99999, behavior:"smooth" }), 80);
         });
@@ -12224,17 +12254,30 @@ import "./styles.css";
         setPermError(true);
       }
       return () => { try { unsub(); } catch {} };
-    }, [postId]);
+    }, [postId, mergeLocalCommentStars]);
 
     const send = async () => {
       const clean = text.trim();
       if (!clean || sending) return;
       setSending(true);
-      setText("");
       if (editingComment) {
-        await fsEditComment(postId, editingComment.id, clean);
-        setEditingComment(null);
+        const editedAt = Date.now();
+        const originalComment = editingComment;
+        setComments(prev => prev.map(c =>
+          c.id === editingComment.id ? { ...c, text: clean, editedAt } : c
+        ));
+        const result = await fsEditComment(postId, editingComment.id, clean);
+        if (result?.ok) {
+          setEditingComment(null);
+          setText("");
+        } else if (mountedRef.current) {
+          setComments(prev => prev.map(c =>
+            c.id === originalComment.id ? { ...c, text: originalComment.text, editedAt: originalComment.editedAt } : c
+          ));
+          setText(clean);
+        }
       } else {
+        setText("");
         await fsPostComment(postId, user.id, user.name, user.photoURL, clean, ownerUid, contextName);
       }
       // Sheet may have been closed during the await — don't setState on unmount.
@@ -12250,8 +12293,26 @@ import "./styles.css";
       setText("");
     };
     const toggleCommentStar = async (comment) => {
+      if (!comment?.id || !user?.id) return;
+      const key = commentStarKey(comment.id);
+      const nextStarred = comment.reactions?.[user.id] !== "star";
+      const nextOverrides = { ...localCommentStarsRef.current, [key]: nextStarred };
+      saveLocalCommentStars(nextOverrides);
+      const nextReactions = { ...(comment.reactions || {}) };
+      if (nextStarred) nextReactions[user.id] = "star";
+      else delete nextReactions[user.id];
+      setComments(prev => prev.map(c =>
+        c.id === comment.id ? { ...c, reactions: nextReactions } : c
+      ));
       closeCommentMenu();
-      await fsToggleCommentStar(postId, user.id, comment.id);
+      const result = await fsToggleCommentStar(postId, user.id, comment.id);
+      if (result?.ok && mountedRef.current) {
+        const cleared = { ...localCommentStarsRef.current };
+        delete cleared[key];
+        saveLocalCommentStars(cleared);
+      } else if (mountedRef.current) {
+        setComments(prev => mergeLocalCommentStars(prev, localCommentStarsRef.current));
+      }
     };
     const deleteComment = async (comment) => {
       if (!comment || comment.authorUid !== user.id) return;
@@ -12506,11 +12567,19 @@ import "./styles.css";
                     borderRadius:"50%",
                     width:32,
                     height:32,
+                    minWidth:32,
+                    maxWidth:32,
+                    aspectRatio:"1 / 1",
                     color:th.muted,
                     cursor:"pointer",
                     flexShrink:0,
+                    display:"flex",
+                    alignItems:"center",
+                    justifyContent:"center",
                     fontSize:17,
                     lineHeight:1,
+                    padding:0,
+                    boxSizing:"border-box",
                   }}
                   title={tr("Cancel")}
                   aria-label={tr("Cancel")}
@@ -15842,7 +15911,11 @@ import "./styles.css";
   function CardioLogRow({ set, onChange, onRemove, setIdx }) {
     const th = useTheme();
     const t = useT();
-    const upd = (f, v) => onChange({ ...set, [f]: parseFloat(v) || 0 });
+    const locked = !!set.done;
+    const upd = (f, v) => {
+      if (locked) return;
+      onChange({ ...set, [f]: parseFloat(v) || 0 });
+    };
     const fields = [
       { l: t("Duration"), k: "duration", unit: t("min"), step: 1, placeholder: "0" },
       { l: t("Distance"), k: "distance", unit: "km", step: 0.1, placeholder: "0.0" },
@@ -15875,6 +15948,7 @@ import "./styles.css";
         >
           <CheckCircle
             done={set.done}
+            tickColor={th.doneText}
             onClick={() => onChange({ ...set, done: !set.done })}
           />
           <span
@@ -15893,12 +15967,13 @@ import "./styles.css";
             {t("FROM WEARABLE / APPLE WATCH")}
           </span>
           <button
-            onClick={onRemove}
+            disabled={locked}
+            onClick={() => { if (!locked) onRemove(); }}
             style={{
               background: "none",
               border: "none",
-              color: th.delText,
-              cursor: "pointer",
+              color: locked ? th.dim : th.delText,
+              cursor: locked ? "not-allowed" : "pointer",
               fontSize: 22,
               width: 34,
               height: 34,
@@ -15941,18 +16016,20 @@ import "./styles.css";
                   value={set[f.k] || ""}
                   placeholder={f.placeholder}
                   step={f.step}
+                  disabled={locked}
                   onChange={(e) => upd(f.k, e.target.value)}
                   style={{
                     flex: 1,
                     background: "none",
                     border: "none",
-                    color: th.text,
+                    color: locked ? th.muted : th.text,
                     padding: "8px 10px",
                     fontSize: 16,
                     fontWeight: 600,
                     outline: "none",
                     fontFamily: "'Outfit',sans-serif",
                     width: 0,
+                    cursor: locked ? "not-allowed" : "text",
                   }}
                 />
                 <span
@@ -15999,6 +16076,7 @@ import "./styles.css";
       });
     };
     const [showExPicker, setShowExPicker] = useState(false);
+    const [infoExercise, setInfoExercise] = useState(null);
     const [milestoneMsg, setMilestoneMsg] = useState(null);
     const [milestoneExIdx, setMilestoneExIdx] = useState(null);
     const lastMilestoneRef = useRef(0);
@@ -16068,7 +16146,9 @@ import "./styles.css";
         )
       );
     };
-    const updSetVal = (eIdx, sIdx, f, val) =>
+    const updSetVal = (eIdx, sIdx, f, val) => {
+      const currentSet = exercises[eIdx]?.sets?.[sIdx];
+      if (currentSet?.done && !(f === "_cardio" && val && val.done !== currentSet.done)) return;
       upd(
         exercises.map((ex, i) =>
           i !== eIdx
@@ -16085,6 +16165,7 @@ import "./styles.css";
               }
         )
       );
+    };
     const addSet = (eIdx) => {
       const ex = exercises[eIdx];
       const newSet =
@@ -16116,6 +16197,7 @@ import "./styles.css";
       );
     };
     const removeSet = (eIdx, sIdx) => {
+      if (exercises[eIdx]?.sets?.[sIdx]?.done) return;
       const key = `${eIdx}-${sIdx}`;
       setRemovingSetKey(key);
       setTimeout(() => {
@@ -16187,9 +16269,17 @@ import "./styles.css";
           />,
           document.body
         )}
+        {infoExercise && createPortal(
+          <ExerciseInfoSheet
+            ex={infoExercise}
+            onClose={() => setInfoExercise(null)}
+          />,
+          document.body
+        )}
 
         {/* Exercise cards */}
         {exercises.map((ex, eIdx) => {
+          const dbEx = DB.find((d) => d.id === (ex.exId || ex.id));
           const allDone = ex.sets.every((s) => s.done);
           const someDone = ex.sets.some((s) => s.done);
           const showMilestone = milestoneMsg && milestoneExIdx === eIdx;
@@ -16296,7 +16386,7 @@ import "./styles.css";
                       {allDone && (
                         <span
                           style={{
-                            color: th.accentFg,
+                            color: th.doneText,
                             marginLeft: 6,
                             fontSize: 12,
                           }}
@@ -16317,6 +16407,36 @@ import "./styles.css";
                         </span>
                       );
                     })}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setInfoExercise({
+                          id: ex.exId || ex.id,
+                          name: dbEx?.name || ex.name,
+                        });
+                      }}
+                      aria-label="Info"
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: th.bg === "#080809" ? "#F3D25C" : "#8A6500",
+                        cursor: "pointer",
+                        fontSize: 17,
+                        fontWeight: 700,
+                        padding: 0,
+                        lineHeight: 1,
+                        width: 24,
+                        height: 22,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                        opacity: 1,
+                        WebkitTapHighlightColor: "transparent",
+                      }}
+                    >
+                      ⓘ
+                    </button>
                   </div>
                 </div>
                 <button
@@ -16360,7 +16480,9 @@ import "./styles.css";
                         onRemove={() => removeSet(eIdx, sIdx)}
                       />
                     ))
-                  : ex.sets.map((set, sIdx) => (
+                  : ex.sets.map((set, sIdx) => {
+                    const locked = !!set.done;
+                    return (
                       <div
                         key={sIdx}
                         style={{
@@ -16378,6 +16500,7 @@ import "./styles.css";
                       >
                         <CheckCircle
                           done={set.done}
+                          tickColor={th.doneText}
                           onClick={() => toggleSet(eIdx, sIdx)}
                         />
                         <div
@@ -16402,7 +16525,9 @@ import "./styles.css";
                           }}
                         >
                           <button
+                            disabled={locked}
                             onClick={() =>
+                              !locked &&
                               updSetVal(
                                 eIdx,
                                 sIdx,
@@ -16413,9 +16538,9 @@ import "./styles.css";
                             style={{
                               background: "none",
                               border: "none",
-                              color: th.muted,
+                              color: locked ? th.dim : th.muted,
                               padding: "6px 9px",
-                              cursor: "pointer",
+                              cursor: locked ? "not-allowed" : "pointer",
                               fontSize: 15,
                               lineHeight: 1,
                             }}
@@ -16437,15 +16562,16 @@ import "./styles.css";
                             {set.reps}
                           </span>
                           <button
+                            disabled={locked}
                             onClick={() =>
-                              updSetVal(eIdx, sIdx, "reps", set.reps + 1)
+                              !locked && updSetVal(eIdx, sIdx, "reps", set.reps + 1)
                             }
                             style={{
                               background: "none",
                               border: "none",
-                              color: th.muted,
+                              color: locked ? th.dim : th.muted,
                               padding: "6px 9px",
-                              cursor: "pointer",
+                              cursor: locked ? "not-allowed" : "pointer",
                               fontSize: 15,
                               lineHeight: 1,
                             }}
@@ -16460,16 +16586,18 @@ import "./styles.css";
                         </span>
                         <WeightPicker
                           value={set.weight}
+                          disabled={locked}
                           onChange={(v) => updSetVal(eIdx, sIdx, "weight", v)}
                         />
                         <button
-                          onClick={() => removeSet(eIdx, sIdx)}
+                          disabled={locked}
+                          onClick={() => { if (!locked) removeSet(eIdx, sIdx); }}
                           title={t("Remove set")}
                           style={{
                             background: "none",
                             border: "none",
-                            color: th.delText,
-                            cursor: "pointer",
+                            color: locked ? th.dim : th.delText,
+                            cursor: locked ? "not-allowed" : "pointer",
                             fontSize: 22,
                             lineHeight: 1,
                             width: 34,
@@ -16485,7 +16613,8 @@ import "./styles.css";
                           ✕
                         </button>
                       </div>
-                    ))}
+                    );
+                  })}
                 {/* Add set / Add lap */}
                 <div
                   onClick={() => addSet(eIdx)}
@@ -20935,6 +21064,17 @@ import "./styles.css";
                     animation: `wordFadeUp 0.45s cubic-bezier(0.22,1,0.36,1) ${0.65 + i * 0.18}s both`,
                   }}>{word}{i < 4 ? "\u00A0" : ""}</span>
                 ))}
+              </div>
+              <div style={{
+                marginTop:48,
+                textAlign:"center",
+                color:"#c8f030",
+                fontSize:11,
+                letterSpacing:"1.5px",
+                fontFamily:"'Outfit',sans-serif",
+                animation:"ironBodyReveal 0.9s cubic-bezier(0.22,1,0.36,1) 0.1s both",
+              }}>
+                DEVELOPED BY AZAD
               </div>
             </div>
           </div>
