@@ -3928,24 +3928,25 @@ import "./styles.css";
             </svg>
           </>
         </div>
-        <div style={{
-          position:"absolute",
-          left:4,
-          right:4,
-          bottom:3,
-          display:"grid",
-          gridTemplateColumns:"1fr 1fr",
-          color:label,
-          fontFamily:"Outfit, sans-serif",
-          fontSize:9.5,
-          fontWeight:800,
-          letterSpacing:1.2,
-          textAlign:"center",
-          pointerEvents:"none",
-        }}>
-          <span>FRONT</span>
-          <span>BACK</span>
-        </div>
+	        <div style={{
+	          position:"absolute",
+	          left:4,
+	          right:4,
+	          bottom:3,
+	          ...(isFemale
+	            ? { height:12 }
+	            : { display:"grid", gridTemplateColumns:"1fr 1fr" }),
+	          color:label,
+	          fontFamily:"Outfit, sans-serif",
+	          fontSize:9.5,
+	          fontWeight:800,
+	          letterSpacing:1.2,
+	          textAlign:"center",
+	          pointerEvents:"none",
+	        }}>
+	          <span style={isFemale ? { position:"absolute", left:"29%", transform:"translateX(-50%)" } : undefined}>FRONT</span>
+	          <span style={isFemale ? { position:"absolute", left:"72%", transform:"translateX(-50%)" } : undefined}>BACK</span>
+	        </div>
       </div>
     );
   }
@@ -6658,10 +6659,10 @@ import "./styles.css";
 	    const NATIVE_W = 1024;
 	    const NATIVE_H = 1536;
 	    const cropX = 0;
-	    // Female figure is taller in-canvas, so it gets its own crop window.
+	    // Female figure is taller in-canvas, so include through the native SVG bottom.
 	    const cropY = isFemale ? 55 : 70;
 	    const cropW = 1024;
-	    const cropH = isFemale ? 1330 : 1340;
+	    const cropH = isFemale ? (NATIVE_H - cropY) : 1340;
 	    // Both atlases: transparent bg + black lines.
 	    // Invert in dark mode → white lines on dark canvas. No filter in light → black lines on white.
 	    const atlasFilter = dark ? "invert(1) brightness(1.16) contrast(1.32)" : "none";
