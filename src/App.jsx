@@ -1,6 +1,8 @@
 import "./styles.css";
   import bodyMuscleAtlasUrl from "./assets/Body Muscle Atlas.svg";
   import bodyMuscleAtlasFemaleUrl from "./assets/Body Muscle Atlas Female Front Back.svg";
+  import stravaLogoIconUrl from "./assets/Strava Logo Icon.svg";
+  import stravaLogoWordmarkUrl from "./assets/Strava Logo.png";
   import { createPortal } from "react-dom";
   import {
     useState,
@@ -46,6 +48,10 @@ import "./styles.css";
     deleteField,
     increment,
   } from "firebase/firestore";
+  import {
+    getFunctions,
+    httpsCallable,
+  } from "firebase/functions";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAYl7kGDqnHVdDU0bxtaFdqto_7KdeN_SE",
@@ -59,6 +65,9 @@ import "./styles.css";
   const fbApp = initializeApp(firebaseConfig);
   const fbAuth = getAuth(fbApp);
   const fbDb = getFirestore(fbApp);
+  const fbFunctions = getFunctions(fbApp);
+  const STRAVA_CLIENT_ID = "253842";
+  const STRAVA_SCOPE = "activity:write";
 
   /* ─── Auto-Theme ─────────────────────────────────────────────────────────────── */
   function getAutoTheme() {
@@ -381,6 +390,22 @@ import "./styles.css";
     "SESSION": "ANTRENMAN",
     "COMPLETE": "TAMAMLANDI",
     "SAVE SESSION →": "ANTRENMANI KAYDET →",
+    "STRAVA": "STRAVA",
+    "Connect Strava": "Strava'yı bağla",
+    "Disconnect Strava": "Strava bağlantısını kes",
+    "Connected to Strava": "Strava'ya bağlı",
+    "Not connected": "Bağlı değil",
+    "Post to Strava": "Strava'da paylaş",
+    "Connect in Profile first": "Önce profilden bağla",
+    "Turn this on to post after saving.": "Kaydettikten sonra paylaşmak için bunu aç.",
+    "This session will be posted after saving.": "Bu antrenman kaydedildikten sonra paylaşılacak.",
+    "Connect Strava to post this session.": "Bu antrenmanı paylaşmak için Strava'yı bağla.",
+    "Strava connected.": "Strava bağlandı.",
+    "Strava disconnected.": "Strava bağlantısı kesildi.",
+    "Strava sync requested.": "Strava senkronizasyonu istendi.",
+    "Could not connect Strava.": "Strava bağlanamadı.",
+    "Could not post to Strava.": "Strava'ya gönderilemedi.",
+    "Open Strava": "Strava'yı aç",
     "SETS DONE": "SET YAPILDI",
     "EXERCISES": "EGZERSİZ",
     "DURATION": "SÜRE",
@@ -5626,6 +5651,109 @@ import "./styles.css";
     }
   }
 
+  function stravaRedirectUri() {
+    if (typeof window === "undefined") return "";
+    return `${window.location.origin}${window.location.pathname}`;
+  }
+  function stravaStateKey(uid) {
+    return uKey(uid, "stravaOAuthState");
+  }
+  function stravaConnectionKey(uid) {
+    return uKey(uid, "stravaConnection");
+  }
+  function stravaRandomState() {
+    const arr = new Uint32Array(2);
+    if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+      crypto.getRandomValues(arr);
+      return `${arr[0].toString(36)}${arr[1].toString(36)}`;
+    }
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  }
+  function stravaAuthorizeUrl(uid) {
+    const state = `${uid}.${stravaRandomState()}`;
+    lsSet(stravaStateKey(uid), state);
+    const params = new URLSearchParams({
+      client_id: STRAVA_CLIENT_ID,
+      redirect_uri: stravaRedirectUri(),
+      response_type: "code",
+      approval_prompt: "auto",
+      scope: STRAVA_SCOPE,
+      state,
+    });
+    return `https://www.strava.com/oauth/authorize?${params.toString()}`;
+  }
+  async function callStravaFunction(name, payload = {}) {
+    const callable = httpsCallable(fbFunctions, name);
+    const result = await callable(payload);
+    return result?.data || {};
+  }
+  async function fsStravaExchangeCode(code) {
+    return callStravaFunction("stravaExchangeCode", {
+      code,
+      redirectUri: stravaRedirectUri(),
+    });
+  }
+  async function fsStravaGetConnection() {
+    return callStravaFunction("stravaGetConnection");
+  }
+  async function fsStravaDisconnect() {
+    return callStravaFunction("stravaDisconnect");
+  }
+  async function fsStravaSyncSession(session) {
+    return callStravaFunction("stravaSyncSession", { session });
+  }
+  function stravaSportTypeForSession(session) {
+    const name = String(session?.name || "").toLowerCase();
+    const exercises = Array.isArray(session?.exercises) ? session.exercises : [];
+    const cardioNames = exercises
+      .filter((e) => e?.type === "cardio")
+      .map((e) => String(e?.name || e?.muscle || "").toLowerCase())
+      .join(" ");
+    const haystack = `${name} ${cardioNames}`;
+    if (/walk|walking/.test(haystack)) return "Walk";
+    if (/run|running|jog/.test(haystack)) return "Run";
+    if (/bike|bicycle|cycling|cycle/.test(haystack)) return "Ride";
+    if (/row|rowing/.test(haystack)) return "Rowing";
+    if (/elliptical/.test(haystack)) return "Elliptical";
+    if (/stair/.test(haystack)) return "StairStepper";
+    if (exercises.length && exercises.every((e) => e?.type === "cardio")) return "Workout";
+    return "WeightTraining";
+  }
+  function buildStravaSessionPayload(session) {
+    const exercises = (session?.exercises || []).map((ex) => ({
+      id: ex.exId || ex.id || null,
+      name: ex.name || "Exercise",
+      type: ex.type || "strength",
+      muscle: ex.muscle || null,
+      group: ex.group || null,
+      sets: (ex.sets || [])
+        .filter((s) => s.done)
+        .map((s) => ({
+          reps: s.reps || 0,
+          weight: s.weight || 0,
+          duration: s.duration || 0,
+          distance: s.distance || 0,
+          calories: s.calories || 0,
+          intensity: s.intensity || null,
+        })),
+    }));
+    return {
+      id: session?.id,
+      name: session?.name || "Iron Body Workout",
+      sportType: stravaSportTypeForSession(session),
+      startTime: session?.startTime || Date.now(),
+      endTime: session?.endTime || Date.now(),
+      duration: Math.max(1, Math.round(Number(session?.duration || 0))),
+      elapsedSeconds: Math.max(60, Math.round(Number(session?.duration || 0) * 60)),
+      calories: session?.calories || null,
+      intensity: session?.intensity || null,
+      doneSets: session?.doneSets || 0,
+      totalSets: session?.totalSets || 0,
+      volume: sessionVol(session),
+      exercises,
+    };
+  }
+
   async function fsRegisterPublicProfile(uid, name, photoURL, email) {
     return setDoc(doc(fbDb, "publicProfiles", uid), {
       uid, name: name || "", photoURL: photoURL || null, email: email || "",
@@ -5760,6 +5888,39 @@ import "./styles.css";
   }
 
   /* ─── Shared UI ─────────────────────────────────────────────────────────────── */
+  function StravaWordmark({ height = 18, style }) {
+    return (
+      <img
+        src={stravaLogoWordmarkUrl}
+        alt="Strava"
+        style={{
+          height,
+          width: "auto",
+          display: "block",
+          objectFit: "contain",
+          ...style,
+        }}
+      />
+    );
+  }
+
+  function StravaIcon({ size = 34, style }) {
+    return (
+      <img
+        src={stravaLogoIconUrl}
+        alt=""
+        aria-hidden="true"
+        style={{
+          width: size,
+          height: size,
+          display: "block",
+          objectFit: "contain",
+          ...style,
+        }}
+      />
+    );
+  }
+
   function buttonTexture(th, variant = "accent", disabled = false) {
     const palettes = {
       accent: {
@@ -5779,6 +5940,15 @@ import "./styles.css";
         glow: "rgba(91,156,246,0.38)",
         color: "#fff",
         disabledColor: "rgba(91,156,246,0.35)",
+      },
+      strava: {
+        bg: "linear-gradient(135deg, rgba(252,82,0,0.82) 0%, rgba(219,67,0,0.92) 100%)",
+        disabledBg: "rgba(252,82,0,0.10)",
+        border: "rgba(252,82,0,0.62)",
+        disabledBorder: "rgba(252,82,0,0.22)",
+        glow: "rgba(252,82,0,0.34)",
+        color: "#fff",
+        disabledColor: "rgba(255,255,255,0.45)",
       },
       accentSoft: {
         bg: `linear-gradient(135deg, color-mix(in srgb, ${th.accentBg} 14%, ${th.card}) 0%, color-mix(in srgb, ${th.accentBg} 24%, ${th.card}) 100%)`,
@@ -16754,12 +16924,13 @@ import "./styles.css";
   /* ═══════════════════════════════════════════════════════════════════════════════
     COMPLETE VIEW
   ═══════════════════════════════════════════════════════════════════════════════ */
-  function CompleteView({ finished, elapsed, onSave }) {
+  function CompleteView({ finished, elapsed, onSave, stravaConnection }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
     const vol = sessionVol(finished);
     const finishedExercises = finished.exercises || [];
+    const stravaConnected = Boolean(stravaConnection?.connected);
 
     // Pre-fill from cardio sets if session contains cardio exercises
     const cardioTotals = (() => {
@@ -16824,6 +16995,7 @@ import "./styles.css";
         ? String(cardioTotals.dur)
         : String(Math.round(elapsed / 60))
     );
+    const [postToStrava, setPostToStrava] = useState(false);
     return (
       <div className="slide-up" style={{ paddingBottom: 32 }}>
         {/* ── Celebration banner ── */}
@@ -17120,12 +17292,82 @@ import "./styles.css";
             </div>
           </div>
         ) : null}
+        <div style={{ ...S.card, padding: 15, marginBottom: 20 }}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+            <div style={{ minWidth:0 }}>
+              <div
+                aria-label={t("Post to Strava")}
+                style={{ display:"flex", alignItems:"center", gap:7, marginBottom:6 }}
+              >
+                <span style={{ ...S.label, marginBottom:0 }}>POST TO</span>
+                <StravaWordmark height={13} />
+              </div>
+              <div style={{ fontSize:12, color:th.muted, lineHeight:1.35 }}>
+                {stravaConnected
+                  ? (postToStrava ? t("This session will be posted after saving.") : t("Turn this on to post after saving."))
+                  : t("Connect Strava to post this session.")}
+              </div>
+            </div>
+            {stravaConnected ? (
+              <button
+                type="button"
+                onClick={() => setPostToStrava(v => !v)}
+                aria-pressed={postToStrava}
+                style={{
+                  width:54,
+                  minWidth:54,
+                  height:30,
+                  borderRadius:999,
+                  border:`1.5px solid ${postToStrava ? "#FC5200" : th.border}`,
+                  background:postToStrava
+                    ? "linear-gradient(135deg, rgba(252,82,0,0.82), rgba(219,67,0,0.92))"
+                    : th.row,
+                  boxShadow:postToStrava ? "0 1px 10px rgba(252,82,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12)" : "none",
+                  padding:3,
+                  display:"flex",
+                  alignItems:"center",
+                  justifyContent:postToStrava ? "flex-end" : "flex-start",
+                  cursor:"pointer",
+                  transition:"background .16s, border-color .16s, justify-content .16s, box-shadow .16s",
+                }}
+              >
+                <span style={{
+                  width:22,
+                  height:22,
+                  borderRadius:"50%",
+                  background:postToStrava ? "#fff" : th.inputB,
+                  display:"block",
+                  boxShadow:"0 1px 4px rgba(0,0,0,0.22)",
+                }} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                style={{
+                  ...buttonTexture(th, "neutral", true),
+                  borderRadius:10,
+                  padding:"9px 11px",
+                  cursor:"not-allowed",
+                  fontFamily:"'Outfit',sans-serif",
+                  fontSize:11,
+                  fontWeight:800,
+                  letterSpacing:.4,
+                  whiteSpace:"nowrap",
+                }}
+              >
+                {t("Connect in Profile first")}
+              </button>
+            )}
+          </div>
+        </div>
         <Btn
           onClick={() =>
             onSave({
               intensity,
               calories: calories ? parseInt(calories) : null,
               duration: duration ? parseInt(duration) : Math.round(elapsed / 60),
+              postToStrava,
             })
           }
           style={{
@@ -18406,6 +18648,11 @@ import "./styles.css";
     onThemeAutoToggle,
     onClearUnread,
     onPhotoUpdate,
+    stravaConnection,
+    stravaBusy,
+    stravaStatus,
+    onConnectStrava,
+    onDisconnectStrava,
   }) {
     const th = useTheme();
     const S = useS();
@@ -18949,6 +19196,54 @@ import "./styles.css";
             </button>
           </div>
           {/* name/email/edit row ends above */}
+
+          <div style={{ ...S.card, padding: 14, marginBottom: 14 }}>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:10, minWidth:0 }}>
+                <StravaIcon
+                  size={34}
+                  style={{
+                    borderRadius:10,
+                    boxShadow:"0 1px 10px rgba(252,82,0,0.22)",
+                    flexShrink:0,
+                  }}
+                />
+                <div style={{ minWidth:0 }}>
+                  <div style={{ marginBottom:6 }}>
+                    <StravaWordmark height={13} />
+                  </div>
+                  <div style={{ fontSize:12, color:stravaConnection?.connected ? th.accentFg : th.muted, fontWeight:700 }}>
+                    {stravaConnection?.connected ? t("Connected to Strava") : t("Not connected")}
+                  </div>
+                  {stravaStatus ? (
+                    <div style={{ fontSize:11, color:th.dim, marginTop:3, lineHeight:1.3 }}>{t(stravaStatus)}</div>
+                  ) : null}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={stravaConnection?.connected ? onDisconnectStrava : onConnectStrava}
+                disabled={stravaBusy}
+                style={{
+                  ...buttonTexture(th, stravaConnection?.connected ? "neutral" : "strava", stravaBusy),
+                  borderRadius:10,
+                  padding:"9px 11px",
+                  cursor:stravaBusy ? "not-allowed" : "pointer",
+                  fontFamily:"'Outfit',sans-serif",
+                  fontSize:11,
+                  fontWeight:800,
+                  letterSpacing:.4,
+                  whiteSpace:"nowrap",
+                  display:"inline-flex",
+                  alignItems:"center",
+                  gap:6,
+                }}
+              >
+                {!stravaConnection?.connected && <StravaIcon size={16} />}
+                {stravaConnection?.connected ? t("Disconnect Strava") : t("Connect Strava")}
+              </button>
+            </div>
+          </div>
 
           <ProfileSection open={editMode}>
             <div style={{ borderTop: `1px solid ${th.border}`, paddingTop: 14 }}>
@@ -20456,6 +20751,9 @@ import "./styles.css";
     const [user, setUser] = useState(null);
     const [authLoading, setAuthLoading] = useState(true);
     const [splashDone, setSplashDone]   = useState(false); // true after animation minimum elapsed
+    const [stravaConnection, setStravaConnection] = useState(null);
+    const [stravaBusy, setStravaBusy] = useState(false);
+    const [stravaStatus, setStravaStatus] = useState("");
 
     // Unread feedback count (admin only)
     const [unreadFeedback, setUnreadFeedback] = useState(0);
@@ -20470,8 +20768,8 @@ import "./styles.css";
     }, [user]);
 
     // Listen to Firebase auth state — single source of truth
-    useEffect(() => {
-      const unsub = onAuthStateChanged(fbAuth, (fbUser) => {
+	    useEffect(() => {
+	      const unsub = onAuthStateChanged(fbAuth, (fbUser) => {
         if (fbUser) {
           // Build user object from Firebase + local profile cache
           const local = getLocalProfile(fbUser.uid) || {};
@@ -20546,10 +20844,99 @@ import "./styles.css";
           setUser(null);
         }
         setAuthLoading(false);
-      });
-      return unsub;
-    }, []);
-    const [view, setView] = useState("home");
+	      });
+	      return unsub;
+	    }, []);
+
+    useEffect(() => {
+      if (!user?.id || user?.isGuest) {
+        setStravaConnection(null);
+        setStravaStatus("");
+        return;
+      }
+      const cached = ls(stravaConnectionKey(user.id), null);
+      if (cached) setStravaConnection(cached);
+      fsStravaGetConnection()
+        .then((data) => {
+          const next = data?.connected ? data : null;
+          setStravaConnection(next);
+          if (next) lsSet(stravaConnectionKey(user.id), next);
+          else lsDel(stravaConnectionKey(user.id));
+        })
+        .catch(() => {
+          // Backend may not be deployed yet; keep cached state if present.
+        });
+    }, [user?.id, user?.isGuest]);
+
+    useEffect(() => {
+      if (!user?.id || user?.isGuest || typeof window === "undefined") return;
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+      const error = url.searchParams.get("error");
+      const state = url.searchParams.get("state");
+      const scope = url.searchParams.get("scope") || "";
+      if (!code && !error) return;
+      const cleanUrl = () => {
+        url.searchParams.delete("code");
+        url.searchParams.delete("scope");
+        url.searchParams.delete("state");
+        url.searchParams.delete("error");
+        window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      };
+      if (error) {
+        setStravaStatus("Could not connect Strava.");
+        cleanUrl();
+        return;
+      }
+      const expectedState = ls(stravaStateKey(user.id), "");
+      const grantedScopes = scope.split(/[,\s]+/).filter(Boolean);
+      if (!state || state !== expectedState || !grantedScopes.includes(STRAVA_SCOPE)) {
+        setStravaStatus("Could not connect Strava.");
+        cleanUrl();
+        return;
+      }
+      setStravaBusy(true);
+      fsStravaExchangeCode(code)
+        .then((data) => {
+          const next = { connected:true, ...(data || {}) };
+          setStravaConnection(next);
+          lsSet(stravaConnectionKey(user.id), next);
+          setStravaStatus("Strava connected.");
+        })
+        .catch((e) => {
+          console.warn("Strava OAuth exchange failed:", e?.code || e?.message || e);
+          setStravaStatus("Could not connect Strava.");
+        })
+        .finally(() => {
+          setStravaBusy(false);
+          lsDel(stravaStateKey(user.id));
+          cleanUrl();
+        });
+    }, [user?.id, user?.isGuest]);
+
+    const handleConnectStrava = useCallback(() => {
+      if (!user?.id || user?.isGuest) return;
+      const authUrl = stravaAuthorizeUrl(user.id);
+      const opened = window.open(authUrl, "_blank", "noopener,noreferrer");
+      if (!opened) window.location.assign(authUrl);
+    }, [user?.id, user?.isGuest]);
+
+    const handleDisconnectStrava = useCallback(async () => {
+      if (!user?.id) return;
+      setStravaBusy(true);
+      try {
+        await fsStravaDisconnect();
+        setStravaConnection(null);
+        lsDel(stravaConnectionKey(user.id));
+        setStravaStatus("Strava disconnected.");
+      } catch (e) {
+        console.warn("Strava disconnect failed:", e?.code || e?.message || e);
+        setStravaStatus("Could not connect Strava.");
+      } finally {
+        setStravaBusy(false);
+      }
+    }, [user?.id]);
+	    const [view, setView] = useState("home");
     const [profileOpen, setProfileOpen] = useState(false);
     const [profileClosing, setProfileClosing] = useState(false);
     const [shareProgOpen, setShareProgOpen] = useState(false);
@@ -21343,7 +21730,7 @@ import "./styles.css";
       await fsUpdateSession(user.id, normalized);
     };
 
-    const handleSaveSession = async ({ intensity, calories, duration }) => {
+    const handleSaveSession = async ({ intensity, calories, duration, postToStrava }) => {
       const normalizedFinished = {
         ...finished,
         exercises: (finished?.exercises || []).map(normalizeWorkoutExercise),
@@ -21355,6 +21742,26 @@ import "./styles.css";
         calories,
         duration,
       };
+      if (postToStrava) {
+        try {
+          const result = await fsStravaSyncSession(buildStravaSessionPayload(s));
+          s.strava = {
+            status: "requested",
+            uploadId: result?.uploadId || result?.id || null,
+            activityId: result?.activityId || result?.activity_id || null,
+            syncedAt: Date.now(),
+          };
+          setStravaStatus("Strava sync requested.");
+        } catch (e) {
+          console.warn("Strava session sync failed:", e?.code || e?.message || e);
+          s.strava = {
+            status: "failed",
+            error: e?.message || "Could not post to Strava.",
+            syncedAt: Date.now(),
+          };
+          setStravaStatus("Could not post to Strava.");
+        }
+      }
       const next = [s, ...sessions];
       saveSessions(next);
       // Sync last-session weights/reps/sets back to the source program
@@ -22269,11 +22676,14 @@ import "./styles.css";
               />
             )}
             {view === "complete" && finished && (
-              <CompleteView
-                finished={finished}
-                elapsed={elapsed}
-                onSave={handleSaveSession}
-              />
+	                <CompleteView
+	                  finished={finished}
+	                  elapsed={elapsed}
+	                  onSave={handleSaveSession}
+                  stravaConnection={stravaConnection}
+                  onConnectStrava={handleConnectStrava}
+                  stravaBusy={stravaBusy}
+	                />
             )}
             {view === "missedCardio" && missedCardioDraft && (
               <MissedCardioResultView
@@ -23099,13 +23509,18 @@ import "./styles.css";
                   onLogout={handleLogout}
                   onUpdateUser={(u) => setUser(u)}
                   onThemeChange={(t) => setTheme(t)}
-                  onThemeAutoToggle={(auto) => {
-                    setThemeAuto(auto);
-                    if (auto) setTheme(getAutoTheme());
-                  }}
-                  onClearUnread={() => setUnreadFeedback(0)}
-                  onPhotoUpdate={(updates) => fsPushProfileToFriends(user.id, updates, friends.map(f => f.uid))}
-                />
+	                  onThemeAutoToggle={(auto) => {
+	                    setThemeAuto(auto);
+	                    if (auto) setTheme(getAutoTheme());
+	                  }}
+	                  onClearUnread={() => setUnreadFeedback(0)}
+	                  onPhotoUpdate={(updates) => fsPushProfileToFriends(user.id, updates, friends.map(f => f.uid))}
+                  stravaConnection={stravaConnection}
+                  stravaBusy={stravaBusy}
+                  stravaStatus={stravaStatus}
+                  onConnectStrava={handleConnectStrava}
+                  onDisconnectStrava={handleDisconnectStrava}
+	                />
               </div>
             </div>
           </div>
