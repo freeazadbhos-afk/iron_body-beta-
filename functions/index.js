@@ -12,9 +12,11 @@ let adminInstance = null;
 let dbInstance = null;
 
 function getAdmin() {
-  if (!adminInstance) {
-    adminInstance = require("firebase-admin");
-    if (!adminInstance.apps.length) adminInstance.initializeApp();
+  if (!adminInstance) adminInstance = require("firebase-admin");
+  try {
+    adminInstance.app();
+  } catch {
+    adminInstance.initializeApp();
   }
   return adminInstance;
 }
