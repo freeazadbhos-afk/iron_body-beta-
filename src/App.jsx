@@ -20891,8 +20891,15 @@ import "./styles.css";
       const expectedState = ls(stravaStateKey(user.id), "");
       const stateUid = String(state || "").split(".")[0];
       const grantedScopes = scope.split(/[,\s]+/).filter(Boolean);
-      const validState = state && (state === expectedState || (!expectedState && stateUid === user.id));
-      if (!validState || !grantedScopes.includes(STRAVA_SCOPE)) {
+      const validState = Boolean(state && stateUid === user.id);
+      const hasRequiredScope = !scope || grantedScopes.includes(STRAVA_SCOPE);
+      if (!validState || !hasRequiredScope) {
+        console.warn("Strava OAuth callback rejected:", {
+          validState,
+          expectedStatePresent: Boolean(expectedState),
+          hasActivityWrite: hasRequiredScope,
+          grantedScopes,
+        });
         setStravaStatus("Could not connect Strava.");
         cleanUrl();
         return;
@@ -20919,8 +20926,12 @@ import "./styles.css";
     const handleConnectStrava = useCallback(() => {
       if (!user?.id || user?.isGuest) return;
       const authUrl = stravaAuthorizeUrl(user.id);
-      const opened = window.open(authUrl, "_blank", "noopener,noreferrer");
-      if (!opened) window.location.assign(authUrl);
+      if (window.top && window.top !== window.self) {
+        const opened = window.open(authUrl, "_blank", "noopener,noreferrer");
+        if (!opened) window.location.assign(authUrl);
+        return;
+      }
+      window.location.assign(authUrl);
     }, [user?.id, user?.isGuest]);
 
     const handleDisconnectStrava = useCallback(async () => {
