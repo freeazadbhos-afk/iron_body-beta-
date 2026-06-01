@@ -5,7 +5,7 @@ const STRAVA_CLIENT_SECRET = defineSecret("STRAVA_CLIENT_SECRET");
 const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
 const STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/activities";
 const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
-const CALL_OPTIONS = { region: "us-central1" };
+const CALL_OPTIONS = { region: "us-central1", invoker: "public" };
 const SECRET_CALL_OPTIONS = { ...CALL_OPTIONS, secrets: [STRAVA_CLIENT_SECRET] };
 
 let adminInstance = null;
