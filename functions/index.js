@@ -1,5 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/https");
 const { defineSecret } = require("firebase-functions/params");
+const { initializeApp, getApps } = require("firebase-admin/app");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const STRAVA_CLIENT_ID = "254370";
 const STRAVA_CLIENT_SECRET = defineSecret("STRAVA_CLIENT_SECRET");
 const STRAVA_TOKEN_URL = "https://www.strava.com/oauth/token";
@@ -8,19 +10,15 @@ const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
 const CALL_OPTIONS = { region: "us-central1", invoker: "public" };
 const SECRET_CALL_OPTIONS = { ...CALL_OPTIONS, secrets: [STRAVA_CLIENT_SECRET] };
 
-let adminInstance = null;
 let dbInstance = null;
 
-function getAdmin() {
-  if (!adminInstance) adminInstance = require("firebase-admin");
-  if (!adminInstance.apps || !adminInstance.apps.length) {
-    adminInstance.initializeApp();
-  }
-  return adminInstance;
+function ensureAdminApp() {
+  if (!getApps().length) initializeApp();
 }
 
 function getDb() {
-  if (!dbInstance) dbInstance = getAdmin().firestore();
+  ensureAdminApp();
+  if (!dbInstance) dbInstance = getFirestore();
   return dbInstance;
 }
 
@@ -86,7 +84,7 @@ async function saveTokenSet(uid, tokenData, previous = {}) {
     expiresAt: tokenData.expires_at,
     scope: tokenData.scope || previous.scope || "",
     athlete: cleanAthlete(tokenData.athlete) || previous.athlete || null,
-    updatedAt: getAdmin().firestore.FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
   };
   await stravaRef(uid).set(data, { merge: true });
   return data;
