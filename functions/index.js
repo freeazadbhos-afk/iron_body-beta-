@@ -9,16 +9,16 @@ const STRAVA_ACTIVITIES_URL = "https://www.strava.com/api/v3/activities";
 const STRAVA_DEAUTHORIZE_URL = "https://www.strava.com/oauth/deauthorize";
 const CALL_OPTIONS = { region: "us-central1", invoker: "public" };
 const SECRET_CALL_OPTIONS = { ...CALL_OPTIONS, secrets: [STRAVA_CLIENT_SECRET] };
+const ADMIN_APP_NAME = "iron-body-strava-admin";
 
 let dbInstance = null;
 
-function ensureAdminApp() {
-  if (!getApps().length) initializeApp();
+function getAdminApp() {
+  return getApps().find((app) => app.name === ADMIN_APP_NAME) || initializeApp({}, ADMIN_APP_NAME);
 }
 
 function getDb() {
-  ensureAdminApp();
-  if (!dbInstance) dbInstance = getFirestore();
+  if (!dbInstance) dbInstance = getFirestore(getAdminApp());
   return dbInstance;
 }
 
