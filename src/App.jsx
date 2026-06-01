@@ -20889,8 +20889,10 @@ import "./styles.css";
         return;
       }
       const expectedState = ls(stravaStateKey(user.id), "");
+      const stateUid = String(state || "").split(".")[0];
       const grantedScopes = scope.split(/[,\s]+/).filter(Boolean);
-      if (!state || state !== expectedState || !grantedScopes.includes(STRAVA_SCOPE)) {
+      const validState = state && (state === expectedState || (!expectedState && stateUid === user.id));
+      if (!validState || !grantedScopes.includes(STRAVA_SCOPE)) {
         setStravaStatus("Could not connect Strava.");
         cleanUrl();
         return;
