@@ -66,7 +66,7 @@ import "./styles.css";
   const fbAuth = getAuth(fbApp);
   const fbDb = getFirestore(fbApp);
   const fbFunctions = getFunctions(fbApp);
-  const STRAVA_CLIENT_ID = "253842";
+  const STRAVA_CLIENT_ID = "254370";
   const STRAVA_SCOPE = "activity:write";
 
   /* ─── Auto-Theme ─────────────────────────────────────────────────────────────── */
