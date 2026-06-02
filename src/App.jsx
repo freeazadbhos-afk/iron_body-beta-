@@ -369,9 +369,6 @@ import "./styles.css";
     "Quads": "Quadriceps",
     "Hamstrings": "Hamstring",
     "Calves": "Baldır",
-    "LIGHT THEME": "AÇIK TEMA",
-    "DARK THEME": "KOYU TEMA",
-    "ACTIVE": "AKTİF",
 
     // Workout view
     "20% done — keep moving!": "%20 tamam — devam et!",
@@ -9323,10 +9320,6 @@ import "./styles.css";
           const rawDow = new Date(year, month, 1).getDay();
           const firstDow = rawDow === 0 ? 6 : rawDow - 1;
           const daysInMonth = new Date(year, month + 1, 0).getDate();
-          const workoutsThisMonth = sessions.filter(s => {
-            const d = new Date(s.startTime || 0);
-            return d.getFullYear() === year && d.getMonth() === month;
-          }).length;
           const earliest = sessions.length ? new Date(Math.min(...sessions.map(s => s.startTime||Date.now()))) : new Date();
           const minOff = (earliest.getFullYear() - new Date().getFullYear()) * 12 + earliest.getMonth() - new Date().getMonth();
           const canBack = streakOff > minOff;
@@ -9351,10 +9344,8 @@ import "./styles.css";
               <DashInfoBtn title={t("Streak")} text={t("Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout.")} />
             </div>
                 <div style={{ textAlign: "right" }}>
-                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>
-                    {streak}/{workoutsThisMonth}
-                  </span>
-                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>{t("DAYS")} / {t("WORKOUTS")}</div>
+                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>{t("DAYS")}</div>
                 </div>
               </div>
               {/* Month nav */}
@@ -18694,8 +18685,7 @@ import "./styles.css";
     onConsumeAwardPopup,
     theme,
     themeAuto,
-    accentLight,
-    accentDark,
+    accent,
     onAccentChange,
     lang,
     onLangChange,
@@ -19322,13 +19312,40 @@ import "./styles.css";
               <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap", alignItems:"flex-start" }}>
                 <div style={{ flex:"1 1 180px", minWidth:0 }}>
                   <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("BIRTH DATE")}</div>
-                  <input
-                    type="date"
-                    max={dateInputValue()}
-                    value={eBirthDate}
-                    onChange={(e) => setEBirthDate(e.target.value)}
-                    style={{ ...S.input, colorScheme: th.bg === "#080809" ? "dark" : "light", width:"100%", minWidth:0, boxSizing:"border-box", padding:"13px 10px", fontSize:14 }}
-                  />
+                  <div style={{
+                    ...S.input,
+                    width:"100%",
+                    minWidth:0,
+                    boxSizing:"border-box",
+                    padding:0,
+                    overflow:"hidden",
+                    display:"flex",
+                    alignItems:"center",
+                  }}>
+                    <input
+                      type="date"
+                      max={dateInputValue()}
+                      value={eBirthDate}
+                      onChange={(e) => setEBirthDate(e.target.value)}
+                      style={{
+                        width:"100%",
+                        minWidth:0,
+                        boxSizing:"border-box",
+                        padding:"13px 10px",
+                        border:"none",
+                        outline:"none",
+                        background:"transparent",
+                        color:th.text,
+                        fontSize:14,
+                        fontFamily:"'Outfit',sans-serif",
+                        fontWeight:700,
+                        textAlign:"center",
+                        colorScheme: th.bg === "#080809" ? "dark" : "light",
+                        WebkitAppearance:"none",
+                        appearance:"none",
+                      }}
+                    />
+                  </div>
                 </div>
                 <div style={{ flex:"1 1 210px", minWidth:0 }}>
                   <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("GENDER")}</div>
@@ -19348,7 +19365,7 @@ import "./styles.css";
                           border: `1px solid ${eGender === g ? th.accentBg : th.border}`,
                           borderRadius: 9,
                           color: eGender === g ? th.accentT : th.muted,
-                          fontSize: 10.5,
+                          fontSize: 13,
                           fontWeight: 700,
                           fontFamily: "'Outfit',sans-serif",
                           padding: "8px 4px",
@@ -19892,7 +19909,7 @@ import "./styles.css";
                 </div>
               )}
 
-              {/* Themes — separate accent pickers for light and dark modes */}
+              {/* Themes — accent colour picker */}
               <div
                 style={{
                   borderTop: `1px solid ${th.border}`,
@@ -19922,60 +19939,38 @@ import "./styles.css";
                 >
                   {t("Accent color")}
                 </div>
-                {[
-                  { mode: "light", label: "LIGHT THEME", value: accentLight || "default" },
-                  { mode: "dark", label: "DARK THEME", value: accentDark || "default" },
-                ].map((row, rowIndex) => (
-                  <div key={row.mode} style={{ marginTop: rowIndex ? 14 : 0 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
-                      <div style={{ fontSize: 10, fontWeight: 800, color: th.dim, letterSpacing: "1.2px" }}>
-                        {t(row.label)}
-                      </div>
-                      {theme === row.mode && (
-                        <span style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          color: th.accentFg,
-                          letterSpacing: "1px",
-                        }}>
-                          {t("ACTIVE")}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", gap: 14, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
-                      {ACCENT_ORDER.map((key) => {
-                        const def = ACCENTS[key];
-                        const swatch = def[row.mode].bg;
-                        const isActive = row.value === key;
-                        return (
-                          <button
-                            key={`${row.mode}-${key}`}
-                            onClick={() => onAccentChange && onAccentChange(row.mode, key)}
-                            aria-label={`${t(row.label)} ${t(def.label)}`}
-                            title={t(def.label)}
-                            style={{
-                              width: 34,
-                              height: 34,
-                              borderRadius: "50%",
-                              background: swatch,
-                              border: isActive
-                                ? `3px solid ${th.text}`
-                                : `2px solid ${th.inputB}`,
-                              boxShadow: isActive
-                                ? `0 0 0 2px ${th.card}, 0 4px 12px color-mix(in srgb, ${swatch} 55%, transparent)`
-                                : "none",
-                              cursor: "pointer",
-                              padding: 0,
-                              flexShrink: 0,
-                              transition: "border .15s, box-shadow .15s, transform .15s",
-                              transform: isActive ? "scale(1.06)" : "scale(1)",
-                            }}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                  {ACCENT_ORDER.map((key) => {
+                    const def = ACCENTS[key];
+                    const swatch = def[theme === "dark" ? "dark" : "light"].bg;
+                    const isActive = (accent || "default") === key;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => onAccentChange && onAccentChange(key)}
+                        aria-label={t(def.label)}
+                        title={t(def.label)}
+                        style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: "50%",
+                          background: swatch,
+                          border: isActive
+                            ? `3px solid ${th.text}`
+                            : `2px solid ${th.inputB}`,
+                          boxShadow: isActive
+                            ? `0 0 0 2px ${th.card}, 0 4px 12px color-mix(in srgb, ${swatch} 55%, transparent)`
+                            : "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          flexShrink: 0,
+                          transition: "border .15s, box-shadow .15s, transform .15s",
+                          transform: isActive ? "scale(1.06)" : "scale(1)",
+                        }}
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
 
@@ -20778,12 +20773,9 @@ import "./styles.css";
   export default function App() {
     const [theme, setTheme] = useState(getAutoTheme);
     const [themeAuto, setThemeAuto] = useState(true);
-    const [accentLight, setAccentLight] = useState("default");
-    const [accentDark, setAccentDark] = useState("default");
+    const [accent, setAccent] = useState("default");
     const [lang, setLang] = useState("en");
-    const themeMode = theme === "dark" ? "dark" : "light";
-    const activeAccent = themeMode === "dark" ? accentDark : accentLight;
-    const th = applyAccent(themeMode === "dark" ? DARK : LIGHT, themeMode, activeAccent);
+    const th = applyAccent(theme === "dark" ? DARK : LIGHT, theme === "dark" ? "dark" : "light", accent);
 
     // Re-evaluate auto theme every minute if in auto mode
     useEffect(() => {
@@ -21160,10 +21152,7 @@ import "./styles.css";
       const savedLang = ls(uKey(user.id, "lang"), "en");
       if (LANGS.includes(savedLang)) setLang(savedLang);
       const savedAccent = ls(uKey(user.id, "accent"), "default");
-      const savedAccentLight = ls(uKey(user.id, "accentLight"), savedAccent);
-      const savedAccentDark = ls(uKey(user.id, "accentDark"), savedAccent);
-      if (ACCENT_ORDER.includes(savedAccentLight)) setAccentLight(savedAccentLight);
-      if (ACCENT_ORDER.includes(savedAccentDark)) setAccentDark(savedAccentDark);
+      if (ACCENT_ORDER.includes(savedAccent)) setAccent(savedAccent);
 
       // ── Step 2: Sync Firestore in background (no spinner) ──────────────────────
       const loadFromFirestore = async () => {
@@ -23606,20 +23595,11 @@ import "./styles.css";
                   onConsumeAwardPopup={() => setAwardPopupRequest(null)}
                   theme={theme}
                   themeAuto={themeAuto}
-                  accentLight={accentLight}
-                  accentDark={accentDark}
-                  onAccentChange={(mode, a) => {
+                  accent={accent}
+                  onAccentChange={(a) => {
                     if (!ACCENT_ORDER.includes(a)) return;
-                    if (mode === "dark") {
-                      setAccentDark(a);
-                      if (user?.id) lsSet(uKey(user.id, "accentDark"), a);
-                    } else {
-                      setAccentLight(a);
-                      if (user?.id) lsSet(uKey(user.id, "accentLight"), a);
-                    }
-                    if (user?.id && (theme === mode || (!mode && themeMode))) {
-                      lsSet(uKey(user.id, "accent"), a);
-                    }
+                    setAccent(a);
+                    if (user?.id) lsSet(uKey(user.id, "accent"), a);
                   }}
                   lang={lang}
                   onLangChange={(l) => {
