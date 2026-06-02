@@ -23681,7 +23681,7 @@ import "./styles.css";
       {competitionResultPopup && createPortal(
         <>
           <style>{`
-            @keyframes compResultIn{from{opacity:0;transform:translateY(calc(-50% + 18px)) scale(0.94)}to{opacity:1;transform:translateY(-50%) scale(1)}}
+            @keyframes compResultIn{from{opacity:0;transform:translate(-50%, calc(-50% + 18px)) scale(0.94)}to{opacity:1;transform:translate(-50%, -50%) scale(1)}}
             @keyframes compResultBackdrop{from{opacity:0}to{opacity:1}}
           `}</style>
           <div onClick={closeCompetitionResultPopup} style={{ position:"fixed", inset:0, zIndex:94, background:"rgba(0,0,0,0.58)", backdropFilter:"blur(8px)", WebkitBackdropFilter:"blur(8px)", animation:"compResultBackdrop 0.22s ease forwards" }} />
