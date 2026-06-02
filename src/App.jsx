@@ -369,6 +369,9 @@ import "./styles.css";
     "Quads": "Quadriceps",
     "Hamstrings": "Hamstring",
     "Calves": "Baldır",
+    "LIGHT THEME": "AÇIK TEMA",
+    "DARK THEME": "KOYU TEMA",
+    "ACTIVE": "AKTİF",
 
     // Workout view
     "20% done — keep moving!": "%20 tamam — devam et!",
@@ -391,6 +394,9 @@ import "./styles.css";
     "COMPLETE": "TAMAMLANDI",
     "SAVE SESSION →": "ANTRENMANI KAYDET →",
     "STRAVA": "STRAVA",
+    "Connect": "Bağla",
+    "Disconnect": "Bağlantıyı kes",
+    "Connected": "Bağlı",
     "Connect Strava": "Strava'yı bağla",
     "Disconnect Strava": "Strava bağlantısını kes",
     "Connected to Strava": "Strava'ya bağlı",
@@ -2094,92 +2100,92 @@ import "./styles.css";
     {
       id: "c1",
       name: "Running (Outdoor)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c2",
       name: "Running (Treadmill)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c3",
       name: "Walking (Outdoor)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c4",
       name: "Walking (Treadmill)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c5",
       name: "Cycling (Outdoor)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c6",
       name: "Cycling (Stationary)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c7",
       name: "Elliptical",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c8",
       name: "Swimming (Outdoor)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Lats",
+      group: "Back",
       type: "cardio",
     },
     {
       id: "c9",
       name: "Swimming (Pool)",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Lats",
+      group: "Back",
       type: "cardio",
     },
     {
       id: "c10",
       name: "Rowing Machine",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Mid Back",
+      group: "Back",
       type: "cardio",
     },
     {
       id: "c11",
       name: "Stair Climber",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Glutes",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c12",
       name: "Jump Rope",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Calves",
+      group: "Legs",
       type: "cardio",
     },
     {
       id: "c13",
       name: "HIIT",
-      muscle: "Full Body",
-      group: "Cardio",
+      muscle: "Quads",
+      group: "Legs",
       type: "cardio",
     },
 
@@ -2423,6 +2429,20 @@ import "./styles.css";
     core1:"Hip Flexors", core2:"Hip Flexors", core3:"Abs · Hip Flexors",
     core4:"Lower Back", core5:"Hip Flexors", core6:"Shoulders · Lats",
     core7:"Forearms · Traps",
+    // Cardio — keep cardio entries anatomy-aware without changing their cardio logging flow
+    c1:"Hamstrings · Glutes · Calves · Hip Flexors · Core",
+    c2:"Hamstrings · Glutes · Calves · Hip Flexors · Core",
+    c3:"Hamstrings · Glutes · Calves · Hip Flexors · Core",
+    c4:"Hamstrings · Glutes · Calves · Hip Flexors · Core",
+    c5:"Glutes · Hamstrings · Calves",
+    c6:"Glutes · Hamstrings · Calves",
+    c7:"Glutes · Hamstrings · Calves",
+    c8:"Shoulders · Chest · Triceps · Core",
+    c9:"Shoulders · Chest · Triceps · Core",
+    c10:"Lats · Quads · Glutes · Hamstrings · Biceps · Core",
+    c11:"Quads · Hamstrings · Calves",
+    c12:"Quads · Hamstrings · Shoulders · Forearms · Core",
+    c13:"Glutes · Hamstrings · Calves · Chest · Shoulders · Core",
   };
 
   // ── Difficulty badge helper ──────────────────────────────────────────────────
@@ -4126,7 +4146,7 @@ import "./styles.css";
     { label: "Abs",         fn: (e) => e.muscle === "Abs" },
     { label: "Obliques",    fn: (e) => e.muscle === "Obliques" },
     { label: "Core",        fn: (e) => e.group === "Core" || e.muscle === "Abs" || e.muscle === "Obliques" },
-    { label: "Cardio",      fn: (e) => e.group === "Cardio" },
+    { label: "Cardio",      fn: (e) => e.type === "cardio" || e.group === "Cardio" },
   ];
 
   /* ─── All muscles for "Muscles Trained" display ───────────────────────────────── */
@@ -9303,6 +9323,10 @@ import "./styles.css";
           const rawDow = new Date(year, month, 1).getDay();
           const firstDow = rawDow === 0 ? 6 : rawDow - 1;
           const daysInMonth = new Date(year, month + 1, 0).getDate();
+          const workoutsThisMonth = sessions.filter(s => {
+            const d = new Date(s.startTime || 0);
+            return d.getFullYear() === year && d.getMonth() === month;
+          }).length;
           const earliest = sessions.length ? new Date(Math.min(...sessions.map(s => s.startTime||Date.now()))) : new Date();
           const minOff = (earliest.getFullYear() - new Date().getFullYear()) * 12 + earliest.getMonth() - new Date().getMonth();
           const canBack = streakOff > minOff;
@@ -9327,8 +9351,10 @@ import "./styles.css";
               <DashInfoBtn title={t("Streak")} text={t("Your workout calendar showing training days. The streak counts consecutive days with at least one completed workout.")} />
             </div>
                 <div style={{ textAlign: "right" }}>
-                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>{streak}</span>
-                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>{t("DAYS")}</div>
+                  <span className="bebas" style={{ fontSize: 28, color: th.accentFg, lineHeight: 1 }}>
+                    {streak}/{workoutsThisMonth}
+                  </span>
+                  <div style={{ fontSize: 9, color: th.dim, letterSpacing: "1px" }}>{t("DAYS")} / {t("WORKOUTS")}</div>
                 </div>
               </div>
               {/* Month nav */}
@@ -13539,6 +13565,26 @@ import "./styles.css";
     const [inviteError, setInviteError] = useState("");
     const [showInvitePanel, setShowInvitePanel] = useState(false);
     const [sharingTab, setSharingTab] = useState("feed"); // "feed" | "friends"
+    const sharingSwipeRef = useRef(null);
+    const handleSharingTouchStart = (e) => {
+      if (e.target?.closest?.("button,a,input,textarea,select,[data-no-share-swipe]")) {
+        sharingSwipeRef.current = null;
+        return;
+      }
+      const touch = e.touches?.[0];
+      sharingSwipeRef.current = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    };
+    const handleSharingTouchEnd = (e) => {
+      const start = sharingSwipeRef.current;
+      sharingSwipeRef.current = null;
+      const end = e.changedTouches?.[0];
+      if (!start || !end) return;
+      const dx = end.clientX - start.x;
+      const dy = end.clientY - start.y;
+      if (Math.abs(dx) < 52 || Math.abs(dx) < Math.abs(dy) * 1.25) return;
+      if (dx < 0 && sharingTab === "feed") setSharingTab("friends");
+      if (dx > 0 && sharingTab === "friends") setSharingTab("feed");
+    };
     const [boardScores, setBoardScores] = useState({}); // { uid: score }
     const [inviteClosing, setInviteClosing] = useState(false);
     const closeInvitePanel = () => {
@@ -13855,7 +13901,12 @@ import "./styles.css";
     };
 
     return (
-      <div className="slide-up" style={{ paddingBottom: 90 }}>
+      <div
+        className="slide-up"
+        onTouchStart={handleSharingTouchStart}
+        onTouchEnd={handleSharingTouchEnd}
+        style={{ paddingBottom: 90 }}
+      >
         <style>{`
           @keyframes sharingFadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
           @keyframes invitePop   { from{opacity:0;transform:scale(0.96) translateY(-8px)} to{opacity:1;transform:scale(1) translateY(0)} }
@@ -18643,7 +18694,8 @@ import "./styles.css";
     onConsumeAwardPopup,
     theme,
     themeAuto,
-    accent,
+    accentLight,
+    accentDark,
     onAccentChange,
     lang,
     onLangChange,
@@ -19218,9 +19270,9 @@ import "./styles.css";
                     <StravaWordmark height={13} />
                   </div>
                   <div style={{ fontSize:12, color:stravaConnection?.connected ? th.accentFg : th.muted, fontWeight:700 }}>
-                    {stravaConnection?.connected ? t("Connected to Strava") : t("Not connected")}
+                    {stravaConnection?.connected ? t("Connected") : t("Not connected")}
                   </div>
-                  {stravaStatus ? (
+                  {stravaStatus && !stravaConnection?.connected ? (
                     <div style={{ fontSize:11, color:th.dim, marginTop:3, lineHeight:1.3 }}>{t(stravaStatus)}</div>
                   ) : null}
                 </div>
@@ -19245,7 +19297,7 @@ import "./styles.css";
                 }}
               >
                 {!stravaConnection?.connected && <StravaIcon size={16} />}
-                {stravaConnection?.connected ? t("Disconnect Strava") : t("Connect Strava")}
+                {stravaConnection?.connected ? t("Disconnect") : t("Connect")}
               </button>
             </div>
           </div>
@@ -19267,26 +19319,27 @@ import "./styles.css";
                 style={{ ...S.input, marginBottom: 12 }}
               />
               {/* Birth date & gender side by side */}
-              <div style={{ display:"flex", gap:10, marginBottom:12 }}>
-                <div style={{ flex:1 }}>
+              <div style={{ display:"flex", gap:10, marginBottom:12, flexWrap:"wrap", alignItems:"flex-start" }}>
+                <div style={{ flex:"1 1 180px", minWidth:0 }}>
                   <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("BIRTH DATE")}</div>
                   <input
                     type="date"
                     max={dateInputValue()}
                     value={eBirthDate}
                     onChange={(e) => setEBirthDate(e.target.value)}
-                    style={{ ...S.input, colorScheme: th.bg === "#080809" ? "dark" : "light" }}
+                    style={{ ...S.input, colorScheme: th.bg === "#080809" ? "dark" : "light", width:"100%", minWidth:0, boxSizing:"border-box", padding:"13px 10px", fontSize:14 }}
                   />
                 </div>
-                <div style={{ flex:1 }}>
+                <div style={{ flex:"1 1 210px", minWidth:0 }}>
                   <div style={{ ...S.label, marginBottom:6, textAlign:"left" }}>{t("GENDER")}</div>
-                  <div style={{ display:"flex", gap:6 }}>
+                  <div style={{ display:"flex", gap:6, minWidth:0 }}>
                     {["Male","Female","Other"].map(g => (
                       <button
                         key={g}
                         onClick={() => setEGender(eGender === g ? "" : g)}
                         style={{
-                          flex:1,
+                          flex:"1 1 0",
+                          minWidth:0,
                           background: eGender === g
                             ? `color-mix(in srgb, ${th.accentBg} 80%, transparent)`
                             : th.inputB,
@@ -19295,7 +19348,7 @@ import "./styles.css";
                           border: `1px solid ${eGender === g ? th.accentBg : th.border}`,
                           borderRadius: 9,
                           color: eGender === g ? th.accentT : th.muted,
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: 700,
                           fontFamily: "'Outfit',sans-serif",
                           padding: "8px 4px",
@@ -19839,7 +19892,7 @@ import "./styles.css";
                 </div>
               )}
 
-              {/* Themes — accent colour picker */}
+              {/* Themes — separate accent pickers for light and dark modes */}
               <div
                 style={{
                   borderTop: `1px solid ${th.border}`,
@@ -19869,38 +19922,60 @@ import "./styles.css";
                 >
                   {t("Accent color")}
                 </div>
-                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-                  {ACCENT_ORDER.map((key) => {
-                    const def = ACCENTS[key];
-                    const swatch = def[theme === "dark" ? "dark" : "light"].bg;
-                    const isActive = (accent || "default") === key;
-                    return (
-                      <button
-                        key={key}
-                        onClick={() => onAccentChange && onAccentChange(key)}
-                        aria-label={t(def.label)}
-                        title={t(def.label)}
-                        style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: "50%",
-                          background: swatch,
-                          border: isActive
-                            ? `3px solid ${th.text}`
-                            : `2px solid ${th.inputB}`,
-                          boxShadow: isActive
-                            ? `0 0 0 2px ${th.card}, 0 4px 12px color-mix(in srgb, ${swatch} 55%, transparent)`
-                            : "none",
-                          cursor: "pointer",
-                          padding: 0,
-                          flexShrink: 0,
-                          transition: "border .15s, box-shadow .15s, transform .15s",
-                          transform: isActive ? "scale(1.06)" : "scale(1)",
-                        }}
-                      />
-                    );
-                  })}
-                </div>
+                {[
+                  { mode: "light", label: "LIGHT THEME", value: accentLight || "default" },
+                  { mode: "dark", label: "DARK THEME", value: accentDark || "default" },
+                ].map((row, rowIndex) => (
+                  <div key={row.mode} style={{ marginTop: rowIndex ? 14 : 0 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: th.dim, letterSpacing: "1.2px" }}>
+                        {t(row.label)}
+                      </div>
+                      {theme === row.mode && (
+                        <span style={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          color: th.accentFg,
+                          letterSpacing: "1px",
+                        }}>
+                          {t("ACTIVE")}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", gap: 14, alignItems: "center", overflowX: "auto", paddingBottom: 2 }}>
+                      {ACCENT_ORDER.map((key) => {
+                        const def = ACCENTS[key];
+                        const swatch = def[row.mode].bg;
+                        const isActive = row.value === key;
+                        return (
+                          <button
+                            key={`${row.mode}-${key}`}
+                            onClick={() => onAccentChange && onAccentChange(row.mode, key)}
+                            aria-label={`${t(row.label)} ${t(def.label)}`}
+                            title={t(def.label)}
+                            style={{
+                              width: 34,
+                              height: 34,
+                              borderRadius: "50%",
+                              background: swatch,
+                              border: isActive
+                                ? `3px solid ${th.text}`
+                                : `2px solid ${th.inputB}`,
+                              boxShadow: isActive
+                                ? `0 0 0 2px ${th.card}, 0 4px 12px color-mix(in srgb, ${swatch} 55%, transparent)`
+                                : "none",
+                              cursor: "pointer",
+                              padding: 0,
+                              flexShrink: 0,
+                              transition: "border .15s, box-shadow .15s, transform .15s",
+                              transform: isActive ? "scale(1.06)" : "scale(1)",
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -20703,9 +20778,12 @@ import "./styles.css";
   export default function App() {
     const [theme, setTheme] = useState(getAutoTheme);
     const [themeAuto, setThemeAuto] = useState(true);
-    const [accent, setAccent] = useState("default");
+    const [accentLight, setAccentLight] = useState("default");
+    const [accentDark, setAccentDark] = useState("default");
     const [lang, setLang] = useState("en");
-    const th = applyAccent(theme === "dark" ? DARK : LIGHT, theme === "dark" ? "dark" : "light", accent);
+    const themeMode = theme === "dark" ? "dark" : "light";
+    const activeAccent = themeMode === "dark" ? accentDark : accentLight;
+    const th = applyAccent(themeMode === "dark" ? DARK : LIGHT, themeMode, activeAccent);
 
     // Re-evaluate auto theme every minute if in auto mode
     useEffect(() => {
@@ -21082,7 +21160,10 @@ import "./styles.css";
       const savedLang = ls(uKey(user.id, "lang"), "en");
       if (LANGS.includes(savedLang)) setLang(savedLang);
       const savedAccent = ls(uKey(user.id, "accent"), "default");
-      if (ACCENT_ORDER.includes(savedAccent)) setAccent(savedAccent);
+      const savedAccentLight = ls(uKey(user.id, "accentLight"), savedAccent);
+      const savedAccentDark = ls(uKey(user.id, "accentDark"), savedAccent);
+      if (ACCENT_ORDER.includes(savedAccentLight)) setAccentLight(savedAccentLight);
+      if (ACCENT_ORDER.includes(savedAccentDark)) setAccentDark(savedAccentDark);
 
       // ── Step 2: Sync Firestore in background (no spinner) ──────────────────────
       const loadFromFirestore = async () => {
@@ -23525,11 +23606,20 @@ import "./styles.css";
                   onConsumeAwardPopup={() => setAwardPopupRequest(null)}
                   theme={theme}
                   themeAuto={themeAuto}
-                  accent={accent}
-                  onAccentChange={(a) => {
+                  accentLight={accentLight}
+                  accentDark={accentDark}
+                  onAccentChange={(mode, a) => {
                     if (!ACCENT_ORDER.includes(a)) return;
-                    setAccent(a);
-                    if (user?.id) lsSet(uKey(user.id, "accent"), a);
+                    if (mode === "dark") {
+                      setAccentDark(a);
+                      if (user?.id) lsSet(uKey(user.id, "accentDark"), a);
+                    } else {
+                      setAccentLight(a);
+                      if (user?.id) lsSet(uKey(user.id, "accentLight"), a);
+                    }
+                    if (user?.id && (theme === mode || (!mode && themeMode))) {
+                      lsSet(uKey(user.id, "accent"), a);
+                    }
                   }}
                   lang={lang}
                   onLangChange={(l) => {
