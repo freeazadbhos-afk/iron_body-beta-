@@ -10521,7 +10521,7 @@ import "./styles.css";
     );
   }
 
-  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching, unreadMessages = 0 }) {
+  function FriendDashboardSheet({ friend, user, competitions, onClose, onGetFriendSessions, onCompete, coachRelations, onSendCoachRequest, onGetFriendPrograms, onSaveCoachPrograms, onStopCoaching, unreadMessages = 0, mySessions = [] }) {
     const th = useTheme();
     const S = useS();
     const t = useT();
@@ -10756,12 +10756,21 @@ import "./styles.css";
         (sessions || []).filter(s => (s.startTime||0) >= weekStart.getTime())
           .map(s => { const d = new Date(s.startTime||0); d.setHours(0,0,0,0); return d.getTime(); })
       ).size;
+      const friendHasCompetitionWin = (competitions || []).some(c => {
+        if (c?.status !== "finished") return false;
+        if (![c.fromUid, c.toUid].includes(friend.uid)) return false;
+        const storedWinner = c.result?.winnerUid ?? c.winnerUid;
+        if (storedWinner !== undefined) return storedWinner === friend.uid;
+        const fromSessions = c.fromUid === friend.uid ? sessions : mySessions;
+        const toSessions = c.toUid === friend.uid ? sessions : mySessions;
+        return competitionWinnerUid(c, competitionScore(fromSessions, c), competitionScore(toSessions, c)) === friend.uid;
+      });
       // Same catalogue order as the user's own awards (perfect week → monthly →
-      // streaks), then earned-first. Competition Win is omitted here since a
-      // friend's competition history isn't available to the viewer.
+      // competition → streaks), then earned-first.
       return [
         { id:"weekly",   icon:"🗓️", label:t("Perfect Week"), earned: daysThisWeek >= 5 },
         { id:"monthly",  icon:"📅", label:t("{month} Challenge", { month: t(monthName) }), earned: daysThisMonth >= 20 },
+        { id:"comp",     icon:"🏆", label:t("Competition Win"), earned: friendHasCompetitionWin },
         { id:"streak7",  icon:"🔥", label:t("7-Day Streak"),   earned: bestStreak >= 7 },
         { id:"streak14", icon:"⚡", label:t("14-Day Streak"),  earned: bestStreak >= 14 },
         { id:"streak21", icon:"💎", label:t("21-Day Streak"),  earned: bestStreak >= 21 },
@@ -13813,7 +13822,21 @@ import "./styles.css";
         friend: friends.find(f => f.uid === sp.toUid) || { uid: sp.toUid, name: "Friend" },
       })),
     ];
-    const feedItems = [...sessionFeedItems, ...ownSessionFeedItems, ...sharedProgFeedItems]
+    const competitionFeedItems = (competitions || [])
+      .filter(c => c?.status === "finished" && c.fromUid && c.toUid)
+      .map(c => {
+        const otherUid = c.fromUid === user.id ? c.toUid : c.fromUid;
+        const otherName = c.fromUid === user.id ? c.toName : c.fromName;
+        const friend = friends.find(f => f.uid === otherUid) || { uid: otherUid, name: otherName || t("Friend"), photoURL: null };
+        return {
+          type: "competitionResult",
+          comp: c,
+          friend,
+          ts: asMillis(c.resultPostedAt) || asMillis(c.finishedAt) || asMillis(c.result?.computedAt) || asMillis(c.endAt) || asMillis(c.createdAt),
+        };
+      })
+      .filter(item => item.ts >= W7);
+    const feedItems = [...sessionFeedItems, ...ownSessionFeedItems, ...sharedProgFeedItems, ...competitionFeedItems]
       .sort((a, b) => b.ts - a.ts);
 
     const dmMs = (v) => {
@@ -13845,14 +13868,16 @@ import "./styles.css";
       const unsubList = feedItems.map(item => {
         const postId = item.type === "sharedProg"
           ? `program_${item.sp.id}`
-          : `session_${item.friend?.uid}_${item.session?.id || item.session?.startTime}`;
+          : item.type === "session"
+          ? `session_${item.friend?.uid}_${item.session?.id || item.session?.startTime}`
+          : null;
         if (!postId || postId.endsWith("_undefined")) return null;
         return fsListenComments(postId, (comments) => {
           setCommentCounts(prev => ({ ...prev, [postId]: comments.length }));
         });
       }).filter(Boolean);
       return () => unsubList.forEach(u => { try { u(); } catch {} });
-    }, [feedItems.map(i => i.type === "sharedProg" ? i.sp?.id : (i.session?.id || i.session?.startTime)).join(",")]); 
+    }, [feedItems.map(i => i.type === "sharedProg" ? i.sp?.id : i.type === "session" ? (i.session?.id || i.session?.startTime) : "").join(",")]);
 
     const handleSendInvite = async () => {
       const email = inviteEmail.trim().toLowerCase();
@@ -14370,6 +14395,7 @@ import "./styles.css";
             onSaveCoachPrograms={onSaveCoachPrograms}
             onStopCoaching={onStopCoaching}
             unreadMessages={unreadDirectByFriend[dashFriend.uid] || 0}
+            mySessions={mySessions}
           />,
           document.body
         )}
@@ -14732,6 +14758,94 @@ import "./styles.css";
                 <div style={{ color:th.muted, fontSize:14, textAlign: "center" }}>{t("No recent workouts from friends yet.")}</div>
               </div>
             ) : feedItems.map((item, i) => {
+              if (item.type === "competitionResult") {
+                const { comp } = item;
+                const fromFriend = comp.fromUid === user.id
+                  ? { uid:user.id, name:user.name || t("You"), photoURL:user.photoURL || null }
+                  : friends.find(f => f.uid === comp.fromUid) || { uid:comp.fromUid, name:comp.fromName || t("Friend"), photoURL:null };
+                const toFriend = comp.toUid === user.id
+                  ? { uid:user.id, name:user.name || t("You"), photoURL:user.photoURL || null }
+                  : friends.find(f => f.uid === comp.toUid) || { uid:comp.toUid, name:comp.toName || t("Friend"), photoURL:null };
+                const fromSessions = comp.fromUid === user.id ? mySessions : (feedData[comp.fromUid] || []);
+                const toSessions = comp.toUid === user.id ? mySessions : (feedData[comp.toUid] || []);
+                const fromScore = comp.result?.fromScore ?? comp.fromScore ?? competitionScore(fromSessions, comp);
+                const toScore = comp.result?.toScore ?? comp.toScore ?? competitionScore(toSessions, comp);
+                const storedWinner = comp.result?.winnerUid ?? comp.winnerUid;
+                const winnerUid = storedWinner !== undefined ? (storedWinner || null) : competitionWinnerUid(comp, fromScore, toScore);
+                const isTie = !winnerUid;
+                const winnerName = isTie
+                  ? t("Tie")
+                  : winnerUid === user.id
+                  ? t("You")
+                  : winnerUid === comp.fromUid
+                  ? (comp.fromName || fromFriend.name || t("Friend"))
+                  : (comp.toName || toFriend.name || t("Friend"));
+                const actor = winnerUid === comp.fromUid ? fromFriend : winnerUid === comp.toUid ? toFriend : item.friend;
+                const actorName = isTie ? t("Competition") : winnerName;
+                const actorInitials = (actorName || "?").split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+                const openFriend = (f) => {
+                  if (!f?.uid || f.uid === user.id) return;
+                  const found = friends.find(x => x.uid === f.uid) || f;
+                  setDashFriend(found);
+                };
+                return (
+                  <div key={`competition-${comp.id || i}`} data-postid={`competition_${comp.id}`} style={{ ...S.card, textAlign:"left", padding:"14px 16px", marginBottom:8, animation:`feedFadeIn 0.3s ease ${i*0.04}s both` }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:10 }}>
+                      <div onClick={(e) => { if (actor?.uid && actor.uid !== user.id) { addRipple(e, th.accentFg, { target:"firstChild" }); openFriend(actor); } }} style={{ cursor: actor?.uid && actor.uid !== user.id ? "pointer" : "default", flexShrink:0 }}>
+                        {actor?.photoURL ? (
+                          <img src={actor.photoURL} alt={actorName} style={{ width:36, height:36, borderRadius:"50%", objectFit:"cover", display:"block" }} />
+                        ) : (
+                          <div style={{ width:36, height:36, borderRadius:"50%", background:"rgba(212,175,55,0.18)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:13, fontWeight:700, color:"#D4AF37" }}>
+                            {isTie ? "🏆" : actorInitials}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <span style={{ fontWeight:700, fontSize:14, color:th.text }}>{actorName}</span>
+                        <span style={{ fontSize:13, color:th.muted }}> {isTie ? t("finished a 7-day competition") : t("won a 7-day competition")}</span>
+                      </div>
+                      <div style={{ fontSize:13, color:th.dim, flexShrink:0 }}>{fmtTimeAgo(item.ts)}</div>
+                    </div>
+                    <div style={{
+                      background:th.sect,
+                      borderRadius:12,
+                      padding:"12px 14px",
+                      border:"1.5px solid color-mix(in srgb, #D4AF37 28%, transparent)",
+                      boxShadow:"0 8px 22px rgba(212,175,55,0.10)",
+                    }}>
+                      <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:10, marginBottom:12 }}>
+                        <div>
+                          <div className="bebas" style={{ color:"#D4AF37", fontSize:24, letterSpacing:1.4, lineHeight:1 }}>
+                            {isTie ? t("COMPETITION TIED") : t("COMPETITION WON")}
+                          </div>
+                          <div style={{ fontSize:12, color:th.muted, marginTop:3 }}>{t("7-day challenge results")}</div>
+                        </div>
+                        <div style={{ fontSize:28, lineHeight:1 }}>🏆</div>
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr auto 1fr", gap:10, alignItems:"stretch" }}>
+                        {[{ side:"from", person:fromFriend, score:fromScore }, { side:"to", person:toFriend, score:toScore }].map(({ side, person, score }) => {
+                          const won = !isTie && person.uid === winnerUid;
+                          return (
+                            <div key={side} style={{
+                              background: won ? "rgba(212,175,55,0.12)" : `color-mix(in srgb, ${th.card} 62%, transparent)`,
+                              border:`1.5px solid ${won ? "rgba(212,175,55,0.38)" : th.border}`,
+                              borderRadius:10,
+                              padding:"10px 8px",
+                              textAlign:"center",
+                              minWidth:0,
+                            }}>
+                              <div className="bebas" style={{ fontSize:28, lineHeight:1, color: won ? "#D4AF37" : th.accentFg }}>{score}</div>
+                              <div style={{ fontSize:11, color:th.dim, fontWeight:700, letterSpacing:"1px", marginTop:4, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                                {person.uid === user.id ? t("YOU") : (person.name || t("FRIEND")).split(" ")[0].toUpperCase()}
+                              </div>
+                            </div>
+                          );
+                        }).reduce((nodes, node, idx) => idx === 0 ? [node, <div key="vs" className="bebas" style={{ alignSelf:"center", color:th.dim, fontSize:22 }}>VS</div>] : [...nodes, node], [])}
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
               if (item.type === "sharedProg") {
                 const { sp, direction } = item;
                 // Always show the SENDER's photo and name (same layout for both users)
